@@ -73,13 +73,13 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             <h1 className="text-lg font-medium text-foreground">Analysis Report</h1>
             
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Share className="h-4 w-4 mr-2" />
-                Share
+              <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                <Share className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Share</span>
               </Button>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
+              <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </div>

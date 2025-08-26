@@ -137,15 +137,15 @@ export default function Dashboard() {
               <h1 className="text-xl font-semibold text-foreground">Resume Analyzer</h1>
             </motion.div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 sm:gap-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
-                {user?.name || user?.email || "User"}
+                <span className="hidden sm:inline">{user?.name || user?.email || "User"}</span>
               </div>
               
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={toggleTheme}
                 className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
               >
@@ -160,20 +160,20 @@ export default function Dashboard() {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/job-tracker")}
-                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition px-2 sm:px-3"
               >
-                <Briefcase className="h-4 w-4 mr-2" />
-                Job Tracker
+                <Briefcase className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Job Tracker</span>
               </Button>
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/profile")}
-                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition px-2 sm:px-3"
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Profile
+                <Settings className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Profile</span>
               </Button>
 
               <Button
@@ -181,14 +181,14 @@ export default function Dashboard() {
                 size="sm"
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition px-2 sm:px-3"
               >
                 {isSigningOut ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <LogOut className="h-4 w-4 mr-2" />
+                  <LogOut className="h-4 w-4 sm:mr-2" />
                 )}
-                Sign Out
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
           </div>

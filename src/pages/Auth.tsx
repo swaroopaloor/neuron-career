@@ -127,7 +127,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
       {/* Left side - Feature showcase */}
-      <div className="hidden lg:flex flex-col items-center justify-center bg-muted/40 p-12 text-center relative overflow-hidden">
+      <div className="flex flex-col items-center justify-center bg-muted/40 p-12 text-center relative overflow-hidden">
         <motion.div
           initial={{ scale: 1.2, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
