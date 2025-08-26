@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { extractText } from "unpdf";
+import OpenAI from 'openai';
 
 export const analyzeResume = internalAction({
   args: {
@@ -14,11 +15,16 @@ export const analyzeResume = internalAction({
   handler: async (ctx, args) => {
     let errorMessage = "An unknown error occurred during analysis.";
     try {
-      const apiKey = process.env.GROQ_API_KEY;
+      const apiKey = process.env.OPENROUTER_API_KEY;
       if (!apiKey) {
-        errorMessage = "The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.";
+        errorMessage = "The OpenRouter API key is not configured. Please add the OPENROUTER_API_KEY to your project's environment variables.";
         throw new Error(errorMessage);
       }
+
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+      });
 
       const resumeFile = await ctx.storage.get(args.resumeFileId);
       if (!resumeFile) {
@@ -34,58 +40,48 @@ export const analyzeResume = internalAction({
         throw new Error(errorMessage);
       }
 
-      const prompt = `Analyze this resume against the job description and provide a detailed assessment.
+      const systemPrompt = `You are a world-class career assistant and a harsh critic. Your task is to analyze a resume against a job description with extreme scrutiny. You must provide a brutally honest, detailed assessment. Your response must be a single, valid JSON object.
 
-RESUME:
-${resumeText}
+      **CRITICAL SCORING INSTRUCTIONS:**
+      - **Do NOT give high scores easily.** A score of 80 should be rare and reserved for near-perfect matches. An average resume for a role should score between 40-60.
+      - **Justify every score.** Base your scores on a direct, line-by-line comparison of the resume against the job description's requirements.
+      - **Identify Gaps:** The 'missingKeywords' and 'topicsToMaster' are the most important part of your analysis. Be specific and actionable.
+      
+      **JSON STRUCTURE:**
+      Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100, be critical), "atsScore": number (0-100, based on keyword alignment), "missingKeywords": string[] (top 10 specific, essential keywords missing from the resume), "topicsToMaster": { "topic": string, "description": string }[] (top 5-7 specific skills or technologies the candidate should learn for this job), "coverLetter": string (a professional, tailored cover letter draft as a single string with markdown for formatting), "interviewQuestions": { "question": string, "category": string }[] (5-7 likely interview questions, categorized as "Behavioral" or "Technical"), "interviewTalkingPoints": { "point": string, "example": string }[] (3-5 key talking points for the candidate to highlight, with a brief STAR method example for each) }.
+      
+      Do not include any other text, explanations, or markdown formatting outside of the JSON object.`;
 
-JOB DESCRIPTION:
-${args.jobDescription}
+      const userPrompt = `Analyze this resume against the job description and provide a detailed assessment.
 
-Respond with a valid JSON object containing the analysis.`;
+      RESUME:
+      ${resumeText}
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "llama3-8b-8192",
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content: `You are a world-class career assistant. Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100), "atsScore": number (0-100), "missingKeywords": string[] (top 10), "topicsToMaster": { "topic": string, "description": string }[] (top 5-7 topics for interview prep), "coverLetter": string (a professional, tailored cover letter draft as a single string with markdown for formatting), "interviewQuestions": { "question": string, "category": string }[] (5-7 likely interview questions, categorized as "Behavioral" or "Technical"), "interviewTalkingPoints": { "point": string, "example": string }[] (3-5 key talking points for the candidate to highlight, with a brief STAR method example for each) }. Do not include any other text, explanations, or markdown formatting outside of the JSON object.`
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: 0.2,
-          max_tokens: 2000
-        })
+      JOB DESCRIPTION:
+      ${args.jobDescription}
+
+      Respond with a valid JSON object containing the analysis.`;
+
+      const completion = await openai.chat.completions.create({
+        model: 'anthropic/claude-3-haiku',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+        max_tokens: 4000,
       });
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        errorMessage = `The AI model provider (Groq) returned an error. Status: ${response.status}. Details: ${errorBody}`;
-        throw new Error(errorMessage);
-      }
-
-      const responseData = await response.json();
-      const content = responseData.choices[0]?.message?.content;
+      const content = completion.choices[0]?.message?.content;
       
       if (!content) {
         errorMessage = "The AI model returned an empty or invalid response. Please try again.";
         throw new Error(errorMessage);
       }
 
-      // With JSON mode enabled, the content should be a guaranteed JSON string.
       const analysis = JSON.parse(content);
 
-      // Update the analysis with results
       await ctx.runMutation(internal.analyses.updateAnalysisResults, {
         id: args.analysisId,
         matchScore: analysis.matchScore,
@@ -98,14 +94,13 @@ Respond with a valid JSON object containing the analysis.`;
         status: "completed"
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during resume analysis:", {
         analysisId: args.analysisId,
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
+        error: error.message,
+        stack: error.stack,
       });
       
-      // Update analysis with error status
       await ctx.runMutation(internal.analyses.updateAnalysisResults, {
         id: args.analysisId,
         matchScore: 0,
@@ -113,7 +108,7 @@ Respond with a valid JSON object containing the analysis.`;
         missingKeywords: [],
         topicsToMaster: [],
         status: "failed",
-        errorMessage: error instanceof Error ? error.message : errorMessage
+        errorMessage: error.message || errorMessage
       });
     }
   },

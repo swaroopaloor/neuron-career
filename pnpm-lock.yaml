@@ -152,6 +152,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      openai:
+        specifier: ^5.15.0
+        version: 5.15.0(zod@3.25.46)
       oslo:
         specifier: ^1.2.1
         version: 1.2.1
@@ -2976,6 +2979,18 @@ packages:
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
     engines: {node: '>=0.10.0'}
+
+  openai@5.15.0:
+    resolution: {integrity: sha512-kcUdws8K/A8m02I+IqFBwO51gS+87GP89yWEufGbzEi8anBz4FB/bti2QxaJdGwwY4mwJGzx85XO7TuL/Tpu1w==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.23.8
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -6271,6 +6286,10 @@ snapshots:
   oauth4webapi@3.5.1: {}
 
   object-assign@4.1.1: {}
+
+  openai@5.15.0(zod@3.25.46):
+    optionalDependencies:
+      zod: 3.25.46
 
   optionator@0.9.4:
     dependencies:
