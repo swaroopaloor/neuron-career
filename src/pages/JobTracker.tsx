@@ -292,7 +292,7 @@ export default function JobTracker() {
 
         {/* Kanban Board */}
         <div className="w-full overflow-x-auto pb-4">
-          <div className="grid grid-cols-[repeat(5,minmax(280px,1fr))] md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-[repeat(5,minmax(300px,1fr))] gap-6">
             {JOB_STATUSES.map((status, columnIndex) => (
               <motion.div
                 key={status}

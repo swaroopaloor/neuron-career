@@ -143,7 +143,7 @@ export default function Dashboard() {
             
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <User className="h-4 w-4" />
+                <User className="h-5 w-5" />
                 <span className="hidden sm:inline">{user?.name || user?.email || "User"}</span>
               </div>
               
@@ -154,9 +154,9 @@ export default function Dashboard() {
                 className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
               >
                 {theme === "light" ? (
-                  <Moon className="h-4 w-4" />
+                  <Moon className="h-5 w-5" />
                 ) : (
-                  <Sun className="h-4 w-4" />
+                  <Sun className="h-5 w-5" />
                 )}
               </Button>
 
@@ -166,7 +166,7 @@ export default function Dashboard() {
                 onClick={() => navigate("/job-tracker")}
                 className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition px-2 sm:px-3"
               >
-                <Briefcase className="h-4 w-4 sm:mr-2" />
+                <Briefcase className="h-5 w-5 sm:mr-2" />
                 <span className="hidden sm:inline">Job Tracker</span>
               </Button>
 
@@ -176,7 +176,7 @@ export default function Dashboard() {
                 onClick={() => navigate("/profile")}
                 className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition px-2 sm:px-3"
               >
-                <Settings className="h-4 w-4 sm:mr-2" />
+                <Settings className="h-5 w-5 sm:mr-2" />
                 <span className="hidden sm:inline">Profile</span>
               </Button>
 
@@ -188,9 +188,9 @@ export default function Dashboard() {
                 className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition px-2 sm:px-3"
               >
                 {isSigningOut ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <LogOut className="h-4 w-4 sm:mr-2" />
+                  <LogOut className="h-5 w-5 sm:mr-2" />
                 )}
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>
