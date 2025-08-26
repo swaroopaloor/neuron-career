@@ -175,7 +175,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={resetDialog}>
-      <DialogContent className="sm:max-w-[600px] glass elevation-4 border-border">
+      <DialogContent className="sm:max-w-[600px] glass elevation-4 border-border overflow-y-auto max-h-[90vh]">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
