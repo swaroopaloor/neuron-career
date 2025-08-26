@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/components/ThemeProvider";
 import { Navigate } from "react-router";
 import { 
   FileText, 
@@ -15,11 +16,14 @@ import {
   CheckCircle,
   Star,
   Users,
-  Award
+  Award,
+  Sun,
+  Moon
 } from "lucide-react";
 
 export default function Landing() {
   const { isLoading, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   if (isLoading) {
     return (
@@ -41,7 +45,7 @@ export default function Landing() {
     },
     {
       icon: TrendingUp,
-      title: "ATS Optimization",
+      title: "ATS Optimization", 
       description: "Get your ATS score and learn how to optimize your resume for applicant tracking systems."
     },
     {
@@ -91,6 +95,18 @@ export default function Landing() {
               </Button>
               <Button variant="ghost" asChild>
                 <a href="#how-it-works">How it Works</a>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {theme === "light" ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
               </Button>
               <Button asChild className="ripple elevation-2">
                 <a href="/auth">Get Started</a>

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +20,8 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  BookOpen
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,7 +31,9 @@ interface UploadDialogProps {
 }
 
 export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
-  const [step, setStep] = useState<"upload" | "job-description" | "processing">("upload");
+  const { user } = useAuth();
+  const [step, setStep] = useState<"resume-choice" | "upload" | "job-description" | "processing">("resume-choice");
+  const [resumeChoice, setResumeChoice] = useState<"saved" | "new" | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
   const [dragActive, setDragActive] = useState(false);
@@ -81,6 +85,15 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
     }
   };
 
+  const handleResumeChoice = (choice: "saved" | "new") => {
+    setResumeChoice(choice);
+    if (choice === "saved") {
+      setStep("job-description");
+    } else {
+      setStep("upload");
+    }
+  };
+
   const handleNext = () => {
     if (step === "upload" && file) {
       setStep("job-description");
@@ -88,8 +101,13 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
   };
 
   const handleSubmit = async () => {
-    if (!file || !jobDescription.trim()) {
+    if ((!file && resumeChoice !== "saved") || !jobDescription.trim()) {
       toast.error("Please provide both resume and job description");
+      return;
+    }
+
+    if (resumeChoice === "saved" && !user?.savedResumeId) {
+      toast.error("No saved resume found. Please upload a resume.");
       return;
     }
 
@@ -97,17 +115,29 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
     setIsUploading(true);
 
     try {
-      const uploadUrl = await generateUploadUrl();
-      const result = await fetch(uploadUrl, {
-        method: "POST",
-        body: file,
-      });
+      let resumeFileId = user?.savedResumeId;
+      let resumeFileName = user?.savedResumeName;
 
-      if (!result.ok) throw new Error("Failed to upload file");
-      const { storageId } = await result.json();
+      if (resumeChoice === "new" && file) {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          body: file,
+        });
+
+        if (!result.ok) throw new Error("Failed to upload file");
+        const { storageId } = await result.json();
+        resumeFileId = storageId;
+        resumeFileName = file.name;
+      }
+
+      if (!resumeFileId) {
+        throw new Error("No resume file available");
+      }
 
       await createAnalysis({
-        resumeFileId: storageId,
+        resumeFileId,
+        resumeFileName,
         jobDescription: jobDescription.trim(),
       });
 
@@ -130,9 +160,10 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
       setTimeout(() => {
         setFile(null);
         setJobDescription("");
-        setStep("upload");
+        setStep("resume-choice");
+        setResumeChoice(null);
         setIsUploading(false);
-      }, 300); // Delay reset to allow for exit animation
+      }, 300);
     }
   };
 
@@ -152,7 +183,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
               New Resume Analysis
             </DialogTitle>
             <DialogDescription>
-              Upload your resume and provide a job description for AI-powered analysis.
+              Choose your resume and provide a job description for AI-powered analysis.
             </DialogDescription>
           </DialogHeader>
         </motion.div>
@@ -160,24 +191,83 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
         <div className="space-y-6 pt-2">
           {/* Progress Indicator */}
           <div className="flex items-center justify-center space-x-4">
-            {[1, 2, 3].map((num, i) => (
+            {[1, 2, 3, 4].map((num, i) => (
               <>
                 <motion.div
                   animate={{
-                    scale: (step === "upload" && i === 0) || (step === "job-description" && i === 1) || (step === "processing" && i === 2) ? 1.1 : 1,
-                    background: (file && i === 0) || (step === "processing" && i === 1) ? "var(--secondary)" : (step === "upload" && i === 0) || (step === "job-description" && i === 1) || (step === "processing" && i === 2) ? "var(--primary)" : "var(--muted)",
+                    scale: (step === "resume-choice" && i === 0) || 
+                           ((step === "upload" || (step === "job-description" && resumeChoice === "saved")) && i === 1) || 
+                           (step === "job-description" && i === 2) || 
+                           (step === "processing" && i === 3) ? 1.1 : 1,
+                    background: ((resumeChoice && i === 0) || 
+                                (file && i === 1) || 
+                                (step === "processing" && i <= 2)) ? "var(--secondary)" : 
+                               ((step === "resume-choice" && i === 0) || 
+                                (step === "upload" && i === 1) || 
+                                (step === "job-description" && i === 2) || 
+                                (step === "processing" && i === 3)) ? "var(--primary)" : "var(--muted)",
                   }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   className="flex items-center justify-center w-8 h-8 rounded-full text-white font-bold"
                 >
-                  {file && i === 0 ? <CheckCircle className="h-5 w-5" /> : step === "processing" && i === 1 ? <CheckCircle className="h-5 w-5" /> : num}
+                  {((resumeChoice && i === 0) || (file && i === 1) || (step === "processing" && i <= 2)) ? 
+                    <CheckCircle className="h-5 w-5" /> : num}
                 </motion.div>
-                {i < 2 && <div className={`h-0.5 w-12 bg-muted`} />}
+                {i < 3 && <div className={`h-0.5 w-12 bg-muted`} />}
               </>
             ))}
           </div>
 
           <AnimatePresence mode="wait">
+            {step === "resume-choice" && (
+              <motion.div
+                key="resume-choice"
+                variants={stepVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="space-y-4"
+              >
+                <Label className="font-medium">Choose Resume Source</Label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {user?.savedResumeId && (
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                        resumeChoice === "saved" ? "border-primary bg-primary/10" : "border-muted hover:border-primary/50"
+                      }`}
+                      onClick={() => handleResumeChoice("saved")}
+                    >
+                      <BookOpen className="h-12 w-12 text-primary mx-auto mb-4" />
+                      <h3 className="font-medium text-foreground mb-2">Use Saved Resume</h3>
+                      <p className="text-sm text-muted-foreground">{user.savedResumeName || "Default Resume"}</p>
+                    </motion.div>
+                  )}
+                  
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                      resumeChoice === "new" ? "border-primary bg-primary/10" : "border-muted hover:border-primary/50"
+                    }`}
+                    onClick={() => handleResumeChoice("new")}
+                  >
+                    <Upload className="h-12 w-12 text-primary mx-auto mb-4" />
+                    <h3 className="font-medium text-foreground mb-2">Upload New Resume</h3>
+                    <p className="text-sm text-muted-foreground">Choose a different PDF file</p>
+                  </motion.div>
+                </div>
+
+                {!user?.savedResumeId && (
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      💡 <strong>Tip:</strong> Save a default resume in your profile for quicker analysis next time.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             {step === "upload" && (
               <motion.div
                 key="upload"
@@ -224,8 +314,9 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
                   </AnimatePresence>
                 </motion.div>
 
-                <div className="flex justify-end">
-                  <Button onClick={handleNext} disabled={!file} className="gradient-primary text-white ripple">Next Step</Button>
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={() => setStep("resume-choice")}>Back</Button>
+                  <Button onClick={handleNext} disabled={!file}>Next Step</Button>
                 </div>
               </motion.div>
             )}
@@ -233,12 +324,19 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
             {step === "job-description" && (
               <motion.div key="job-description" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
                 <Label htmlFor="job-description" className="font-medium">Job Description</Label>
-                <Textarea id="job-description" placeholder="Paste the job description here..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={8} className="bg-background/50 focus:bg-background" />
+                <Textarea 
+                  id="job-description" 
+                  placeholder="Paste the job description here..." 
+                  value={jobDescription} 
+                  onChange={(e) => setJobDescription(e.target.value)} 
+                  rows={8} 
+                  className="bg-background/50 focus:bg-background resize-none overflow-y-auto" 
+                />
                 <p className="text-xs text-muted-foreground">Provide a detailed job description for the most accurate analysis.</p>
 
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setStep("upload")}>Back</Button>
-                  <Button onClick={handleSubmit} disabled={!jobDescription.trim() || isUploading} className="gradient-accent text-white ripple">
+                  <Button variant="outline" onClick={() => setStep(resumeChoice === "saved" ? "resume-choice" : "upload")}>Back</Button>
+                  <Button onClick={handleSubmit} disabled={!jobDescription.trim() || isUploading}>
                     {isUploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Starting...</> : "Start Analysis"}
                   </Button>
                 </div>

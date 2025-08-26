@@ -48,6 +48,7 @@ export const getAnalysis = query({
 export const createAnalysis = mutation({
   args: {
     resumeFileId: v.id("_storage"),
+    resumeFileName: v.optional(v.string()),
     jobDescription: v.string(),
   },
   handler: async (ctx, args) => {
@@ -59,6 +60,7 @@ export const createAnalysis = mutation({
     const analysisId = await ctx.db.insert("analyses", {
       userId: user._id,
       resumeFileId: args.resumeFileId,
+      resumeFileName: args.resumeFileName,
       jobDescription: args.jobDescription,
       matchScore: 0,
       atsScore: 0,

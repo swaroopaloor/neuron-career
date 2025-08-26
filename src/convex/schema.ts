@@ -30,12 +30,18 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
 
       role: v.optional(roleValidator), // role of the user. do not remove
+      
+      // Profile fields
+      savedResumeId: v.optional(v.id("_storage")), // saved resume file
+      savedResumeName: v.optional(v.string()), // name of saved resume
+      theme: v.optional(v.union(v.literal("light"), v.literal("dark"))), // user theme preference
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // Resume analysis table
     analyses: defineTable({
       userId: v.id("users"),
       resumeFileId: v.id("_storage"),
+      resumeFileName: v.optional(v.string()), // name of the resume file used
       jobDescription: v.string(),
       matchScore: v.number(), // 0-100
       atsScore: v.number(), // 0-100

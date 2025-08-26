@@ -43,8 +43,45 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Minimal & Professional Dark Theme */
-:root, .dark {
+/* Light Theme */
+:root, .light {
+  --radius: 0.5rem;
+  
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222.2 84% 4.9%);
+  
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222.2 84% 4.9%);
+  
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 84% 4.9%);
+  
+  --primary: hsl(222.2 47.4% 11.2%);
+  --primary-foreground: hsl(210 40% 98%);
+  
+  --secondary: hsl(210 40% 96%);
+  --secondary-foreground: hsl(222.2 84% 4.9%);
+  
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  
+  --accent: hsl(210 40% 96%);
+  --accent-foreground: hsl(222.2 84% 4.9%);
+  
+  --destructive: hsl(0 84.2% 60.2%);
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(222.2 84% 4.9%);
+  
+  --chart-1: hsl(222.2 47.4% 11.2%);
+  --chart-2: hsl(215.4 16.3% 46.9%);
+  --chart-3: hsl(210 40% 96%);
+  --chart-4: hsl(0 0% 100%);
+  --chart-5: hsl(0 84.2% 60.2%);
+}
+
+/* Dark Theme */
+.dark {
   --radius: 0.5rem;
   
   --background: hsl(224 71.4% 4.1%);
@@ -96,7 +133,7 @@
   }
 }
 
-/* Subtle Glow Elevations */
+/* Subtle Elevations */
 .elevation-1 {
   box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
 }
@@ -111,6 +148,23 @@
 }
 .elevation-5 {
   box-shadow: 0 19px 38px rgba(0,0,0,0.25);
+}
+
+/* Light mode shadows */
+.light .elevation-1 {
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.1);
+}
+.light .elevation-2 {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+.light .elevation-3 {
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+.light .elevation-4 {
+  box-shadow: 0 14px 28px rgba(0,0,0,0.25);
+}
+.light .elevation-5 {
+  box-shadow: 0 19px 38px rgba(0,0,0,0.3);
 }
 
 /* Ripple Effect */
@@ -139,21 +193,19 @@
   transition: width 0s, height 0s, opacity 0.1s;
 }
 
-/* Gradient Text & Backgrounds */
-.gradient-text {
-  @apply bg-clip-text text-transparent;
-}
-
-/* Animations */
-
 /* Smooth Transitions */
 .smooth-transition {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Glass Morphism for Dark Theme */
+/* Glass Morphism */
 .glass {
-  background: hsl(224 71.4% 6.1%); /* Slightly lighter than background */
   backdrop-filter: blur(8px);
-  border: 1px solid hsl(215 27.9% 16.9%);
+  border: 1px solid var(--border);
+}
+.dark .glass {
+  background: hsl(224 71.4% 6.1%);
+}
+.light .glass {
+  background: rgba(255, 255, 255, 0.8);
 }

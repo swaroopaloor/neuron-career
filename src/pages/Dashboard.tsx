@@ -2,11 +2,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Navigate } from "react-router";
+import { Navigate, useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useTheme } from "@/components/ThemeProvider";
 import { 
   FileText, 
   Plus, 
@@ -20,7 +21,10 @@ import {
   Heart,
   Filter,
   Search,
-  Sparkles
+  Sparkles,
+  Sun,
+  Moon,
+  Settings
 } from "lucide-react";
 import { useState } from "react";
 import UploadDialog from "@/components/UploadDialog";
@@ -30,6 +34,8 @@ import { toast } from "sonner";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<Id<"analyses"> | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -135,6 +141,30 @@ export default function Dashboard() {
                 <User className="h-4 w-4" />
                 {user?.name || user?.email || "User"}
               </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
+              >
+                {theme === "light" ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/profile")}
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Profile
+              </Button>
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -359,6 +389,11 @@ export default function Dashboard() {
                               <span className="text-sm text-muted-foreground">
                                 {new Date(analysis._creationTime).toLocaleDateString()}
                               </span>
+                              {analysis.resumeFileName && (
+                                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                  {analysis.resumeFileName}
+                                </span>
+                              )}
                               <motion.button
                                 whileHover={{ scale: 1.2 }}
                                 whileTap={{ scale: 0.9 }}
