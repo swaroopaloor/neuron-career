@@ -49,7 +49,7 @@ Respond with a valid JSON object containing the analysis.`;
           "X-Title": "Resume Analyzer"
         },
         body: JSON.stringify({
-          model: "anthropic/claude-3.5-sonnet",
+          model: "google/gemini-pro",
           response_format: { type: "json_object" },
           messages: [
             {
