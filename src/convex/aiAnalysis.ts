@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import pdf from "pdf-parse";
+import { extractText } from "unpdf";
 
 export const analyzeResume = internalAction({
   args: {
@@ -22,9 +22,13 @@ export const analyzeResume = internalAction({
       if (!resumeFile) {
         throw new Error("Resume file not found");
       }
+      
       const resumeBuffer = await resumeFile.arrayBuffer();
-      const data = await pdf(Buffer.from(resumeBuffer));
-      const resumeText = data.text;
+      const { text: resumeText } = await extractText(resumeBuffer);
+
+      if (!resumeText) {
+        throw new Error("Could not extract text from the resume PDF.");
+      }
 
       const prompt = `Analyze this resume against the job description and provide a detailed assessment.
 
