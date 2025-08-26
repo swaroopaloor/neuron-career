@@ -100,6 +100,9 @@ const schema = defineSchema(
       jobDescription: v.optional(v.string()),
       notes: v.optional(v.string()),
       analysisId: v.optional(v.id("analyses")),
+      shortlistedDate: v.optional(v.number()),
+      interviewDate: v.optional(v.number()),
+      offerDate: v.optional(v.number()),
     }).index("by_user", ["userId"]),
   },
   {

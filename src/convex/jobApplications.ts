@@ -55,6 +55,9 @@ export const updateJobApplication = mutation({
     status: v.optional(jobStatusValidator),
     jobDescription: v.optional(v.string()),
     notes: v.optional(v.string()),
+    shortlistedDate: v.optional(v.number()),
+    interviewDate: v.optional(v.number()),
+    offerDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);

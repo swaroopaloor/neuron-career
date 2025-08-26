@@ -24,7 +24,7 @@ import {
   XCircle,
   Eye
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,10 +32,24 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { JOB_STATUSES, JobStatus } from "@/convex/schema";
 import { Id } from "@/convex/_generated/dataModel";
 import AnalysisReport from "@/components/AnalysisReport";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+
+type JobApplication = NonNullable<ReturnType<typeof useQuery<typeof api.jobApplications.getJobApplications>>>[number];
 
 export default function JobTracker() {
   const { isLoading, isAuthenticated } = useAuth();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddJobDialogOpen, setIsAddJobDialogOpen] = useState(false);
+  const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobApplication | null>(null);
+  const [dates, setDates] = useState<{
+    shortlistedDate?: Date;
+    interviewDate?: Date;
+    offerDate?: Date;
+  }>({});
+
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -46,6 +60,16 @@ export default function JobTracker() {
   const createJobApplication = useMutation(api.jobApplications.createJobApplication);
   const updateJobApplication = useMutation(api.jobApplications.updateJobApplication);
   const deleteJobApplication = useMutation(api.jobApplications.deleteJobApplication);
+
+  useEffect(() => {
+    if (editingJob) {
+      setDates({
+        shortlistedDate: editingJob.shortlistedDate ? new Date(editingJob.shortlistedDate) : undefined,
+        interviewDate: editingJob.interviewDate ? new Date(editingJob.interviewDate) : undefined,
+        offerDate: editingJob.offerDate ? new Date(editingJob.offerDate) : undefined,
+      });
+    }
+  }, [editingJob]);
 
   const handleCreateJob = async () => {
     if (!jobTitle.trim() || !companyName.trim()) {
@@ -62,7 +86,7 @@ export default function JobTracker() {
       });
 
       toast.success("Job application added successfully!");
-      setIsDialogOpen(false);
+      setIsAddJobDialogOpen(false);
       setJobTitle("");
       setCompanyName("");
       setJobDescription("");
@@ -81,6 +105,24 @@ export default function JobTracker() {
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleDateUpdate = async () => {
+    if (!editingJob) return;
+    try {
+      await updateJobApplication({
+        id: editingJob._id,
+        shortlistedDate: dates.shortlistedDate?.getTime(),
+        interviewDate: dates.interviewDate?.getTime(),
+        offerDate: dates.offerDate?.getTime(),
+      });
+      toast.success("Dates updated successfully!");
+      setIsDateDialogOpen(false);
+      setEditingJob(null);
+    } catch (error) {
+      console.error("Error updating dates:", error);
+      toast.error("Failed to update dates");
     }
   };
 
@@ -170,7 +212,7 @@ export default function JobTracker() {
               <h1 className="text-xl font-semibold text-foreground">Job Application Tracker</h1>
             </div>
             
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isAddJobDialogOpen} onOpenChange={setIsAddJobDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
@@ -214,7 +256,7 @@ export default function JobTracker() {
                     />
                   </div>
                   <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    <Button variant="outline" onClick={() => setIsAddJobDialogOpen(false)}>
                       Cancel
                     </Button>
                     <Button onClick={handleCreateJob} disabled={isCreating}>
@@ -295,6 +337,14 @@ export default function JobTracker() {
                                   </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuItem
+                                  onClick={() => {
+                                    setEditingJob(job);
+                                    setIsDateDialogOpen(true);
+                                  }}
+                                >
+                                  Edit Dates
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   onClick={() => handleDelete(job._id)}
                                   className="text-destructive"
                                 >
@@ -309,14 +359,40 @@ export default function JobTracker() {
                             <span className="text-xs text-muted-foreground">{job.companyName}</span>
                           </div>
 
-                          {job.applicationDate && (
-                            <div className="flex items-center gap-1 mb-3">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(job.applicationDate).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
+                          <div className="space-y-1.5 mb-3">
+                            {job.applicationDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Applied: {new Date(job.applicationDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                            {job.shortlistedDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Shortlisted: {new Date(job.shortlistedDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                            {job.interviewDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Interview: {new Date(job.interviewDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                            {job.offerDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Offer: {new Date(job.offerDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
 
                           <Badge className={`text-xs ${getStatusColor(job.status)}`}>
                             {job.status}
@@ -362,13 +438,92 @@ export default function JobTracker() {
             <p className="text-muted-foreground mb-6">
               Start tracking your job applications to stay organized and focused.
             </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => setIsAddJobDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Job
             </Button>
           </motion.div>
         )}
       </div>
+
+      {/* Date Picker Dialog */}
+      <Dialog open={isDateDialogOpen} onOpenChange={setIsDateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Application Dates</DialogTitle>
+            <DialogDescription>
+              Set the dates for key milestones in your application process.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Shortlisted Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dates.shortlistedDate ? format(dates.shortlistedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dates.shortlistedDate}
+                    onSelect={(date) => setDates(prev => ({ ...prev, shortlistedDate: date as Date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Interview Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dates.interviewDate ? format(dates.interviewDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dates.interviewDate}
+                    onSelect={(date) => setDates(prev => ({ ...prev, interviewDate: date as Date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Offer Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dates.offerDate ? format(dates.offerDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dates.offerDate}
+                    onSelect={(date) => setDates(prev => ({ ...prev, offerDate: date as Date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setIsDateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleDateUpdate}>
+                Save Dates
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
