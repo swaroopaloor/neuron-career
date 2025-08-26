@@ -34,17 +34,17 @@ interface AuthProps {
 
 const features = [
   {
-    icon: <Sparkles className="h-8 w-8 text-primary" />,
+    icon: <Sparkles className="h-10 w-10 text-primary" />,
     title: "AI-Powered Analysis",
     description: "Get instant feedback on your resume against any job description.",
   },
   {
-    icon: <Briefcase className="h-8 w-8 text-primary" />,
+    icon: <Briefcase className="h-10 w-10 text-primary" />,
     title: "Job Application Tracker",
     description: "Manage all your job applications in one place with our Kanban board.",
   },
   {
-    icon: <FileText className="h-8 w-8 text-primary" />,
+    icon: <FileText className="h-10 w-10 text-primary" />,
     title: "Personalized Cover Letters",
     description: "Generate tailored cover letters and interview prep kits in seconds.",
   },
@@ -140,7 +140,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="mb-12"
+            className="mb-16"
           >
             <img
               src="/logo_bg.svg"
@@ -151,7 +151,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             />
           </motion.div>
 
-          <div className="relative h-48">
+          <div className="relative h-64">
             <AnimatePresence mode="wait">
               <motion.div
                 key={featureIndex}
@@ -161,13 +161,13 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 transition={{ duration: 0.5 }}
                 className="absolute inset-0 flex flex-col items-center justify-center"
               >
-                <div className="mb-4 p-4 bg-background/50 rounded-full shadow-inner">
+                <div className="mb-6 p-5 bg-background/50 rounded-full shadow-inner">
                   {features[featureIndex].icon}
                 </div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">
+                <h3 className="text-3xl font-bold text-foreground mb-4">
                   {features[featureIndex].title}
                 </h3>
-                <p className="text-muted-foreground max-w-sm">
+                <p className="text-base text-muted-foreground max-w-md">
                   {features[featureIndex].description}
                 </p>
               </motion.div>
