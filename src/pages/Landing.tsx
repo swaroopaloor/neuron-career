@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/ThemeProvider";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { 
   FileText, 
   Target, 
@@ -18,12 +18,16 @@ import {
   Users,
   Award,
   Sun,
-  Moon
+  Moon,
+  Menu
 } from "lucide-react";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 export default function Landing() {
   const { isLoading, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -78,7 +82,7 @@ export default function Landing() {
       <nav className="border-b bg-card/50 backdrop-blur-sm elevation-1 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-3">
               <img
                 src="./logo.svg"
                 alt="Resume Analyzer"
@@ -87,9 +91,9 @@ export default function Landing() {
                 className="rounded-lg"
               />
               <span className="text-xl font-medium text-foreground">Resume Analyzer</span>
-            </div>
+            </Link>
             
-            <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2">
               <Button variant="ghost" asChild>
                 <a href="#features">Features</a>
               </Button>
@@ -98,7 +102,7 @@ export default function Landing() {
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={toggleTheme}
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -108,9 +112,40 @@ export default function Landing() {
                   <Sun className="h-4 w-4" />
                 )}
               </Button>
-              <Button asChild className="ripple elevation-2">
-                <a href="/auth">Get Started</a>
+              <Button asChild className="ripple elevation-2 ml-2">
+                <Link to="/auth">Get Started</Link>
               </Button>
+            </div>
+
+            <div className="md:hidden flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="text-muted-foreground hover:text-foreground mr-2"
+              >
+                {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              </Button>
+              <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[240px]">
+                  <div className="flex flex-col space-y-4 pt-8">
+                    <SheetClose asChild>
+                      <a href="#features" className="text-lg text-foreground hover:text-primary">Features</a>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <a href="#how-it-works" className="text-lg text-foreground hover:text-primary">How it Works</a>
+                    </SheetClose>
+                    <Button asChild className="ripple elevation-2 w-full mt-4">
+                      <Link to="/auth">Get Started</Link>
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
@@ -157,10 +192,10 @@ export default function Landing() {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
               <Button size="lg" asChild className="ripple elevation-3 hover:elevation-4 transition-all duration-200">
-                <a href="/auth">
+                <Link to="/auth">
                   Start Free Analysis
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </a>
+                </Link>
               </Button>
               <Button variant="outline" size="lg" asChild className="ripple">
                 <a href="#how-it-works">
@@ -373,10 +408,10 @@ export default function Landing() {
               Join thousands of job seekers who have improved their resumes and landed their dream jobs.
             </p>
             <Button size="lg" asChild className="ripple elevation-3 hover:elevation-4 transition-all duration-200">
-              <a href="/auth">
+              <Link to="/auth">
                 Start Your Free Analysis
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </a>
+              </Link>
             </Button>
           </motion.div>
         </div>
@@ -386,7 +421,7 @@ export default function Landing() {
       <footer className="border-t bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center gap-3 mb-4 md:mb-0">
+            <Link to="/" className="flex items-center gap-3 mb-4 md:mb-0">
               <img
                 src="./logo.svg"
                 alt="Resume Analyzer"
@@ -395,7 +430,7 @@ export default function Landing() {
                 className="rounded-lg"
               />
               <span className="font-medium text-foreground">Resume Analyzer</span>
-            </div>
+            </Link>
             <div className="text-sm text-muted-foreground">
               Powered by{" "}
               <a

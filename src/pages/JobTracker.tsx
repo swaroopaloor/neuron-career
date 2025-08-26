@@ -249,104 +249,106 @@ export default function JobTracker() {
         </motion.div>
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {JOB_STATUSES.map((status, columnIndex) => (
-            <motion.div
-              key={status}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: columnIndex * 0.1 }}
-              className="space-y-4"
-            >
-              <div className="flex items-center gap-2">
-                {getStatusIcon(status)}
-                <h3 className="font-medium text-foreground">{status}</h3>
-                <Badge variant="secondary" className="ml-auto">
-                  {groupedApplications[status]?.length || 0}
-                </Badge>
-              </div>
+        <div className="w-full overflow-x-auto pb-4">
+          <div className="grid grid-cols-[repeat(5,minmax(280px,1fr))] md:grid-cols-2 lg:grid-cols-5 gap-6">
+            {JOB_STATUSES.map((status, columnIndex) => (
+              <motion.div
+                key={status}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: columnIndex * 0.1 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(status)}
+                  <h3 className="font-medium text-foreground">{status}</h3>
+                  <Badge variant="secondary" className="ml-auto">
+                    {groupedApplications[status]?.length || 0}
+                  </Badge>
+                </div>
 
-              <div className="space-y-3">
-                {groupedApplications[status]?.map((job, index) => (
-                  <motion.div
-                    key={job._id}
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: (columnIndex * 0.1) + (index * 0.05) }}
-                  >
-                    <Card className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {JOB_STATUSES.filter(s => s !== job.status).map(newStatus => (
+                <div className="space-y-3">
+                  {groupedApplications[status]?.map((job, index) => (
+                    <motion.div
+                      key={job._id}
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: (columnIndex * 0.1) + (index * 0.05) }}
+                    >
+                      <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {JOB_STATUSES.filter(s => s !== job.status).map(newStatus => (
+                                  <DropdownMenuItem
+                                    key={newStatus}
+                                    onClick={() => handleStatusUpdate(job._id, newStatus)}
+                                  >
+                                    Move to {newStatus}
+                                  </DropdownMenuItem>
+                                ))}
                                 <DropdownMenuItem
-                                  key={newStatus}
-                                  onClick={() => handleStatusUpdate(job._id, newStatus)}
+                                  onClick={() => handleDelete(job._id)}
+                                  className="text-destructive"
                                 >
-                                  Move to {newStatus}
+                                  Delete
                                 </DropdownMenuItem>
-                              ))}
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(job._id)}
-                                className="text-destructive"
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 mb-2">
+                            <Building2 className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">{job.companyName}</span>
+                          </div>
+
+                          {job.applicationDate && (
+                            <div className="flex items-center gap-1 mb-3">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(job.applicationDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+
+                          <Badge className={`text-xs ${getStatusColor(job.status)}`}>
+                            {job.status}
+                          </Badge>
+
+                          {job.analysisId && (
+                            <div className="mt-2 pt-2 border-t">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 text-xs"
+                                onClick={() => setSelectedAnalysisId(job.analysisId!)}
                               >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        
-                        <div className="flex items-center gap-1 mb-2">
-                          <Building2 className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{job.companyName}</span>
-                        </div>
+                                <Eye className="h-3 w-3 mr-1" />
+                                View Analysis
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
 
-                        {job.applicationDate && (
-                          <div className="flex items-center gap-1 mb-3">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(job.applicationDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                        )}
-
-                        <Badge className={`text-xs ${getStatusColor(job.status)}`}>
-                          {job.status}
-                        </Badge>
-
-                        {job.analysisId && (
-                          <div className="mt-2 pt-2 border-t">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 text-xs"
-                              onClick={() => setSelectedAnalysisId(job.analysisId!)}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View Analysis
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-
-                {groupedApplications[status]?.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No applications in {status.toLowerCase()}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
+                  {groupedApplications[status]?.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No applications in {status.toLowerCase()}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
         {!jobApplications?.length && (
