@@ -329,7 +329,7 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
                   placeholder="Paste the job description here..." 
                   value={jobDescription} 
                   onChange={(e) => setJobDescription(e.target.value)} 
-                  rows={8} 
+                  rows={6} 
                   className="bg-background/50 focus:bg-background resize-none overflow-y-auto" 
                 />
                 <p className="text-xs text-muted-foreground">Provide a detailed job description for the most accurate analysis.</p>

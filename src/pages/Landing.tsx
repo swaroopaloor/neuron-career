@@ -169,7 +169,7 @@ export default function Landing() {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-5xl md:text-6xl font-bold text-foreground mb-6 tracking-tight"
+              className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 tracking-tight"
             >
               Land Your Dream Job with
               <span className="text-primary block">AI-Powered Insights</span>
@@ -179,7 +179,7 @@ export default function Landing() {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
+              className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
             >
               Upload your resume and job description to get instant AI analysis, 
               ATS optimization scores, and personalized recommendations to boost your hiring chances.
@@ -283,18 +283,18 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24">
+      <section id="features" className="py-16 sm:py-20 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
           >
-            <h2 className="text-4xl font-bold text-foreground mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
               Powerful Features for Job Seekers
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
               Everything you need to optimize your resume and land more interviews
             </p>
           </motion.div>
@@ -328,18 +328,18 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-24 bg-muted/30">
+      <section id="how-it-works" className="py-16 sm:py-20 md:py-24 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
           >
-            <h2 className="text-4xl font-bold text-foreground mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
               How It Works
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
               Get professional resume analysis in three simple steps
             </p>
           </motion.div>
@@ -394,17 +394,17 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24">
+      <section className="py-16 sm:py-20 md:py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl font-bold text-foreground mb-6">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
               Ready to Optimize Your Resume?
             </h2>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join thousands of job seekers who have improved their resumes and landed their dream jobs.
             </p>
             <Button size="lg" asChild className="ripple elevation-3 hover:elevation-4 transition-all duration-200">
