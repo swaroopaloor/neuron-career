@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/ThemeProvider";
-import { Navigate } from "react-router";
+import { Navigate } from "react-router-dom";
 import { 
   FileText, 
   Target, 
