@@ -13,9 +13,9 @@ export const analyzeResume = internalAction({
   },
   handler: async (ctx, args) => {
     try {
-      const apiKey = process.env.OPENROUTER_API_KEY;
+      const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        throw new Error("OpenRouter API key (OPENROUTER_API_KEY) is not configured in the environment.");
+        throw new Error("Groq API key (GROQ_API_KEY) is not configured in the environment.");
       }
 
       const resumeFile = await ctx.storage.get(args.resumeFileId);
@@ -40,16 +40,14 @@ ${args.jobDescription}
 
 Respond with a valid JSON object containing the analysis.`;
 
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://your-app.com",
-          "X-Title": "Resume Analyzer"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "google/gemini-pro",
+          model: "llama3-8b-8192",
           response_format: { type: "json_object" },
           messages: [
             {
@@ -61,14 +59,14 @@ Respond with a valid JSON object containing the analysis.`;
               content: prompt
             }
           ],
-          temperature: 0.3,
+          temperature: 0.2,
           max_tokens: 2000
         })
       });
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`OpenRouter API request failed with status ${response.status}: ${errorBody}`);
+        throw new Error(`Groq API request failed with status ${response.status}: ${errorBody}`);
       }
 
       const responseData = await response.json();
