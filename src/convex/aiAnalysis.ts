@@ -38,22 +38,7 @@ ${resumeText}
 JOB DESCRIPTION:
 ${args.jobDescription}
 
-Please respond with a JSON object containing:
-{
-  "matchScore": number (0-100),
-  "atsScore": number (0-100),
-  "missingKeywords": string[] (top 10 missing keywords),
-  "suggestedJobs": [
-    {
-      "title": string,
-      "company": string,
-      "location": string,
-      "url": string
-    }
-  ] (3 relevant job suggestions)
-}
-
-Be thorough and accurate in your analysis.`;
+Respond with a valid JSON object containing the analysis.`;
 
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -65,7 +50,12 @@ Be thorough and accurate in your analysis.`;
         },
         body: JSON.stringify({
           model: "anthropic/claude-3.5-sonnet",
+          response_format: { type: "json_object" },
           messages: [
+            {
+              role: "system",
+              content: `You are a resume analyzer. Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100), "atsScore": number (0-100), "missingKeywords": string[] (top 10), "suggestedJobs": { "title": string, "company": string, "location": string, "url": string }[] (3 suggestions) }. Do not include any other text, explanations, or markdown formatting.`
+            },
             {
               role: "user",
               content: prompt
@@ -88,7 +78,7 @@ Be thorough and accurate in your analysis.`;
         throw new Error("No response from AI model");
       }
 
-      // Parse the JSON response
+      // With JSON mode enabled, the content should be a guaranteed JSON string.
       const analysis = JSON.parse(content);
 
       // Update the analysis with results
