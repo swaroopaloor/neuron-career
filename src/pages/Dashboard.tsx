@@ -131,9 +131,13 @@ export default function Dashboard() {
               className="flex items-center gap-3"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center">
-                <Sparkles className="h-5 w-5" />
-              </div>
+              <img
+                src="/logo.svg"
+                alt="Logo"
+                width={32}
+                height={32}
+                className="rounded-lg"
+              />
               <h1 className="text-xl font-semibold text-foreground">Resume Analyzer</h1>
             </motion.div>
             
