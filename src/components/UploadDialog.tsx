@@ -18,7 +18,8 @@ import {
   X, 
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -96,33 +97,22 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
     setIsUploading(true);
 
     try {
-      // Generate upload URL
       const uploadUrl = await generateUploadUrl();
-
-      // Upload file
       const result = await fetch(uploadUrl, {
         method: "POST",
         body: file,
       });
 
-      if (!result.ok) {
-        throw new Error("Failed to upload file");
-      }
-
+      if (!result.ok) throw new Error("Failed to upload file");
       const { storageId } = await result.json();
 
-      // Create analysis
-      const analysisId = await createAnalysis({
+      await createAnalysis({
         resumeFileId: storageId,
         jobDescription: jobDescription.trim(),
       });
 
       toast.success("Analysis started! Check your dashboard for results.");
       
-      // Reset form
-      setFile(null);
-      setJobDescription("");
-      setStep("upload");
       onOpenChange(false);
 
     } catch (error) {
@@ -134,201 +124,136 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
     }
   };
 
-  const resetDialog = () => {
-    setFile(null);
-    setJobDescription("");
-    setStep("upload");
-    setIsUploading(false);
+  const resetDialog = (isOpen: boolean) => {
+    onOpenChange(isOpen);
+    if (!isOpen) {
+      setTimeout(() => {
+        setFile(null);
+        setJobDescription("");
+        setStep("upload");
+        setIsUploading(false);
+      }, 300); // Delay reset to allow for exit animation
+    }
+  };
+
+  const stepVariants = {
+    hidden: { opacity: 0, x: 30, scale: 0.98 },
+    visible: { opacity: 1, x: 0, scale: 1 },
+    exit: { opacity: 0, x: -30, scale: 0.98 },
   };
 
   return (
-    <Dialog open={open} onOpenChange={(open) => {
-      onOpenChange(open);
-      if (!open) resetDialog();
-    }}>
-      <DialogContent className="sm:max-w-[600px] elevation-4">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-medium">
-            New Resume Analysis
-          </DialogTitle>
-          <DialogDescription>
-            Upload your resume and provide a job description for AI-powered analysis.
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog open={open} onOpenChange={resetDialog}>
+      <DialogContent className="sm:max-w-[600px] glass elevation-4 border-border">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              New Resume Analysis
+            </DialogTitle>
+            <DialogDescription>
+              Upload your resume and provide a job description for AI-powered analysis.
+            </DialogDescription>
+          </DialogHeader>
+        </motion.div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 pt-2">
           {/* Progress Indicator */}
           <div className="flex items-center justify-center space-x-4">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-              step === "upload" ? "bg-primary text-primary-foreground" : 
-              file ? "bg-green-600 text-white" : "bg-muted text-muted-foreground"
-            }`}>
-              {file ? <CheckCircle className="h-4 w-4" /> : "1"}
-            </div>
-            <div className={`h-0.5 w-12 ${file ? "bg-green-600" : "bg-muted"}`} />
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-              step === "job-description" ? "bg-primary text-primary-foreground" :
-              step === "processing" ? "bg-green-600 text-white" :
-              "bg-muted text-muted-foreground"
-            }`}>
-              {step === "processing" ? <CheckCircle className="h-4 w-4" /> : "2"}
-            </div>
-            <div className={`h-0.5 w-12 ${step === "processing" ? "bg-green-600" : "bg-muted"}`} />
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-              step === "processing" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}>
-              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : "3"}
-            </div>
+            {[1, 2, 3].map((num, i) => (
+              <>
+                <motion.div
+                  animate={{
+                    scale: (step === "upload" && i === 0) || (step === "job-description" && i === 1) || (step === "processing" && i === 2) ? 1.1 : 1,
+                    background: (file && i === 0) || (step === "processing" && i === 1) ? "var(--secondary)" : (step === "upload" && i === 0) || (step === "job-description" && i === 1) || (step === "processing" && i === 2) ? "var(--primary)" : "var(--muted)",
+                  }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="flex items-center justify-center w-8 h-8 rounded-full text-white font-bold"
+                >
+                  {file && i === 0 ? <CheckCircle className="h-5 w-5" /> : step === "processing" && i === 1 ? <CheckCircle className="h-5 w-5" /> : num}
+                </motion.div>
+                {i < 2 && <div className={`h-0.5 w-12 bg-muted`} />}
+              </>
+            ))}
           </div>
 
           <AnimatePresence mode="wait">
             {step === "upload" && (
               <motion.div
                 key="upload"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                variants={stepVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
                 className="space-y-4"
               >
-                <Label htmlFor="resume" className="text-sm font-medium">
+                <Label htmlFor="resume" className="font-medium">
                   Upload Resume (PDF, max 5MB)
                 </Label>
                 
-                <div
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
                   className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                     dragActive
-                      ? "border-primary bg-primary/5"
+                      ? "border-primary bg-primary/10"
                       : file
-                      ? "border-green-600 bg-green-50 dark:bg-green-900/20"
-                      : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                      ? "border-secondary bg-secondary/10"
+                      : "border-muted hover:border-primary/50"
                   }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
+                  onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
                 >
-                  <input
-                    id="resume"
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileInput}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
+                  <input id="resume" type="file" accept=".pdf" onChange={handleFileInput} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                   
-                  {file ? (
-                    <div className="space-y-2">
-                      <CheckCircle className="h-12 w-12 text-green-600 mx-auto" />
-                      <p className="text-sm font-medium text-foreground">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFile(null);
-                        }}
-                        className="mt-2"
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Remove
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <p className="text-sm font-medium text-foreground">
-                        Drop your resume here, or click to browse
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        PDF files only, up to 5MB
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  <AnimatePresence>
+                    {file ? (
+                      <motion.div key="uploaded" initial={{opacity: 0, scale: 0.8}} animate={{opacity: 1, scale: 1}} className="space-y-2">
+                        <CheckCircle className="h-12 w-12 text-secondary mx-auto" />
+                        <p className="font-medium text-foreground">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setFile(null); }} className="mt-2 text-muted-foreground hover:text-destructive">
+                          <X className="h-4 w-4 mr-1" /> Remove
+                        </Button>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="upload-prompt" initial={{opacity: 0, scale: 0.8}} animate={{opacity: 1, scale: 1}} className="space-y-2">
+                        <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+                        <p className="font-medium text-foreground">Drop your resume here, or click to browse</p>
+                        <p className="text-xs text-muted-foreground">PDF files only, up to 5MB</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
 
                 <div className="flex justify-end">
-                  <Button
-                    onClick={handleNext}
-                    disabled={!file}
-                    className="ripple"
-                  >
-                    Next Step
-                  </Button>
+                  <Button onClick={handleNext} disabled={!file} className="gradient-primary text-white ripple">Next Step</Button>
                 </div>
               </motion.div>
             )}
 
             {step === "job-description" && (
-              <motion.div
-                key="job-description"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-4"
-              >
-                <Label htmlFor="job-description" className="text-sm font-medium">
-                  Job Description
-                </Label>
-                <div className="max-h-64 overflow-y-auto p-1">
-                  <Textarea
-                    id="job-description"
-                    placeholder="Paste the job description here..."
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    rows={8}
-                    className="resize-none w-full"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Provide a detailed job description for the most accurate analysis.
-                </p>
+              <motion.div key="job-description" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
+                <Label htmlFor="job-description" className="font-medium">Job Description</Label>
+                <Textarea id="job-description" placeholder="Paste the job description here..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={8} className="bg-background/50 focus:bg-background" />
+                <p className="text-xs text-muted-foreground">Provide a detailed job description for the most accurate analysis.</p>
 
                 <div className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep("upload")}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!jobDescription.trim() || isUploading}
-                    className="ripple"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Starting Analysis...
-                      </>
-                    ) : (
-                      "Start Analysis"
-                    )}
+                  <Button variant="outline" onClick={() => setStep("upload")}>Back</Button>
+                  <Button onClick={handleSubmit} disabled={!jobDescription.trim() || isUploading} className="gradient-accent text-white ripple">
+                    {isUploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Starting...</> : "Start Analysis"}
                   </Button>
                 </div>
               </motion.div>
             )}
 
             {step === "processing" && (
-              <motion.div
-                key="processing"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-8"
-              >
+              <motion.div key="processing" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="text-center py-8">
                 <div className="space-y-4">
-                  <div className="relative">
-                    <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
+                  <div className="relative w-16 h-16 mx-auto">
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full" />
                     <FileText className="h-6 w-6 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                   </div>
-                  <h3 className="text-lg font-medium text-foreground">
-                    Analysis in Progress
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Our AI is analyzing your resume against the job description.
-                    This usually takes 30-60 seconds.
-                  </p>
+                  <h3 className="text-lg font-medium text-foreground">Analysis in Progress</h3>
+                  <p className="text-sm text-muted-foreground">Our AI is working its magic. This usually takes 30-60 seconds.</p>
                 </div>
               </motion.div>
             )}
