@@ -12,22 +12,26 @@ export const analyzeResume = internalAction({
     jobDescription: v.string(),
   },
   handler: async (ctx, args) => {
+    let errorMessage = "An unknown error occurred during analysis.";
     try {
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        throw new Error("Groq API key (GROQ_API_KEY) is not configured in the environment.");
+        errorMessage = "The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.";
+        throw new Error(errorMessage);
       }
 
       const resumeFile = await ctx.storage.get(args.resumeFileId);
       if (!resumeFile) {
-        throw new Error(`Resume file with ID '${args.resumeFileId}' not found in storage.`);
+        errorMessage = `Resume file could not be found.`;
+        throw new Error(errorMessage);
       }
       
       const resumeBuffer = await resumeFile.arrayBuffer();
       const { text: resumeText } = await extractText(resumeBuffer);
 
       if (!resumeText) {
-        throw new Error("Failed to extract text from the provided resume PDF.");
+        errorMessage = "Failed to extract text from the resume PDF. The file might be corrupted or empty.";
+        throw new Error(errorMessage);
       }
 
       const prompt = `Analyze this resume against the job description and provide a detailed assessment.
@@ -66,14 +70,16 @@ Respond with a valid JSON object containing the analysis.`;
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`Groq API request failed with status ${response.status}: ${errorBody}`);
+        errorMessage = `The AI model provider (Groq) returned an error. Status: ${response.status}. Details: ${errorBody}`;
+        throw new Error(errorMessage);
       }
 
       const responseData = await response.json();
       const content = responseData.choices[0]?.message?.content;
       
       if (!content) {
-        throw new Error("Received an empty or invalid response from the AI model.");
+        errorMessage = "The AI model returned an empty or invalid response. Please try again.";
+        throw new Error(errorMessage);
       }
 
       // With JSON mode enabled, the content should be a guaranteed JSON string.
@@ -107,7 +113,7 @@ Respond with a valid JSON object containing the analysis.`;
         missingKeywords: [],
         topicsToMaster: [],
         status: "failed",
-        errorMessage: error instanceof Error ? error.message : "An unknown error occurred during analysis."
+        errorMessage: error instanceof Error ? error.message : errorMessage
       });
     }
   },
