@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/input-otp";
 
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Mail, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -98,7 +98,16 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   return (
     <div className="min-h-screen flex flex-col">
-
+      <header className="absolute top-0 left-0 p-4 z-10">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Button>
+      </header>
       
       {/* Auth Content */}
       <div className="flex-1 flex items-center justify-center p-4">
@@ -113,8 +122,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       alt="Lock Icon"
                       width={64}
                       height={64}
-                      className="rounded-lg mb-4 mt-4 cursor-pointer"
-                      onClick={() => navigate("/")}
+                      className="rounded-lg mb-4 mt-4"
                     />
                   </div>
                 <CardTitle className="text-xl">Get Started</CardTitle>
