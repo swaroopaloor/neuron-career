@@ -1,11 +1,6 @@
 <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M50 0C22.3858 0 0 22.3858 0 50C0 77.6142 22.3858 100 50 100C77.6142 100 100 77.6142 100 50C100 22.3858 77.6142 0 50 0Z" fill="url(#paint0_linear_1_2)"/>
-<path d="M62.5 37.5L50 25L37.5 37.5L25 50L37.5 62.5L50 75L62.5 62.5L75 50L62.5 37.5Z" fill="white" fill-opacity="0.1"/>
-<path d="M50 31.25L37.5 43.75V68.75L50 81.25L62.5 68.75V43.75L50 31.25Z" stroke="white" stroke-width="3.125" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M37.5 43.75L25 50L37.5 56.25" stroke="white" stroke-width="3.125" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M62.5 43.75L75 50L62.5 56.25" stroke="white" stroke-width="3.125" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M50 81.25V93.75" stroke="white" stroke-width="3.125" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M50 18.75V31.25" stroke="white" stroke-width="3.125" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M50 18.75L56.25 43.75L81.25 50L56.25 56.25L50 81.25L43.75 56.25L18.75 50L43.75 43.75L50 18.75Z" stroke="white" stroke-width="3.125" stroke-linecap="round" stroke-linejoin="round"/>
 <defs>
 <linearGradient id="paint0_linear_1_2" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
 <stop stop-color="#2563EB"/>
