@@ -173,7 +173,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       onClick={handleGuestLogin}
                       disabled={isLoading}
                     >
-                      <UserX className="mr-2 h-4 w-4" />
+                      {isLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserX className="mr-2 h-4 w-4" />
+                      )}
                       Continue as Guest
                     </Button>
                   </div>

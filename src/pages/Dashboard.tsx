@@ -15,19 +15,34 @@ import {
   CheckCircle, 
   XCircle,
   LogOut,
-  User
+  User,
+  Loader2
 } from "lucide-react";
 import { useState } from "react";
 import UploadDialog from "@/components/UploadDialog";
 import AnalysisReport from "@/components/AnalysisReport";
 import { Id } from "@/convex/_generated/dataModel";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<Id<"analyses"> | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   
   const analyses = useQuery(api.analyses.getUserAnalyses, { limit: 10 });
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign out failed:", error);
+      toast.error("Failed to sign out. Please try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -102,10 +117,15 @@ export default function Dashboard() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => signOut()}
+                onClick={handleSignOut}
+                disabled={isSigningOut}
                 className="text-muted-foreground hover:text-foreground"
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                {isSigningOut ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4 mr-2" />
+                )}
                 Sign Out
               </Button>
             </div>
