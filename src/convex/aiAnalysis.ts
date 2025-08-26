@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { extractText } from "unpdf";
+import Groq from "groq-sdk";
 
 export const analyzeResume = internalAction({
   args: {
@@ -19,6 +20,8 @@ export const analyzeResume = internalAction({
         errorMessage = "The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.";
         throw new Error(errorMessage);
       }
+
+      const groq = new Groq({ apiKey });
 
       const resumeFile = await ctx.storage.get(args.resumeFileId);
       if (!resumeFile) {
@@ -56,32 +59,18 @@ export const analyzeResume = internalAction({
 
       Respond with a valid JSON object containing the analysis.`;
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "llama3-8b-8192",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: 0.1,
-          max_tokens: 4000,
-        })
+      const completion = await groq.chat.completions.create({
+        model: "llama3-8b-8192",
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+        max_tokens: 4000,
       });
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        errorMessage = `The AI model provider (Groq) returned an error. Status: ${response.status}. Details: ${errorBody}`;
-        throw new Error(errorMessage);
-      }
-
-      const responseData = await response.json();
-      const content = responseData.choices[0]?.message?.content;
+      const content = completion.choices[0]?.message?.content;
       
       if (!content) {
         errorMessage = "The AI model returned an empty or invalid response. Please try again.";
