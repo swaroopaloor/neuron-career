@@ -11,7 +11,7 @@ export const getUserAnalyses = query({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to view analyses.");
     }
 
     const limit = args.limit || 10;
@@ -32,12 +32,12 @@ export const getAnalysis = query({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to view an analysis.");
     }
 
     const analysis = await ctx.db.get(args.id);
     if (!analysis || analysis.userId !== user._id) {
-      throw new Error("Analysis not found or access denied");
+      throw new Error("Analysis not found or user does not have permission to view.");
     }
 
     return analysis;
@@ -55,7 +55,7 @@ export const createAnalysis = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to create an analysis.");
     }
 
     const analysisId = await ctx.db.insert("analyses", {
@@ -122,12 +122,12 @@ export const toggleFavorite = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to favorite an analysis.");
     }
 
     const analysis = await ctx.db.get(args.id);
     if (!analysis || analysis.userId !== user._id) {
-      throw new Error("Analysis not found or access denied");
+      throw new Error("Analysis not found or user does not have permission to update.");
     }
 
     await ctx.db.patch(args.id, {
@@ -142,12 +142,12 @@ export const deleteAnalysis = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to delete an analysis.");
     }
 
     const analysis = await ctx.db.get(args.id);
     if (!analysis || analysis.userId !== user._id) {
-      throw new Error("Analysis not found or access denied");
+      throw new Error("Analysis not found or user does not have permission to delete.");
     }
 
     await ctx.db.delete(args.id);

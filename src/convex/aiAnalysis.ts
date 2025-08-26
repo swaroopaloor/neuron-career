@@ -15,19 +15,19 @@ export const analyzeResume = internalAction({
     try {
       const apiKey = process.env.OPENROUTER_API_KEY;
       if (!apiKey) {
-        throw new Error("OpenRouter API key not configured");
+        throw new Error("OpenRouter API key (OPENROUTER_API_KEY) is not configured in the environment.");
       }
 
       const resumeFile = await ctx.storage.get(args.resumeFileId);
       if (!resumeFile) {
-        throw new Error("Resume file not found");
+        throw new Error(`Resume file with ID '${args.resumeFileId}' not found in storage.`);
       }
       
       const resumeBuffer = await resumeFile.arrayBuffer();
       const { text: resumeText } = await extractText(resumeBuffer);
 
       if (!resumeText) {
-        throw new Error("Could not extract text from the resume PDF.");
+        throw new Error("Failed to extract text from the provided resume PDF.");
       }
 
       const prompt = `Analyze this resume against the job description and provide a detailed assessment.
@@ -68,14 +68,14 @@ Respond with a valid JSON object containing the analysis.`;
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`OpenRouter API error: ${response.statusText} - ${errorBody}`);
+        throw new Error(`OpenRouter API request failed with status ${response.status}: ${errorBody}`);
       }
 
       const responseData = await response.json();
       const content = responseData.choices[0]?.message?.content;
       
       if (!content) {
-        throw new Error("No response from AI model");
+        throw new Error("Received an empty or invalid response from the AI model.");
       }
 
       // With JSON mode enabled, the content should be a guaranteed JSON string.
@@ -95,7 +95,11 @@ Respond with a valid JSON object containing the analysis.`;
       });
 
     } catch (error) {
-      console.error("Analysis error:", error);
+      console.error("Error during resume analysis:", {
+        analysisId: args.analysisId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       
       // Update analysis with error status
       await ctx.runMutation(internal.analyses.updateAnalysisResults, {
@@ -105,7 +109,7 @@ Respond with a valid JSON object containing the analysis.`;
         missingKeywords: [],
         topicsToMaster: [],
         status: "failed",
-        errorMessage: error instanceof Error ? error.message : "Unknown error during analysis"
+        errorMessage: error instanceof Error ? error.message : "An unknown error occurred during analysis."
       });
     }
   },

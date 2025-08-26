@@ -8,7 +8,7 @@ export const generateUploadUrl = mutation({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to generate an upload URL.");
     }
 
     return await ctx.storage.generateUploadUrl();
@@ -21,9 +21,13 @@ export const getFileUrl = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to retrieve a file URL.");
     }
 
-    return await ctx.storage.getUrl(args.fileId);
+    const url = await ctx.storage.getUrl(args.fileId);
+    if (!url) {
+      throw new Error(`File with ID ${args.fileId} not found or URL could not be generated.`);
+    }
+    return url;
   },
 });

@@ -9,7 +9,7 @@ export const getJobApplications = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to view job applications.");
     }
 
     return await ctx.db
@@ -30,7 +30,7 @@ export const createJobApplication = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to create a job application.");
     }
 
     const jobApplicationId = await ctx.db.insert("jobApplications", {
@@ -59,14 +59,14 @@ export const updateJobApplication = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to update a job application.");
     }
 
     const { id, ...updates } = args;
 
     const existingApplication = await ctx.db.get(id);
     if (!existingApplication || existingApplication.userId !== user._id) {
-      throw new Error("Application not found or access denied");
+      throw new Error("Job application not found or user does not have permission to update.");
     }
 
     await ctx.db.patch(id, updates);
@@ -79,12 +79,12 @@ export const deleteJobApplication = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error("User not authenticated");
+      throw new Error("User must be authenticated to delete a job application.");
     }
 
     const existingApplication = await ctx.db.get(args.id);
     if (!existingApplication || existingApplication.userId !== user._id) {
-      throw new Error("Application not found or access denied");
+      throw new Error("Job application not found or user does not have permission to delete.");
     }
 
     // Also delete the associated analysis if it exists
