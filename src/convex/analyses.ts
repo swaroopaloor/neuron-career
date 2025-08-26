@@ -65,6 +65,7 @@ export const createAnalysis = mutation({
       missingKeywords: [],
       topicsToMaster: [],
       status: "processing",
+      isFavorited: false,
     });
 
     await ctx.scheduler.runAfter(0, internal.aiAnalysis.analyzeResume, {
@@ -94,6 +95,26 @@ export const updateAnalysisResults = internalMutation({
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, updates);
+  },
+});
+
+// Toggle favorite status
+export const toggleFavorite = mutation({
+  args: { id: v.id("analyses") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    const analysis = await ctx.db.get(args.id);
+    if (!analysis || analysis.userId !== user._id) {
+      throw new Error("Analysis not found or access denied");
+    }
+
+    await ctx.db.patch(args.id, {
+      isFavorited: !analysis.isFavorited,
+    });
   },
 });
 

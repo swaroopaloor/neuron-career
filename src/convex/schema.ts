@@ -50,6 +50,7 @@ const schema = defineSchema(
         v.literal("failed")
       ),
       errorMessage: v.optional(v.string()),
+      isFavorited: v.optional(v.boolean()),
     })
       .index("by_user", ["userId"]),
   },
