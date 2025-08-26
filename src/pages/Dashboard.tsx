@@ -61,11 +61,11 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center gradient-primary">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="rounded-full h-12 w-12 border-4 border-white/30 border-t-white"
+          className="rounded-full h-12 w-12 border-4 border-primary/20 border-t-primary"
         />
       </div>
     );
@@ -89,11 +89,11 @@ export default function Dashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+        return "bg-green-900/30 text-green-300";
       case "failed":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+        return "bg-red-900/30 text-red-300";
       default:
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+        return "bg-yellow-900/30 text-yellow-300";
     }
   };
 
@@ -111,12 +111,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen gradient-primary">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <motion.header 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="glass border-b border-white/20 backdrop-blur-xl"
+        className="bg-card/80 border-b border-border backdrop-blur-lg sticky top-0 z-50"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -124,14 +124,14 @@ export default function Dashboard() {
               className="flex items-center gap-3"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center">
+                <Sparkles className="h-5 w-5" />
               </div>
-              <h1 className="text-xl font-semibold text-white">Resume Analyzer</h1>
+              <h1 className="text-xl font-semibold text-foreground">Resume Analyzer</h1>
             </motion.div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-white/80">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
                 {user?.name || user?.email || "User"}
               </div>
@@ -140,7 +140,7 @@ export default function Dashboard() {
                 size="sm"
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="text-white/80 hover:text-white hover:bg-white/10 smooth-transition"
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
               >
                 {isSigningOut ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -160,12 +160,12 @@ export default function Dashboard() {
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="mb-8 text-center"
+          className="mb-8"
         >
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Welcome back, {user?.name?.split(' ')[0] || 'there'}! ✨
+          <h2 className="text-4xl font-bold text-foreground mb-2">
+            Welcome back, {user?.name?.split(' ')[0] || 'there'}!
           </h2>
-          <p className="text-white/80 text-lg">
+          <p className="text-muted-foreground text-lg">
             Ready to optimize your resume and land your dream job?
           </p>
         </motion.div>
@@ -177,29 +177,29 @@ export default function Dashboard() {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
         >
-          <motion.div whileHover={{ scale: 1.05, y: -5 }} className="smooth-transition">
-            <Card className="glass elevation-3 border-white/20">
+          <motion.div whileHover={{ scale: 1.02, y: -5 }} className="smooth-transition">
+            <Card className="bg-secondary/50 elevation-2">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white/70">Total Analyses</p>
-                    <p className="text-3xl font-bold text-white">{analyses?.length || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Analyses</p>
+                    <p className="text-3xl font-bold text-foreground">{analyses?.length || 0}</p>
                   </div>
-                  <div className="w-12 h-12 gradient-accent rounded-full flex items-center justify-center pulse-glow">
-                    <FileText className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-foreground" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div whileHover={{ scale: 1.05, y: -5 }} className="smooth-transition">
-            <Card className="glass elevation-3 border-white/20">
+          <motion.div whileHover={{ scale: 1.02, y: -5 }} className="smooth-transition">
+            <Card className="bg-secondary/50 elevation-2">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white/70">Avg Match Score</p>
-                    <p className="text-3xl font-bold text-white">
+                    <p className="text-sm font-medium text-muted-foreground">Avg Match Score</p>
+                    <p className="text-3xl font-bold text-foreground">
                       {analyses && analyses.length > 0
                         ? Math.round(
                             analyses
@@ -210,26 +210,26 @@ export default function Dashboard() {
                         : 0}%
                     </p>
                   </div>
-                  <div className="w-12 h-12 gradient-secondary rounded-full flex items-center justify-center pulse-glow">
-                    <TrendingUp className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-foreground" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div whileHover={{ scale: 1.05, y: -5 }} className="smooth-transition">
-            <Card className="glass elevation-3 border-white/20">
+          <motion.div whileHover={{ scale: 1.02, y: -5 }} className="smooth-transition">
+            <Card className="bg-secondary/50 elevation-2">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white/70">Favorites</p>
-                    <p className="text-3xl font-bold text-white">
+                    <p className="text-sm font-medium text-muted-foreground">Favorites</p>
+                    <p className="text-3xl font-bold text-foreground">
                       {analyses?.filter(a => a.isFavorited).length || 0}
                     </p>
                   </div>
-                  <div className="w-12 h-12 gradient-primary rounded-full flex items-center justify-center pulse-glow">
-                    <Heart className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center">
+                    <Heart className="h-6 w-6 text-foreground" />
                   </div>
                 </div>
               </CardContent>
@@ -248,7 +248,7 @@ export default function Dashboard() {
             <Button
               onClick={() => setUploadDialogOpen(true)}
               size="lg"
-              className="gradient-accent text-white border-0 elevation-4 hover:elevation-5 smooth-transition px-8 py-4 text-lg font-semibold ripple"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 elevation-4 hover:elevation-5 smooth-transition px-8 py-4 text-lg font-semibold ripple"
             >
               <Plus className="h-6 w-6 mr-3" />
               Create New Analysis
@@ -265,17 +265,17 @@ export default function Dashboard() {
         >
           <div className="flex gap-2 justify-center">
             <Button
-              variant={filter === "all" ? "default" : "ghost"}
+              variant={filter === "all" ? "default" : "secondary"}
               onClick={() => setFilter("all")}
-              className={`${filter === "all" ? "gradient-primary text-white" : "text-white/70 hover:text-white hover:bg-white/10"} smooth-transition`}
+              className="smooth-transition"
             >
               <FileText className="h-4 w-4 mr-2" />
               All Analyses
             </Button>
             <Button
-              variant={filter === "favorites" ? "default" : "ghost"}
+              variant={filter === "favorites" ? "default" : "secondary"}
               onClick={() => setFilter("favorites")}
-              className={`${filter === "favorites" ? "gradient-secondary text-white" : "text-white/70 hover:text-white hover:bg-white/10"} smooth-transition`}
+              className="smooth-transition"
             >
               <Heart className="h-4 w-4 mr-2" />
               Favorites
@@ -289,13 +289,13 @@ export default function Dashboard() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <Card className="glass elevation-3 border-white/20">
+          <Card className="bg-card border-border elevation-2">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Search className="h-5 w-5" />
                 {filter === "all" ? "Recent Analyses" : "Favorite Analyses"}
               </CardTitle>
-              <CardDescription className="text-white/70">
+              <CardDescription className="text-muted-foreground">
                 {filter === "all" 
                   ? "Your most recent resume analyses" 
                   : "Your favorited analyses for quick access"
@@ -311,17 +311,17 @@ export default function Dashboard() {
                     exit={{ opacity: 0, y: -20 }}
                     className="text-center py-12"
                   >
-                    <div className="w-16 h-16 gradient-accent rounded-full flex items-center justify-center mx-auto mb-4 float">
+                    <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
                       {filter === "favorites" ? (
-                        <Heart className="h-8 w-8 text-white" />
+                        <Heart className="h-8 w-8 text-muted-foreground" />
                       ) : (
-                        <FileText className="h-8 w-8 text-white" />
+                        <FileText className="h-8 w-8 text-muted-foreground" />
                       )}
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-2">
+                    <h3 className="text-lg font-medium text-foreground mb-2">
                       {filter === "favorites" ? "No favorites yet" : "No analyses yet"}
                     </h3>
-                    <p className="text-white/70 mb-4">
+                    <p className="text-muted-foreground mb-4">
                       {filter === "favorites" 
                         ? "Star your favorite analyses to see them here."
                         : "Upload your resume and job description to get started."
@@ -330,7 +330,7 @@ export default function Dashboard() {
                     {filter === "all" && (
                       <Button 
                         onClick={() => setUploadDialogOpen(true)}
-                        className="gradient-primary text-white border-0 ripple"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 ripple"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Create First Analysis
@@ -346,7 +346,7 @@ export default function Dashboard() {
                         animate={{ x: 0, opacity: 1 }}
                         transition={{ delay: 0.1 * index }}
                         whileHover={{ scale: 1.02, x: 10 }}
-                        className="glass border border-white/20 rounded-lg p-4 hover:bg-white/10 smooth-transition cursor-pointer group"
+                        className="bg-secondary/50 border border-border rounded-lg p-4 hover:bg-secondary smooth-transition cursor-pointer group"
                         onClick={() => analysis.status === "completed" && setSelectedAnalysisId(analysis._id)}
                       >
                         <div className="flex items-center justify-between">
@@ -356,7 +356,7 @@ export default function Dashboard() {
                               <Badge className={`${getStatusColor(analysis.status)} border-0`}>
                                 {analysis.status}
                               </Badge>
-                              <span className="text-sm text-white/60">
+                              <span className="text-sm text-muted-foreground">
                                 {new Date(analysis._creationTime).toLocaleDateString()}
                               </span>
                               <motion.button
@@ -371,21 +371,21 @@ export default function Dashboard() {
                                 <Heart 
                                   className={`h-5 w-5 smooth-transition ${
                                     analysis.isFavorited 
-                                      ? "text-red-400 fill-red-400" 
-                                      : "text-white/40 hover:text-red-400"
+                                      ? "text-red-500 fill-red-500" 
+                                      : "text-muted-foreground/50 hover:text-red-500"
                                   }`} 
                                 />
                               </motion.button>
                             </div>
-                            <p className="text-sm text-white/80 line-clamp-2 mb-2">
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                               {analysis.jobDescription.substring(0, 100)}...
                             </p>
                             {analysis.status === "completed" && (
                               <div className="flex gap-4 text-sm">
-                                <span className="text-white/60">
+                                <span className="text-muted-foreground">
                                   Match: <span className="font-medium text-green-400">{analysis.matchScore}%</span>
                                 </span>
-                                <span className="text-white/60">
+                                <span className="text-muted-foreground">
                                   ATS: <span className="font-medium text-blue-400">{analysis.atsScore}%</span>
                                 </span>
                               </div>
