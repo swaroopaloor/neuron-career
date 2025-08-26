@@ -20,6 +20,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
+import AnalysisLoading from "@/components/AnalysisLoading";
 
 interface AnalysisReportProps {
   analysisId: Id<"analyses">;
@@ -30,11 +31,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
   const analysis = useQuery(api.analyses.getAnalysis, { id: analysisId });
 
   if (!analysis) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <AnalysisLoading />;
   }
 
   const getScoreColor = (score: number) => {
