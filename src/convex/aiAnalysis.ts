@@ -4,7 +4,6 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { extractText } from "unpdf";
-import OpenAI from 'openai';
 
 export const analyzeResume = internalAction({
   args: {
@@ -15,16 +14,11 @@ export const analyzeResume = internalAction({
   handler: async (ctx, args) => {
     let errorMessage = "An unknown error occurred during analysis.";
     try {
-      const apiKey = process.env.OPENROUTER_API_KEY;
+      const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        errorMessage = "The OpenRouter API key is not configured. Please add the OPENROUTER_API_KEY to your project's environment variables.";
+        errorMessage = "The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.";
         throw new Error(errorMessage);
       }
-
-      const openai = new OpenAI({
-        apiKey: apiKey,
-        baseURL: 'https://openrouter.ai/api/v1',
-      });
 
       const resumeFile = await ctx.storage.get(args.resumeFileId);
       if (!resumeFile) {
@@ -62,18 +56,32 @@ export const analyzeResume = internalAction({
 
       Respond with a valid JSON object containing the analysis.`;
 
-      const completion = await openai.chat.completions.create({
-        model: 'anthropic/claude-3-haiku',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
-        max_tokens: 4000,
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama3-8b-8192",
+          response_format: { type: "json_object" },
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 4000,
+        })
       });
 
-      const content = completion.choices[0]?.message?.content;
+      if (!response.ok) {
+        const errorBody = await response.text();
+        errorMessage = `The AI model provider (Groq) returned an error. Status: ${response.status}. Details: ${errorBody}`;
+        throw new Error(errorMessage);
+      }
+
+      const responseData = await response.json();
+      const content = responseData.choices[0]?.message?.content;
       
       if (!content) {
         errorMessage = "The AI model returned an empty or invalid response. Please try again.";
