@@ -32,12 +32,28 @@ const schema = defineSchema(
       role: v.optional(roleValidator), // role of the user. do not remove
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
-
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    // Resume analysis table
+    analyses: defineTable({
+      userId: v.id("users"),
+      resumeFileId: v.id("_storage"),
+      jobDescription: v.string(),
+      matchScore: v.number(), // 0-100
+      atsScore: v.number(), // 0-100
+      missingKeywords: v.array(v.string()), // top 10 missing keywords
+      suggestedJobs: v.array(v.object({
+        title: v.string(),
+        company: v.string(),
+        location: v.string(),
+        url: v.string(),
+      })),
+      status: v.union(
+        v.literal("processing"),
+        v.literal("completed"),
+        v.literal("failed")
+      ),
+      errorMessage: v.optional(v.string()),
+    })
+      .index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,
