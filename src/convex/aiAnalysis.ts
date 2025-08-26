@@ -54,7 +54,7 @@ Respond with a valid JSON object containing the analysis.`;
           messages: [
             {
               role: "system",
-              content: `You are a resume analyzer. Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100), "atsScore": number (0-100), "missingKeywords": string[] (top 10), "suggestedJobs": { "title": string, "company": string, "location": string, "url": string }[] (3 suggestions) }. Do not include any other text, explanations, or markdown formatting.`
+              content: `You are a resume analyzer. Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100), "atsScore": number (0-100), "missingKeywords": string[] (top 10), "topicsToMaster": { "topic": string, "description": string }[] (top 5-7 topics the applicant should be well-versed in for the interview) }. Do not include any other text, explanations, or markdown formatting.`
             },
             {
               role: "user",
@@ -87,7 +87,7 @@ Respond with a valid JSON object containing the analysis.`;
         matchScore: analysis.matchScore,
         atsScore: analysis.atsScore,
         missingKeywords: analysis.missingKeywords,
-        suggestedJobs: analysis.suggestedJobs,
+        topicsToMaster: analysis.topicsToMaster,
         status: "completed"
       });
 
@@ -100,7 +100,7 @@ Respond with a valid JSON object containing the analysis.`;
         matchScore: 0,
         atsScore: 0,
         missingKeywords: [],
-        suggestedJobs: [],
+        topicsToMaster: [],
         status: "failed",
         errorMessage: error instanceof Error ? error.message : "Unknown error during analysis"
       });

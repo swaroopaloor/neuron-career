@@ -271,14 +271,16 @@ export default function UploadDialog({ open, onOpenChange }: UploadDialogProps) 
                 <Label htmlFor="job-description" className="text-sm font-medium">
                   Job Description
                 </Label>
-                <Textarea
-                  id="job-description"
-                  placeholder="Paste the job description here..."
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  rows={8}
-                  className="resize-none"
-                />
+                <div className="max-h-64 overflow-y-auto p-1">
+                  <Textarea
+                    id="job-description"
+                    placeholder="Paste the job description here..."
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    rows={8}
+                    className="resize-none w-full"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Provide a detailed job description for the most accurate analysis.
                 </p>

@@ -40,11 +40,9 @@ const schema = defineSchema(
       matchScore: v.number(), // 0-100
       atsScore: v.number(), // 0-100
       missingKeywords: v.array(v.string()), // top 10 missing keywords
-      suggestedJobs: v.array(v.object({
-        title: v.string(),
-        company: v.string(),
-        location: v.string(),
-        url: v.string(),
+      topicsToMaster: v.array(v.object({
+        topic: v.string(),
+        description: v.string(),
       })),
       status: v.union(
         v.literal("processing"),

@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { 
   ArrowLeft, 
   TrendingUp, 
   Target, 
   AlertTriangle, 
-  ExternalLink,
+  BrainCircuit,
   Download,
   Share
 } from "lucide-react";
@@ -198,7 +199,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             </Card>
           </motion.div>
 
-          {/* Suggested Jobs */}
+          {/* Topics to Master */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -207,43 +208,34 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             <Card className="elevation-2 h-fit">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ExternalLink className="h-5 w-5 text-primary" />
-                  Suggested Jobs
+                  <BrainCircuit className="h-5 w-5 text-primary" />
+                  Topics to Master
                 </CardTitle>
                 <CardDescription>
-                  Similar positions that might be a good fit for your profile
+                  Key areas to be well-versed in for the interview
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {analysis.suggestedJobs.map((job, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-foreground mb-1">{job.title}</h4>
-                          <p className="text-sm text-muted-foreground mb-1">{job.company}</p>
-                          <p className="text-xs text-muted-foreground">{job.location}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          className="ml-2"
-                        >
-                          <a href={job.url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                {analysis.topicsToMaster && analysis.topicsToMaster.length > 0 ? (
+                  <Accordion type="single" collapsible className="w-full">
+                    {analysis.topicsToMaster.map((item, index) => (
+                      <AccordionItem value={`item-${index}`} key={index}>
+                        <AccordionTrigger className="text-left hover:no-underline">
+                          {item.topic}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-muted-foreground">
+                          {item.description}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                   <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      No specific topics were identified for this role.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

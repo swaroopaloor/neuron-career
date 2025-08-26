@@ -63,7 +63,7 @@ export const createAnalysis = mutation({
       matchScore: 0,
       atsScore: 0,
       missingKeywords: [],
-      suggestedJobs: [],
+      topicsToMaster: [],
       status: "processing",
     });
 
@@ -84,11 +84,9 @@ export const updateAnalysisResults = internalMutation({
     matchScore: v.number(),
     atsScore: v.number(),
     missingKeywords: v.array(v.string()),
-    suggestedJobs: v.array(v.object({
-      title: v.string(),
-      company: v.string(),
-      location: v.string(),
-      url: v.string(),
+    topicsToMaster: v.array(v.object({
+      topic: v.string(),
+      description: v.string(),
     })),
     status: v.union(v.literal("completed"), v.literal("failed")),
     errorMessage: v.optional(v.string()),
