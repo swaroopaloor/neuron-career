@@ -54,7 +54,7 @@ Respond with a valid JSON object containing the analysis.`;
           messages: [
             {
               role: "system",
-              content: `You are a resume analyzer. Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100), "atsScore": number (0-100), "missingKeywords": string[] (top 10), "topicsToMaster": { "topic": string, "description": string }[] (top 5-7 topics the applicant should be well-versed in for the interview) }. Do not include any other text, explanations, or markdown formatting.`
+              content: `You are a world-class career assistant. Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100), "atsScore": number (0-100), "missingKeywords": string[] (top 10), "topicsToMaster": { "topic": string, "description": string }[] (top 5-7 topics for interview prep), "coverLetter": string (a professional, tailored cover letter draft as a single string with markdown for formatting), "interviewQuestions": { "question": string, "category": string }[] (5-7 likely interview questions, categorized as "Behavioral" or "Technical"), "interviewTalkingPoints": { "point": string, "example": string }[] (3-5 key talking points for the candidate to highlight, with a brief STAR method example for each) }. Do not include any other text, explanations, or markdown formatting outside of the JSON object.`
             },
             {
               role: "user",
@@ -88,6 +88,9 @@ Respond with a valid JSON object containing the analysis.`;
         atsScore: analysis.atsScore,
         missingKeywords: analysis.missingKeywords,
         topicsToMaster: analysis.topicsToMaster,
+        coverLetter: analysis.coverLetter,
+        interviewQuestions: analysis.interviewQuestions,
+        interviewTalkingPoints: analysis.interviewTalkingPoints,
         status: "completed"
       });
 

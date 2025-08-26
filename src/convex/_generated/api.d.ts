@@ -19,6 +19,7 @@ import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as auth from "../auth.js";
 import type * as fileUpload from "../fileUpload.js";
 import type * as http from "../http.js";
+import type * as jobApplications from "../jobApplications.js";
 import type * as users from "../users.js";
 
 /**
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   fileUpload: typeof fileUpload;
   http: typeof http;
+  jobApplications: typeof jobApplications;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

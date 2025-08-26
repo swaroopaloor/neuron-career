@@ -16,6 +16,18 @@ export const roleValidator = v.union(
 );
 export type Role = Infer<typeof roleValidator>;
 
+export const JOB_STATUSES = [
+  "Saved",
+  "Applied",
+  "Interviewing",
+  "Offer",
+  "Rejected",
+] as const;
+export const jobStatusValidator = v.union(
+  ...JOB_STATUSES.map((s) => v.literal(s))
+);
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
 const schema = defineSchema(
   {
     // default auth tables using convex auth.
@@ -46,10 +58,26 @@ const schema = defineSchema(
       matchScore: v.number(), // 0-100
       atsScore: v.number(), // 0-100
       missingKeywords: v.array(v.string()), // top 10 missing keywords
+      
+      // Feature: Deeper Skill-Gap Analysis
       topicsToMaster: v.array(v.object({
         topic: v.string(),
         description: v.string(),
       })),
+      
+      // Feature: AI Cover Letter
+      coverLetter: v.optional(v.string()),
+
+      // Feature: Interview Prep Kit
+      interviewQuestions: v.optional(v.array(v.object({
+        question: v.string(),
+        category: v.string(), // e.g., "Behavioral", "Technical"
+      }))),
+      interviewTalkingPoints: v.optional(v.array(v.object({
+        point: v.string(),
+        example: v.string(), // STAR method example
+      }))),
+
       status: v.union(
         v.literal("processing"),
         v.literal("completed"),
@@ -57,8 +85,22 @@ const schema = defineSchema(
       ),
       errorMessage: v.optional(v.string()),
       isFavorited: v.optional(v.boolean()),
+      jobApplicationId: v.optional(v.id("jobApplications")),
     })
-      .index("by_user", ["userId"]),
+      .index("by_user", ["userId"])
+      .index("by_user_and_job", ["userId", "jobApplicationId"]),
+
+    // Feature: Job Application Tracker
+    jobApplications: defineTable({
+      userId: v.id("users"),
+      jobTitle: v.string(),
+      companyName: v.string(),
+      status: jobStatusValidator,
+      applicationDate: v.optional(v.number()),
+      jobDescription: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      analysisId: v.optional(v.id("analyses")),
+    }).index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,

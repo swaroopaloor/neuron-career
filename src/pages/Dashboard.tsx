@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Navigate, useNavigate } from "react-router";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,8 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Settings
+  Settings,
+  Briefcase
 } from "lucide-react";
 import { useState } from "react";
 import UploadDialog from "@/components/UploadDialog";
@@ -153,6 +154,16 @@ export default function Dashboard() {
                 ) : (
                   <Sun className="h-4 w-4" />
                 )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/job-tracker")}
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary smooth-transition"
+              >
+                <Briefcase className="h-4 w-4 mr-2" />
+                Job Tracker
               </Button>
 
               <Button

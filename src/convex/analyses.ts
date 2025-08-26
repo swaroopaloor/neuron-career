@@ -50,6 +50,7 @@ export const createAnalysis = mutation({
     resumeFileId: v.id("_storage"),
     resumeFileName: v.optional(v.string()),
     jobDescription: v.string(),
+    jobApplicationId: v.optional(v.id("jobApplications")), // Optional link to a job application
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -62,6 +63,7 @@ export const createAnalysis = mutation({
       resumeFileId: args.resumeFileId,
       resumeFileName: args.resumeFileName,
       jobDescription: args.jobDescription,
+      jobApplicationId: args.jobApplicationId,
       matchScore: 0,
       atsScore: 0,
       missingKeywords: [],
@@ -69,6 +71,11 @@ export const createAnalysis = mutation({
       status: "processing",
       isFavorited: false,
     });
+
+    // If a job application is linked, update it with the new analysisId
+    if (args.jobApplicationId) {
+      await ctx.db.patch(args.jobApplicationId, { analysisId: analysisId });
+    }
 
     await ctx.scheduler.runAfter(0, internal.aiAnalysis.analyzeResume, {
       analysisId,
@@ -91,6 +98,15 @@ export const updateAnalysisResults = internalMutation({
       topic: v.string(),
       description: v.string(),
     })),
+    coverLetter: v.optional(v.string()),
+    interviewQuestions: v.optional(v.array(v.object({
+      question: v.string(),
+      category: v.string(),
+    }))),
+    interviewTalkingPoints: v.optional(v.array(v.object({
+      point: v.string(),
+      example: v.string(),
+    }))),
     status: v.union(v.literal("completed"), v.literal("failed")),
     errorMessage: v.optional(v.string()),
   },
