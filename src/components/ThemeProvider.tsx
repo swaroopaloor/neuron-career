@@ -27,7 +27,14 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const { user } = useAuth();
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    // Check system preference first
+    if (typeof window !== "undefined") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      return (localStorage.getItem("theme") as Theme) || systemTheme;
+    }
+    return "dark";
+  });
   const updateProfile = useMutation(api.users.updateProfile);
 
   useEffect(() => {

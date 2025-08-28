@@ -4,16 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/ThemeProvider";
-import { Navigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { 
   FileText, 
   Target, 
-  TrendingUp, 
   Zap, 
   Shield, 
   Clock,
-  ArrowRight,
-  CheckCircle,
   Star,
   Users,
   Award,
@@ -23,7 +20,9 @@ import {
   Sparkles,
   BarChart3,
   FileCheck,
-  Rocket
+  Rocket,
+  ArrowRight,
+  CheckCircle
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -36,7 +35,7 @@ export default function Landing() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary border-t-transparent"></div>
       </div>
     );
   }
@@ -45,22 +44,22 @@ export default function Landing() {
     {
       icon: Sparkles,
       title: "AI-Powered Analysis",
-      description: "Advanced machine learning algorithms analyze your resume against job requirements with 95% accuracy."
+      description: "Advanced machine learning algorithms analyze your resume against job requirements with 95% accuracy and detailed insights."
     },
     {
       icon: BarChart3,
       title: "ATS Optimization", 
-      description: "Get detailed ATS compatibility scores and specific recommendations to pass applicant tracking systems."
+      description: "Get detailed ATS compatibility scores and specific recommendations to pass applicant tracking systems effortlessly."
     },
     {
       icon: Zap,
       title: "Instant Results",
-      description: "Receive comprehensive analysis reports in under 30 seconds with actionable insights."
+      description: "Receive comprehensive analysis reports in under 30 seconds with actionable insights and improvement suggestions."
     },
     {
       icon: Shield,
       title: "Enterprise Security",
-      description: "Bank-level encryption ensures your documents are processed securely and never permanently stored."
+      description: "Bank-level encryption ensures your documents are processed securely and never permanently stored on our servers."
     }
   ];
 
@@ -75,53 +74,58 @@ export default function Landing() {
     {
       step: "01",
       title: "Upload Resume",
-      description: "Drag and drop your PDF resume or browse from your device. We support all standard formats.",
+      description: "Drag and drop your PDF resume or browse from your device. We support all standard formats including PDF, DOC, and DOCX.",
       icon: FileText
     },
     {
       step: "02", 
       title: "Add Job Description",
-      description: "Paste the target job description. Our AI will identify key requirements and skills.",
+      description: "Paste the target job description. Our AI will identify key requirements, skills, and qualifications automatically.",
       icon: Target
     },
     {
       step: "03",
       title: "Get Analysis",
-      description: "Receive detailed match scores, ATS ratings, and personalized improvement recommendations.",
+      description: "Receive detailed match scores, ATS ratings, and personalized improvement recommendations to boost your chances.",
       icon: FileCheck
     }
+  ];
+
+  const benefits = [
+    "Increase interview callbacks by 3x",
+    "Pass ATS systems with confidence", 
+    "Get personalized improvement tips",
+    "Save hours of manual optimization"
   ];
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: 0.8 }}
       className="min-h-screen bg-background"
     >
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center gap-3 no-underline text-foreground">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
+      <nav className="fixed top-0 w-full z-50 glass-card border-b">
+        <div className="container-responsive">
+          <div className="flex justify-between items-center h-20 px-6">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Sparkles className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-xl font-semibold text-foreground">Resume Analyzer</span>
+              <span className="text-2xl font-bold text-foreground">Resume Analyzer</span>
             </Link>
             
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-8">
               <a
                 href="#features"
-                className="no-underline text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                style={{ textDecoration: "none" }}
+                className="text-muted-foreground hover:text-foreground transition-colors font-medium"
               >
                 Features
               </a>
               <a
                 href="#how-it-works"
-                className="no-underline text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                style={{ textDecoration: "none" }}
+                className="text-muted-foreground hover:text-foreground transition-colors font-medium"
               >
                 How it Works
               </a>
@@ -131,7 +135,7 @@ export default function Landing() {
                 onClick={toggleTheme}
                 className="text-muted-foreground hover:text-foreground"
               >
-                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
               </Button>
             </div>
 
@@ -140,33 +144,24 @@ export default function Landing() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleTheme}
-                className="text-muted-foreground hover:text-foreground"
               >
-                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
               </Button>
               <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon">
-                    <Menu className="h-5 w-5" />
+                    <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px]">
-                  <div className="flex flex-col space-y-6 pt-8">
+                <SheetContent side="right" className="w-80">
+                  <div className="flex flex-col space-y-8 pt-12">
                     <SheetClose asChild>
-                      <a
-                        href="#features"
-                        className="no-underline text-lg font-medium text-foreground hover:text-primary transition-colors"
-                        style={{ textDecoration: "none" }}
-                      >
+                      <a href="#features" className="text-xl font-medium hover:text-primary transition-colors">
                         Features
                       </a>
                     </SheetClose>
                     <SheetClose asChild>
-                      <a
-                        href="#how-it-works"
-                        className="no-underline text-lg font-medium text-foreground hover:text-primary transition-colors"
-                        style={{ textDecoration: "none" }}
-                      >
+                      <a href="#how-it-works" className="text-xl font-medium hover:text-primary transition-colors">
                         How it Works
                       </a>
                     </SheetClose>
@@ -179,97 +174,105 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center max-w-4xl mx-auto">
+      <section className="relative pt-32 pb-24 overflow-hidden">
+        <div className="absolute inset-0 gradient-bg-subtle"></div>
+        <div className="container-responsive relative px-6">
+          <div className="text-center max-w-5xl mx-auto">
             <motion.div
-              initial={{ y: 30, opacity: 0 }}
+              initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.6 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
             >
-              <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-                <Sparkles className="w-3 h-3 mr-1" />
+              <Badge className="mb-8 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 text-base px-4 py-2">
+                <Sparkles className="w-4 h-4 mr-2" />
                 AI-Powered Resume Analysis
               </Badge>
             </motion.div>
             
             <motion.h1
-              initial={{ y: 30, opacity: 0 }}
+              initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 tracking-tight leading-tight"
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-foreground mb-8 tracking-tight leading-[1.1] text-balance"
             >
-              Land Your Dream Job with
-              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent block mt-2">
+              Land Your Dream Job with{" "}
+              <span className="text-gradient block mt-4">
                 AI-Powered Insights
               </span>
             </motion.h1>
             
             <motion.p
-              initial={{ y: 30, opacity: 0 }}
+              initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="text-xl sm:text-2xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
             >
               Upload your resume and job description to get instant AI analysis, 
               ATS optimization scores, and personalized recommendations that boost your hiring chances by 3x.
             </motion.p>
             
             <motion.div
-              initial={{ y: 30, opacity: 0 }}
+              initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16"
             >
-              <Button size="lg" asChild className="shadow-lg hover:shadow-xl">
-                <Link
-                  to={isAuthenticated ? "/dashboard" : "/auth"}
-                  className="no-underline"
-                  style={{ textDecoration: "none" }}
-                >
-                  <Rocket className="mr-2 h-5 w-5" />
+              <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-14 px-8 text-lg">
+                <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                  <Rocket className="mr-3 h-6 w-6" />
                   {isAuthenticated ? "Go to Dashboard" : "Start Free Analysis"}
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link
-                  to="/#how-it-works"
-                  className="no-underline"
-                  style={{ textDecoration: "none" }}
-                >
+              <Button variant="outline" size="lg" asChild className="h-14 px-8 text-lg">
+                <Link to="/#how-it-works">
                   See How It Works
+                  <ArrowRight className="ml-3 h-5 w-5" />
                 </Link>
               </Button>
             </motion.div>
 
+            {/* Benefits List */}
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto mb-20"
+            >
+              {benefits.map((benefit, index) => (
+                <div key={benefit} className="flex items-center gap-3 p-4 rounded-xl bg-card border">
+                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                  <span className="text-sm font-medium text-foreground">{benefit}</span>
+                </div>
+              ))}
+            </motion.div>
+
             {/* Hero Visual */}
             <motion.div
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="relative max-w-5xl mx-auto"
+              transition={{ delay: 0.7, duration: 1 }}
+              className="relative max-w-6xl mx-auto"
             >
-              <Card className="overflow-hidden shadow-2xl border-0 bg-gradient-to-br from-card to-muted/20">
+              <Card className="overflow-hidden shadow-2xl border bg-gradient-to-br from-card to-muted/20">
                 <CardContent className="p-0">
-                  <div className="bg-gradient-to-br from-primary/10 to-secondary/10 p-8 sm:p-12">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-12 sm:p-16">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                       {steps.map((step, index) => (
                         <motion.div
                           key={step.step}
-                          initial={{ y: 20, opacity: 0 }}
+                          initial={{ y: 30, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.6 + index * 0.1, duration: 0.6 }}
+                          transition={{ delay: 0.8 + index * 0.1, duration: 0.8 }}
                           className="text-center"
                         >
-                          <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4 relative">
-                            <step.icon className="h-8 w-8 text-primary" />
-                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground">
+                          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 relative border border-primary/20">
+                            <step.icon className="h-10 w-10 text-primary" />
+                            <div className="absolute -top-3 -right-3 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shadow-lg">
                               {index + 1}
                             </div>
                           </div>
-                          <h3 className="font-semibold text-foreground mb-2">{step.title}</h3>
-                          <p className="text-sm text-muted-foreground">{step.description.split('.')[0]}</p>
+                          <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
+                          <p className="text-muted-foreground leading-relaxed">{step.description.split('.')[0]}</p>
                         </motion.div>
                       ))}
                     </div>
@@ -282,29 +285,29 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="section-padding bg-muted/30">
+        <div className="container-responsive">
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 40, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+            transition={{ duration: 0.8 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12"
           >
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
-                initial={{ y: 20, opacity: 0 }}
+                initial={{ y: 30, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-                className="text-center"
+                transition={{ delay: index * 0.1, duration: 0.8 }}
+                className="text-center group"
               >
-                <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <stat.icon className="h-6 w-6 text-primary" />
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-105 transition-transform border border-primary/20">
+                  <stat.icon className="h-8 w-8 text-primary" />
                 </div>
-                <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-4xl font-bold text-foreground mb-2">{stat.value}</div>
+                <div className="text-muted-foreground font-medium">{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -312,41 +315,41 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="features" className="section-padding">
+        <div className="container-responsive">
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 40, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            transition={{ duration: 0.8 }}
+            className="text-center mb-20"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+            <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 text-balance">
               Powerful Features for Modern Job Seekers
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Everything you need to optimize your resume and land more interviews with cutting-edge AI technology
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
-                initial={{ y: 30, opacity: 0 }}
+                initial={{ y: 40, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
+                transition={{ delay: index * 0.1, duration: 0.8 }}
               >
-                <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <CardHeader>
-                    <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mb-4">
-                      <feature.icon className="h-6 w-6 text-primary" />
+                <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  <CardHeader className="pb-4">
+                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform border border-primary/20">
+                      <feature.icon className="h-8 w-8 text-primary" />
                     </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+                    <CardTitle className="text-2xl mb-3">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-base leading-relaxed">
+                    <CardDescription className="text-lg leading-relaxed text-muted-foreground">
                       {feature.description}
                     </CardDescription>
                   </CardContent>
@@ -358,45 +361,45 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="how-it-works" className="section-padding bg-muted/30">
+        <div className="container-responsive">
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 40, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            transition={{ duration: 0.8 }}
+            className="text-center mb-20"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+            <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 text-balance">
               How It Works
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Get professional resume analysis in three simple steps
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
             {steps.map((step, index) => (
               <motion.div
                 key={step.step}
-                initial={{ y: 30, opacity: 0 }}
+                initial={{ y: 40, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.2, duration: 0.6 }}
-                className="text-center"
+                transition={{ delay: index * 0.2, duration: 0.8 }}
+                className="text-center group"
               >
                 <div className="relative mb-8">
-                  <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                    <step.icon className="h-10 w-10 text-primary-foreground" />
+                  <div className="w-24 h-24 bg-primary rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:scale-105 transition-transform">
+                    <step.icon className="h-12 w-12 text-primary-foreground" />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-sm font-bold text-secondary-foreground shadow-md">
+                  <div className="absolute -top-3 -right-3 w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-lg font-bold text-secondary-foreground shadow-lg">
                     {step.step}
                   </div>
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-4">
+                <h3 className="text-2xl font-bold text-foreground mb-4">
                   {step.title}
                 </h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed text-lg">
                   {step.description}
                 </p>
               </motion.div>
@@ -406,52 +409,52 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="section-padding">
+        <div className="container-responsive">
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 40, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl p-12"
+            transition={{ duration: 0.8 }}
+            className="text-center max-w-4xl mx-auto"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
-              Ready to Transform Your Career?
-            </h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join thousands of professionals who have optimized their resumes and landed their dream jobs with our AI-powered platform.
-            </p>
-            <Button size="lg" asChild className="shadow-lg hover:shadow-xl">
-              <Link
-                to={isAuthenticated ? "/dashboard" : "/auth"}
-                className="no-underline"
-                style={{ textDecoration: "none" }}
-              >
-                <Rocket className="mr-2 h-5 w-5" />
-                {isAuthenticated ? "Go to Dashboard" : "Start Your Free Analysis"}
-              </Link>
-            </Button>
+            <Card className="border-0 shadow-2xl bg-gradient-to-br from-primary/5 to-secondary/5">
+              <CardContent className="p-16">
+                <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-8 text-balance">
+                  Ready to Transform Your Career?
+                </h2>
+                <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
+                  Join thousands of professionals who have optimized their resumes and landed their dream jobs with our AI-powered platform.
+                </p>
+                <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-16 px-12 text-xl">
+                  <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                    <Rocket className="mr-3 h-6 w-6" />
+                    {isAuthenticated ? "Go to Dashboard" : "Start Your Free Analysis"}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="border-t bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <Link to="/" className="flex items-center gap-3 mb-4 md:mb-0 no-underline">
-              <div className="w-6 h-6 bg-primary rounded-lg flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
+        <div className="container-responsive">
+          <div className="flex flex-col md:flex-row justify-between items-center py-16 px-6">
+            <Link to="/" className="flex items-center gap-3 mb-6 md:mb-0 group">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Sparkles className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-foreground">Resume Analyzer</span>
+              <span className="text-xl font-bold text-foreground">Resume Analyzer</span>
             </Link>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-muted-foreground">
               Powered by{" "}
               <a
                 href="https://vly.ai"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="no-underline text-primary hover:text-primary/80 transition-colors font-medium"
+                className="text-primary hover:text-primary/80 transition-colors font-medium"
               >
                 vly.ai
               </a>
