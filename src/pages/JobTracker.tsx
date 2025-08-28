@@ -69,7 +69,11 @@ export default function JobTracker() {
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<Id<"analyses"> | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: Id<"jobApplications">; title: string } | null>(null);
 
-  const jobApplications = useQuery(api.jobApplications.getJobApplications);
+  const shouldQueryJobs = isAuthenticated && !isLoading;
+  const jobApplications = useQuery(
+    api.jobApplications.getJobApplications,
+    shouldQueryJobs ? {} : undefined
+  );
   const createJobApplication = useMutation(api.jobApplications.createJobApplication);
   const updateJobApplication = useMutation(api.jobApplications.updateJobApplication);
   const deleteJobApplication = useMutation(api.jobApplications.deleteJobApplication);
