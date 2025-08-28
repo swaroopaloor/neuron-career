@@ -218,7 +218,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               height={100}
               className="mx-auto mb-6 w-16 h-16 sm:w-24 sm:h-24"
             />
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gradient mb-3 sm:mb-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gradient mb-3 sm:mb-4">
               Welcome Back
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
@@ -315,10 +315,12 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -50 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.995 }}
                 >
                   <Card className="glass-card border-primary/20 shadow-2xl">
                     <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-3xl font-bold text-gradient">Get Started</CardTitle>
+                      <CardTitle className="text-2xl font-bold text-gradient">Get Started</CardTitle>
                       <CardDescription className="text-sm sm:text-base">
                         Enter your email to log in or create an account
                       </CardDescription>
@@ -397,10 +399,12 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -50 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.995 }}
                 >
                   <Card className="glass-card border-primary/20 shadow-2xl">
                     <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-3xl font-bold text-gradient">Check your email</CardTitle>
+                      <CardTitle className="text-2xl font-bold text-gradient">Check your email</CardTitle>
                       <CardDescription className="text-sm sm:text-base">
                         We've sent a 6-digit code to{" "}
                         <span className="font-medium text-foreground">{step.email}</span>

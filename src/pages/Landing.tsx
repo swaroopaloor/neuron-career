@@ -193,7 +193,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-8 tracking-tight leading-[1.1] text-balance"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[1.15] text-balance"
             >
               Land Your Dream Job with{" "}
               <span className="text-gradient block mt-4">
@@ -205,7 +205,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.8 }}
-              className="text-lg sm:text-xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
+              className="text-base sm:text-lg text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
             >
               Upload your resume and job description to get instant AI analysis, 
               ATS optimization scores, and personalized recommendations that boost your hiring chances by 3x.
@@ -324,7 +324,7 @@ export default function Landing() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 text-balance">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6 text-balance">
               Powerful Features for Modern Job Seekers
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -340,13 +340,14 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1, duration: 0.8 }}
+                whileHover={{ y: -6, rotate: -0.25, transition: { type: "spring", stiffness: 220, damping: 18 } }}
               >
                 <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
                   <CardHeader className="pb-3 sm:pb-4">
                     <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-105 transition-transform border border-primary/20">
                       <feature.icon className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
                     </div>
-                    <CardTitle className="text-xl sm:text-2xl mb-2 sm:mb-3">{feature.title}</CardTitle>
+                    <CardTitle className="text-lg sm:text-xl mb-2 sm:mb-3">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-sm sm:text-base leading-relaxed text-muted-foreground">
@@ -370,7 +371,7 @@ export default function Landing() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 text-balance">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6 text-balance">
               How It Works
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -386,6 +387,7 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2, duration: 0.8 }}
+                whileHover={{ y: -8, rotate: 0.35, transition: { type: "spring", stiffness: 240, damping: 16 } }}
                 className="text-center group"
               >
                 <div className="relative mb-6 sm:mb-8">
@@ -396,7 +398,7 @@ export default function Landing() {
                     {step.step}
                   </div>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 sm:mb-4">
+                <h3 className="text-lg sm:text-xl font-bold text-foreground mb-3 sm:mb-4">
                   {step.title}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed text-base">
