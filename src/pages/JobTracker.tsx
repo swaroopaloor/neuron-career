@@ -28,18 +28,20 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format } from "date-fns";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Id } from "@/convex/_generated/dataModel";
 import AnalysisReport from "@/components/AnalysisReport";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type JobApplication = NonNullable<ReturnType<typeof useQuery<typeof api.jobApplications.getJobApplications>>>[number];
 
 type JobStatus = "Saved" | "Applied" | "Interviewing" | "Offer" | "Rejected";
 const JOB_STATUSES: readonly JobStatus[] = ["Saved", "Applied", "Interviewing", "Offer", "Rejected"] as const;
+
+const formatDateForInput = (date: Date) => {
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10);
+};
 
 export default function JobTracker() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -295,40 +297,41 @@ export default function JobTracker() {
           ))}
         </motion.div>
 
-        {/* Kanban Board */}
-        <div className="w-full overflow-x-auto pb-4">
-          <div className="grid grid-cols-[repeat(5,minmax(300px,1fr))] gap-6">
-            {JOB_STATUSES.map((status, columnIndex) => (
-              <motion.div
-                key={status}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: columnIndex * 0.1 }}
-                className="space-y-4"
-              >
-                <div className="flex items-center gap-2">
+        {/* Simplified List by Status */}
+        <Accordion type="multiple" className="space-y-4">
+          {JOB_STATUSES.map((status, idx) => (
+            <AccordionItem key={status} value={status}>
+              <AccordionTrigger className="px-4 py-3 rounded-md bg-card border hover:no-underline">
+                <div className="flex w-full items-center gap-2">
                   {getStatusIcon(status)}
-                  <h3 className="font-medium text-foreground">{status}</h3>
+                  <span className="font-medium">{status}</span>
                   <Badge variant="secondary" className="ml-auto">
                     {groupedApplications[status]?.length || 0}
                   </Badge>
                 </div>
-
+              </AccordionTrigger>
+              <AccordionContent className="pt-3">
                 <div className="space-y-3">
                   {groupedApplications[status]?.map((job, index) => (
                     <motion.div
                       key={job._id}
-                      initial={{ y: 10, opacity: 0 }}
+                      initial={{ y: 8, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: (columnIndex * 0.1) + (index * 0.05) }}
+                      transition={{ delay: (idx * 0.05) + (index * 0.03) }}
                     >
-                      <Card className="hover:shadow-md transition-shadow">
+                      <Card className="hover:shadow-sm border-muted">
                         <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+                            <div>
+                              <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
+                              <div className="flex items-center gap-1 mt-1">
+                                <Building2 className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">{job.companyName}</span>
+                              </div>
+                            </div>
                             <div className="flex items-center gap-2">
                               <Select
-                                defaultValue={job.status}
+                                value={job.status}
                                 onValueChange={(value) => handleStatusUpdate(job._id, value as JobStatus)}
                               >
                                 <SelectTrigger className="h-8 w-[140px]">
@@ -347,6 +350,11 @@ export default function JobTracker() {
                                 size="sm"
                                 onClick={() => {
                                   setEditingJob(job);
+                                  setDates({
+                                    shortlistedDate: job.shortlistedDate ? new Date(job.shortlistedDate) : undefined,
+                                    interviewDate: job.interviewDate ? new Date(job.interviewDate) : undefined,
+                                    offerDate: job.offerDate ? new Date(job.offerDate) : undefined,
+                                  });
                                   setIsDateDialogOpen(true);
                                 }}
                               >
@@ -362,13 +370,8 @@ export default function JobTracker() {
                               </Button>
                             </div>
                           </div>
-                          
-                          <div className="flex items-center gap-1 mb-2">
-                            <Building2 className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">{job.companyName}</span>
-                          </div>
 
-                          <div className="space-y-1.5 mb-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-2">
                             {job.applicationDate && (
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -431,10 +434,10 @@ export default function JobTracker() {
                     </div>
                   )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
 
         {!jobApplications?.length && (
           <motion.div
@@ -457,7 +460,7 @@ export default function JobTracker() {
 
       {/* Date Picker Dialog */}
       <Dialog open={isDateDialogOpen} onOpenChange={setIsDateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] pointer-events-auto">
           <DialogHeader>
             <DialogTitle>Edit Application Dates</DialogTitle>
             <DialogDescription>
@@ -467,60 +470,42 @@ export default function JobTracker() {
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>Shortlisted Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dates.shortlistedDate ? format(dates.shortlistedDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <CalendarComponent
-                    mode="single"
-                    selected={dates.shortlistedDate}
-                    onSelect={(date) => setDates(prev => ({ ...prev, shortlistedDate: date as Date }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="date"
+                value={dates.shortlistedDate ? formatDateForInput(dates.shortlistedDate) : ""}
+                onChange={(e) =>
+                  setDates((prev) => ({
+                    ...prev,
+                    shortlistedDate: e.target.value ? new Date(e.target.value) : undefined,
+                  }))
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label>Interview Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dates.interviewDate ? format(dates.interviewDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <CalendarComponent
-                    mode="single"
-                    selected={dates.interviewDate}
-                    onSelect={(date) => setDates(prev => ({ ...prev, interviewDate: date as Date }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="date"
+                value={dates.interviewDate ? formatDateForInput(dates.interviewDate) : ""}
+                onChange={(e) =>
+                  setDates((prev) => ({
+                    ...prev,
+                    interviewDate: e.target.value ? new Date(e.target.value) : undefined,
+                  }))
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label>Offer Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dates.offerDate ? format(dates.offerDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <CalendarComponent
-                    mode="single"
-                    selected={dates.offerDate}
-                    onSelect={(date) => setDates(prev => ({ ...prev, offerDate: date as Date }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="date"
+                value={dates.offerDate ? formatDateForInput(dates.offerDate) : ""}
+                onChange={(e) =>
+                  setDates((prev) => ({
+                    ...prev,
+                    offerDate: e.target.value ? new Date(e.target.value) : undefined,
+                  }))
+                }
+              />
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setIsDateDialogOpen(false)}>
