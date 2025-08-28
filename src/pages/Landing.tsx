@@ -103,7 +103,7 @@ export default function Landing() {
       <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-3 no-underline text-foreground">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -111,10 +111,18 @@ export default function Landing() {
             </Link>
             
             <div className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <a
+                href="#features"
+                className="no-underline text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                style={{ textDecoration: "none" }}
+              >
                 Features
               </a>
-              <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <a
+                href="#how-it-works"
+                className="no-underline text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                style={{ textDecoration: "none" }}
+              >
                 How it Works
               </a>
               <Button
@@ -124,12 +132,6 @@ export default function Landing() {
                 className="text-muted-foreground hover:text-foreground"
               >
                 {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              </Button>
-              <Button asChild size="sm">
-                <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
-                  {isAuthenticated ? "Dashboard" : "Get Started"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
               </Button>
             </div>
 
@@ -151,21 +153,23 @@ export default function Landing() {
                 <SheetContent side="right" className="w-[280px]">
                   <div className="flex flex-col space-y-6 pt-8">
                     <SheetClose asChild>
-                      <a href="#features" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+                      <a
+                        href="#features"
+                        className="no-underline text-lg font-medium text-foreground hover:text-primary transition-colors"
+                        style={{ textDecoration: "none" }}
+                      >
                         Features
                       </a>
                     </SheetClose>
                     <SheetClose asChild>
-                      <a href="#how-it-works" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+                      <a
+                        href="#how-it-works"
+                        className="no-underline text-lg font-medium text-foreground hover:text-primary transition-colors"
+                        style={{ textDecoration: "none" }}
+                      >
                         How it Works
                       </a>
                     </SheetClose>
-                    <Button asChild className="w-full mt-6">
-                      <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
-                        {isAuthenticated ? "Dashboard" : "Get Started"}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -219,15 +223,23 @@ export default function Landing() {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
             >
               <Button size="lg" asChild className="shadow-lg hover:shadow-xl">
-                <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                <Link
+                  to={isAuthenticated ? "/dashboard" : "/auth"}
+                  className="no-underline"
+                  style={{ textDecoration: "none" }}
+                >
                   <Rocket className="mr-2 h-5 w-5" />
                   {isAuthenticated ? "Go to Dashboard" : "Start Free Analysis"}
                 </Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <a href="#how-it-works">
+                <Link
+                  to="/#how-it-works"
+                  className="no-underline"
+                  style={{ textDecoration: "none" }}
+                >
                   See How It Works
-                </a>
+                </Link>
               </Button>
             </motion.div>
 
@@ -410,7 +422,11 @@ export default function Landing() {
               Join thousands of professionals who have optimized their resumes and landed their dream jobs with our AI-powered platform.
             </p>
             <Button size="lg" asChild className="shadow-lg hover:shadow-xl">
-              <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+              <Link
+                to={isAuthenticated ? "/dashboard" : "/auth"}
+                className="no-underline"
+                style={{ textDecoration: "none" }}
+              >
                 <Rocket className="mr-2 h-5 w-5" />
                 {isAuthenticated ? "Go to Dashboard" : "Start Your Free Analysis"}
               </Link>
@@ -423,7 +439,7 @@ export default function Landing() {
       <footer className="border-t bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <Link to="/" className="flex items-center gap-3 mb-4 md:mb-0">
+            <Link to="/" className="flex items-center gap-3 mb-4 md:mb-0 no-underline">
               <div className="w-6 h-6 bg-primary rounded-lg flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-primary-foreground" />
               </div>
@@ -435,7 +451,7 @@ export default function Landing() {
                 href="https://vly.ai"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:text-primary/80 transition-colors font-medium"
+                className="no-underline text-primary hover:text-primary/80 transition-colors font-medium"
               >
                 vly.ai
               </a>
