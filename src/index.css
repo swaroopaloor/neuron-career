@@ -76,7 +76,7 @@
     @apply border-[color:var(--border)];
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[color:var(--background)] text-foreground;
     font-family: 'Inter', sans-serif;
     background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
     min-height: 100vh;
