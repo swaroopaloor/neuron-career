@@ -251,11 +251,17 @@ export default function Landing() {
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-                <Button variant="outline" size="lg" asChild className="h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
-                  <Link to="/#how-it-works">
-                    See How It Works
-                    <ArrowRight className="ml-3 h-5 w-5" />
-                  </Link>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg"
+                  onClick={() => {
+                    const el = document.getElementById("how-it-works");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                >
+                  See How It Works
+                  <ArrowRight className="ml-3 h-5 w-5" />
                 </Button>
               </motion.div>
             </motion.div>
@@ -273,41 +279,6 @@ export default function Landing() {
                   <span className="text-sm font-medium text-foreground">{benefit}</span>
                 </div>
               ))}
-            </motion.div>
-
-            {/* Hero Visual */}
-            <motion.div
-              initial={{ y: 60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.7, duration: 1 }}
-              className="relative max-w-6xl mx-auto"
-            >
-              <Card className="overflow-hidden shadow-2xl border bg-gradient-to-br from-card to-muted/20">
-                <CardContent className="p-0">
-                  <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-6 sm:p-12 md:p-16">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-                      {steps.map((step, index) => (
-                        <motion.div
-                          key={step.step}
-                          initial={{ y: 30, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.8 + index * 0.1, duration: 0.8 }}
-                          className="text-center"
-                        >
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-5 sm:mb-6 relative border border-primary/20">
-                            <step.icon className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
-                            <div className="absolute -top-3 -right-3 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shadow-lg">
-                              {index + 1}
-                            </div>
-                          </div>
-                          <h3 className="text-lg sm:text-xl font-bold text-foreground mb-3">{step.title}</h3>
-                          <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">{step.description.split('.')[0]}</p>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </motion.div>
           </div>
         </div>
