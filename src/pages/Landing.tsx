@@ -108,7 +108,7 @@ export default function Landing() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 glass-card border-b">
         <div className="container-responsive">
-          <div className="flex justify-between items-center h-20 px-6">
+          <div className="flex justify-between items-center h-20">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Sparkles className="h-6 w-6 text-primary-foreground" />
@@ -119,13 +119,13 @@ export default function Landing() {
             <div className="hidden md:flex items-center gap-8">
               <a
                 href="#features"
-                className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+                className="text-muted-foreground hover:text-foreground transition-colors font-medium no-underline"
               >
                 Features
               </a>
               <a
                 href="#how-it-works"
-                className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+                className="text-muted-foreground hover:text-foreground transition-colors font-medium no-underline"
               >
                 How it Works
               </a>
@@ -285,7 +285,7 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="section-padding bg-muted/30">
+      <section className="section-padding bg-secondary/30">
         <div className="container-responsive">
           <motion.div
             initial={{ y: 40, opacity: 0 }}
@@ -361,7 +361,7 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="section-padding bg-muted/30">
+      <section id="how-it-works" className="section-padding bg-secondary/30">
         <div className="container-responsive">
           <motion.div
             initial={{ y: 40, opacity: 0 }}
