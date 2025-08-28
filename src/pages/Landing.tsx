@@ -448,17 +448,10 @@ export default function Landing() {
               </div>
               <span className="text-xl font-bold text-foreground">Resume Analyzer</span>
             </Link>
-            <div className="text-muted-foreground">
-              Powered by{" "}
-              <a
-                href="https://vly.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary/80 transition-colors font-medium"
-              >
-                vly.ai
-              </a>
+            <div className="text-muted-foreground text-sm">
+              &copy; {new Date().getFullYear()} Copyrights belong to ALOOR SAI SWAROOP
             </div>
+
           </div>
         </div>
       </footer>
