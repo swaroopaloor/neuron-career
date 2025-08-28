@@ -320,57 +320,17 @@ export default function JobTracker() {
                         >
                           <Card className="hover:shadow-sm border-muted">
                             <CardContent className="p-4">
-                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
-                                <div>
-                                  <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <Building2 className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground">{job.companyName}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Select
-                                    value={job.status}
-                                    onValueChange={(value) => handleStatusUpdate(job._id, value as JobStatus)}
-                                  >
-                                    <SelectTrigger className="h-8 w-[140px]">
-                                      <SelectValue placeholder="Set status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {JOB_STATUSES.map((s) => (
-                                        <SelectItem key={s} value={s}>
-                                          {s}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingJob(job);
-                                      setDates({
-                                        shortlistedDate: job.shortlistedDate ? new Date(job.shortlistedDate) : undefined,
-                                        interviewDate: job.interviewDate ? new Date(job.interviewDate) : undefined,
-                                        offerDate: job.offerDate ? new Date(job.offerDate) : undefined,
-                                      });
-                                      setIsDateDialogOpen(true);
-                                    }}
-                                  >
-                                    Edit Dates
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive"
-                                    onClick={() => setDeleteTarget({ id: job._id, title: job.jobTitle })}
-                                  >
-                                    Delete
-                                  </Button>
+                              {/* Top: Title + Company */}
+                              <div className="space-y-1.5 mb-3">
+                                <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
+                                <div className="flex items-center gap-1">
+                                  <Building2 className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">{job.companyName}</span>
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-2">
+                              {/* Middle: Dates summary */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3">
                                 {job.applicationDate && (
                                   <div className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -405,19 +365,68 @@ export default function JobTracker() {
                                 )}
                               </div>
 
-                              <Badge className={`text-xs ${getStatusColor(job.status)}`}>
-                                {job.status}
-                              </Badge>
+                              {/* Status badge */}
+                              <div className="mb-3">
+                                <Badge className={`text-xs ${getStatusColor(job.status)}`}>
+                                  {job.status}
+                                </Badge>
+                              </div>
 
+                              {/* Bottom: Actions toolbar */}
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <Select
+                                  value={job.status}
+                                  onValueChange={(value) => handleStatusUpdate(job._id, value as JobStatus)}
+                                >
+                                  <SelectTrigger className="h-8 w-36">
+                                    <SelectValue placeholder="Set status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {JOB_STATUSES.map((s) => (
+                                      <SelectItem key={s} value={s}>
+                                        {s}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingJob(job);
+                                      setDates({
+                                        shortlistedDate: job.shortlistedDate ? new Date(job.shortlistedDate) : undefined,
+                                        interviewDate: job.interviewDate ? new Date(job.interviewDate) : undefined,
+                                        offerDate: job.offerDate ? new Date(job.offerDate) : undefined,
+                                      });
+                                      setIsDateDialogOpen(true);
+                                    }}
+                                  >
+                                    Edit Dates
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                                    onClick={() => setDeleteTarget({ id: job._id, title: job.jobTitle })}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Analysis link */}
                               {job.analysisId && (
-                                <div className="mt-2 pt-2 border-t">
+                                <div className="mt-3 pt-3 border-t">
                                   <Button 
                                     variant="ghost" 
                                     size="sm" 
-                                    className="h-6 text-xs"
+                                    className="h-8"
                                     onClick={() => setSelectedAnalysisId(job.analysisId!)}
                                   >
-                                    <Eye className="h-3 w-3 mr-1" />
+                                    <Eye className="h-4 w-4 mr-2" />
                                     View Analysis
                                   </Button>
                                 </div>
@@ -428,7 +437,7 @@ export default function JobTracker() {
                       ))}
 
                       {groupedApplications[status]?.length === 0 && (
-                        <div className="text-center py-6 text-muted-foreground text-sm border rounded-lg">
+                        <div className="text-center py-8 text-muted-foreground text-sm border rounded-xl">
                           No applications in {status.toLowerCase()}
                         </div>
                       )}
