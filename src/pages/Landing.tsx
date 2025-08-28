@@ -193,7 +193,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-8 tracking-tight leading-[1.1] text-balance"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-8 tracking-tight leading-[1.1] text-balance"
             >
               Land Your Dream Job with{" "}
               <span className="text-gradient block mt-4">
@@ -205,7 +205,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.8 }}
-              className="text-xl sm:text-2xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
+              className="text-lg sm:text-xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
             >
               Upload your resume and job description to get instant AI analysis, 
               ATS optimization scores, and personalized recommendations that boost your hiring chances by 3x.
@@ -324,7 +324,7 @@ export default function Landing() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 text-balance">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 text-balance">
               Powerful Features for Modern Job Seekers
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -349,7 +349,7 @@ export default function Landing() {
                     <CardTitle className="text-xl sm:text-2xl mb-2 sm:mb-3">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-base sm:text-lg leading-relaxed text-muted-foreground">
+                    <CardDescription className="text-sm sm:text-base leading-relaxed text-muted-foreground">
                       {feature.description}
                     </CardDescription>
                   </CardContent>
@@ -370,10 +370,10 @@ export default function Landing() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 text-balance">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 text-balance">
               How It Works
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Get professional resume analysis in three simple steps
             </p>
           </motion.div>
@@ -420,10 +420,10 @@ export default function Landing() {
           >
             <Card className="border-0 shadow-2xl bg-gradient-to-br from-primary/5 to-secondary/5">
               <CardContent className="p-8 sm:p-12 md:p-16">
-                <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-8 text-balance">
+                <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-8 text-balance">
                   Ready to Transform Your Career?
                 </h2>
-                <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
+                <p className="text-lg text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
                   Join thousands of professionals who have optimized their resumes and landed their dream jobs with our AI-powered platform.
                 </p>
                 <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-8 text-base sm:h-16 sm:px-12 sm:text-xl">
