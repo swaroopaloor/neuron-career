@@ -90,22 +90,22 @@ export default function Dashboard() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-primary" />;
       case "failed":
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       default:
-        return <Clock className="h-4 w-4 text-yellow-500 animate-spin" />;
+        return <Clock className="h-4 w-4 text-muted-foreground animate-spin" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-900/30 text-green-300";
+        return "bg-primary/10 text-primary border-primary/20";
       case "failed":
-        return "bg-red-900/30 text-red-300";
+        return "bg-destructive/10 text-destructive border-destructive/20";
       default:
-        return "bg-yellow-900/30 text-yellow-300";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -131,6 +131,8 @@ export default function Dashboard() {
       />
     );
   }
+
+  const isNewUser = !analyses || analyses.length === 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,271 +174,401 @@ export default function Dashboard() {
       </motion.header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          
-          {/* Left Sidebar - Summary & Actions */}
+        {isNewUser ? (
           <motion.div
-            initial={{ x: -30, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="lg:col-span-1 space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center py-12"
           >
-            {/* Welcome Card */}
-            <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-foreground">Welcome back!</h2>
-                    <p className="text-sm text-muted-foreground">{user?.name?.split(' ')[0] || 'User'}</p>
-                  </div>
-                </div>
-                
-                {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-foreground">{analyses?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">Analyses</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-foreground">{avgMatchScore}%</div>
-                    <div className="text-xs text-muted-foreground">Avg Score</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-foreground">{favoritesCount}</div>
-                    <div className="text-xs text-muted-foreground">Favorites</div>
-                  </div>
-                </div>
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="mb-8"
+            >
+              <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Sparkles className="h-12 w-12 text-primary" />
+              </div>
+              <h1 className="text-4xl font-bold text-foreground mb-4">
+                Welcome to Resume Analyzer!
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                Get AI-powered insights on your resume, match scores for job descriptions, 
+                and personalized interview preparation - all in one place.
+              </p>
+            </motion.div>
 
-                {/* Primary CTA */}
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={() => setUploadDialogOpen(true)}
-                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Analysis
-                  </Button>
-                </motion.div>
-              </CardContent>
-            </Card>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto"
+            >
+              <Card className="p-6 text-center hover:shadow-lg transition-all duration-300">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold mb-2">Upload Resume</h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload your resume and get instant AI analysis
+                </p>
+              </Card>
+              
+              <Card className="p-6 text-center hover:shadow-lg transition-all duration-300">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <TrendingUp className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold mb-2">Get Match Score</h3>
+                <p className="text-sm text-muted-foreground">
+                  See how well your resume matches job descriptions
+                </p>
+              </Card>
+              
+              <Card className="p-6 text-center hover:shadow-lg transition-all duration-300">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold mb-2">Interview Prep</h3>
+                <p className="text-sm text-muted-foreground">
+                  Get personalized questions and talking points
+                </p>
+              </Card>
+            </motion.div>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/job-tracker")}
-                  className="w-full justify-start text-left"
-                >
-                  <Briefcase className="h-4 w-4 mr-2" />
-                  Job Tracker
-                  <ArrowRight className="h-3 w-3 ml-auto" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/profile")}
-                  className="w-full justify-start text-left"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Profile Settings
-                  <ArrowRight className="h-3 w-3 ml-auto" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setFilter("favorites")}
-                  className="w-full justify-start text-left"
-                >
-                  <Star className="h-4 w-4 mr-2" />
-                  View Favorites
-                  <ArrowRight className="h-3 w-3 ml-auto" />
-                </Button>
-              </CardContent>
-            </Card>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                onClick={() => setUploadDialogOpen(true)}
+                size="lg"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-8 py-3 text-lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Start Your First Analysis
+              </Button>
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="text-sm text-muted-foreground mt-6"
+            >
+              It takes less than 2 minutes to get your first analysis
+            </motion.p>
           </motion.div>
-
-          {/* Right Content - Analyses List */}
-          <motion.div
-            initial={{ x: 30, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-3"
-          >
-            <Card className="h-fit">
-              <CardHeader className="pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Your Analyses
-                    </CardTitle>
-                    <CardDescription>
-                      {filter === "all" ? "All your resume analyses" : "Your favorited analyses"}
-                    </CardDescription>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {/* Search */}
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search analyses..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 w-40 sm:w-48"
-                      />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <motion.div
+              initial={{ x: -30, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              className="lg:col-span-1 space-y-4"
+            >
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <motion.div 
+                        className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center"
+                        whileHover={{ rotate: 360 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <User className="h-5 w-5 text-primary" />
+                      </motion.div>
+                      <div>
+                        <h2 className="font-semibold text-foreground">Welcome back!</h2>
+                        <p className="text-sm text-muted-foreground">{user?.name?.split(' ')[0] || 'User'}</p>
+                      </div>
                     </div>
                     
-                    {/* Filter Tabs */}
-                    <div className="flex gap-1">
+                    <motion.div 
+                      className="grid grid-cols-3 gap-2 mb-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <div className="text-center">
+                        <motion.div 
+                          className="text-lg font-bold text-foreground"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.3, type: "spring" }}
+                        >
+                          {analyses?.length || 0}
+                        </motion.div>
+                        <div className="text-xs text-muted-foreground">Analyses</div>
+                      </div>
+                      <div className="text-center">
+                        <motion.div 
+                          className="text-lg font-bold text-primary"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.4, type: "spring" }}
+                        >
+                          {avgMatchScore}%
+                        </motion.div>
+                        <div className="text-xs text-muted-foreground">Avg Score</div>
+                      </div>
+                      <div className="text-center">
+                        <motion.div 
+                          className="text-lg font-bold text-foreground"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.5, type: "spring" }}
+                        >
+                          {favoritesCount}
+                        </motion.div>
+                        <div className="text-xs text-muted-foreground">Favorites</div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }} 
+                      whileTap={{ scale: 0.98 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                    >
                       <Button
-                        variant={filter === "all" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setFilter("all")}
+                        onClick={() => setUploadDialogOpen(true)}
+                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
                       >
-                        All
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Analysis
                       </Button>
-                      <Button
-                        variant={filter === "favorites" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setFilter("favorites")}
+                    </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {[
+                      { icon: Briefcase, label: "Job Tracker", action: () => navigate("/job-tracker") },
+                      { icon: Settings, label: "Profile Settings", action: () => navigate("/profile") },
+                      { icon: Star, label: "View Favorites", action: () => setFilter("favorites") }
+                    ].map((item, index) => (
+                      <motion.div
+                        key={item.label}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + index * 0.1 }}
+                        whileHover={{ x: 5 }}
                       >
-                        <Heart className="h-3 w-3 mr-1" />
-                        Favorites
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={item.action}
+                          className="w-full justify-start text-left"
+                        >
+                          <item.icon className="h-4 w-4 mr-2" />
+                          {item.label}
+                          <ArrowRight className="h-3 w-3 ml-auto" />
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ x: 30, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="lg:col-span-3"
+            >
+              <Card className="h-fit">
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Your Analyses
+                      </CardTitle>
+                      <CardDescription>
+                        {filter === "all" ? "All your resume analyses" : "Your favorited analyses"}
+                      </CardDescription>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search analyses..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-8 w-40 sm:w-48"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-1">
+                        <Button
+                          variant={filter === "all" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setFilter("all")}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          variant={filter === "favorites" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setFilter("favorites")}
+                        >
+                          <Heart className="h-3 w-3 mr-1" />
+                          Favorites
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <AnimatePresence mode="wait">
-                  {!filteredAnalyses || filteredAnalyses.length === 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="text-center py-12"
-                    >
-                      <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                        {filter === "favorites" ? (
-                          <Heart className="h-8 w-8 text-muted-foreground" />
-                        ) : searchQuery ? (
-                          <Search className="h-8 w-8 text-muted-foreground" />
-                        ) : (
-                          <FileText className="h-8 w-8 text-muted-foreground" />
+                </CardHeader>
+                
+                <CardContent>
+                  <AnimatePresence mode="wait">
+                    {!filteredAnalyses || filteredAnalyses.length === 0 ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="text-center py-12"
+                      >
+                        <motion.div 
+                          className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4"
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          {filter === "favorites" ? (
+                            <Heart className="h-8 w-8 text-muted-foreground" />
+                          ) : searchQuery ? (
+                            <Search className="h-8 w-8 text-muted-foreground" />
+                          ) : (
+                            <FileText className="h-8 w-8 text-muted-foreground" />
+                          )}
+                        </motion.div>
+                        <h3 className="text-lg font-medium text-foreground mb-2">
+                          {searchQuery ? "No matching analyses" : 
+                           filter === "favorites" ? "No favorites yet" : "No analyses yet"}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          {searchQuery ? "Try adjusting your search terms." :
+                           filter === "favorites" ? "Star your favorite analyses to see them here." :
+                           "Upload your resume and job description to get started."}
+                        </p>
+                        {filter === "all" && !searchQuery && (
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Button 
+                              onClick={() => setUploadDialogOpen(true)}
+                              className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create First Analysis
+                            </Button>
+                          </motion.div>
                         )}
-                      </div>
-                      <h3 className="text-lg font-medium text-foreground mb-2">
-                        {searchQuery ? "No matching analyses" : 
-                         filter === "favorites" ? "No favorites yet" : "No analyses yet"}
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        {searchQuery ? "Try adjusting your search terms." :
-                         filter === "favorites" ? "Star your favorite analyses to see them here." :
-                         "Upload your resume and job description to get started."}
-                      </p>
-                      {filter === "all" && !searchQuery && (
-                        <Button 
-                          onClick={() => setUploadDialogOpen(true)}
-                          className="bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create First Analysis
-                        </Button>
-                      )}
-                    </motion.div>
-                  ) : (
-                    <div className="space-y-3">
-                      {filteredAnalyses.map((analysis, index) => (
-                        <motion.div
-                          key={analysis._id}
-                          initial={{ x: -20, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.05 * index }}
-                          whileHover={{ scale: 1.01, x: 5 }}
-                          className="bg-secondary/30 border border-border rounded-lg p-4 hover:bg-secondary/50 smooth-transition cursor-pointer group"
-                          onClick={() => analysis.status === "completed" && setSelectedAnalysisId(analysis._id)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                {getStatusIcon(analysis.status)}
-                                <Badge className={`${getStatusColor(analysis.status)} border-0 text-xs`}>
-                                  {analysis.status}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(analysis._creationTime).toLocaleDateString()}
-                                </span>
-                                {analysis.resumeFileName && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {analysis.resumeFileName.length > 15 
-                                      ? analysis.resumeFileName.substring(0, 15) + "..." 
-                                      : analysis.resumeFileName}
+                      </motion.div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredAnalyses.map((analysis, index) => (
+                          <motion.div
+                            key={analysis._id}
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.05 * index }}
+                            whileHover={{ scale: 1.01, x: 5 }}
+                            className="bg-secondary/30 border border-border rounded-lg p-4 hover:bg-secondary/50 smooth-transition cursor-pointer group"
+                            onClick={() => analysis.status === "completed" && setSelectedAnalysisId(analysis._id)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  {getStatusIcon(analysis.status)}
+                                  <Badge className={`${getStatusColor(analysis.status)} border text-xs`}>
+                                    {analysis.status}
                                   </Badge>
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(analysis._creationTime).toLocaleDateString()}
+                                  </span>
+                                  {analysis.resumeFileName && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {analysis.resumeFileName.length > 15 
+                                        ? analysis.resumeFileName.substring(0, 15) + "..." 
+                                        : analysis.resumeFileName}
+                                    </Badge>
+                                  )}
+                                </div>
+                                
+                                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                                  {analysis.jobDescription.substring(0, 120)}...
+                                </p>
+                                
+                                {analysis.status === "completed" && (
+                                  <div className="flex gap-4 text-sm">
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                      <span className="text-muted-foreground">Match: </span>
+                                      <span className="font-medium text-primary">{analysis.matchScore}%</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-2 h-2 bg-secondary-foreground rounded-full"></div>
+                                      <span className="text-muted-foreground">ATS: </span>
+                                      <span className="font-medium text-secondary-foreground">{analysis.atsScore}%</span>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {analysis.status === "failed" && analysis.errorMessage && (
+                                  <p className="text-sm text-destructive">{analysis.errorMessage}</p>
                                 )}
                               </div>
                               
-                              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                                {analysis.jobDescription.substring(0, 120)}...
-                              </p>
-                              
-                              {analysis.status === "completed" && (
-                                <div className="flex gap-4 text-sm">
-                                  <div className="flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="text-muted-foreground">Match: </span>
-                                    <span className="font-medium text-green-400">{analysis.matchScore}%</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span className="text-muted-foreground">ATS: </span>
-                                    <span className="font-medium text-blue-400">{analysis.atsScore}%</span>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {analysis.status === "failed" && analysis.errorMessage && (
-                                <p className="text-sm text-red-400">{analysis.errorMessage}</p>
-                              )}
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleFavorite(analysis._id);
+                                }}
+                                className="ml-3 flex-shrink-0"
+                              >
+                                <Heart 
+                                  className={`h-5 w-5 smooth-transition ${
+                                    analysis.isFavorited 
+                                      ? "text-red-500 fill-red-500" 
+                                      : "text-muted-foreground/50 hover:text-red-500"
+                                  }`} 
+                                />
+                              </motion.button>
                             </div>
-                            
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleFavorite(analysis._id);
-                              }}
-                              className="ml-3 flex-shrink-0"
-                            >
-                              <Heart 
-                                className={`h-5 w-5 smooth-transition ${
-                                  analysis.isFavorited 
-                                    ? "text-red-500 fill-red-500" 
-                                    : "text-muted-foreground/50 hover:text-red-500"
-                                }`} 
-                              />
-                            </motion.button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </AnimatePresence>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        )}
       </div>
 
       <UploadDialog 

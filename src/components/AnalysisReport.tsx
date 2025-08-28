@@ -35,15 +35,15 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 80) return "text-primary";
+    if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
+    return "text-destructive";
   };
 
   const getScoreBg = (score: number) => {
-    if (score >= 80) return "bg-green-100 dark:bg-green-900/20";
-    if (score >= 60) return "bg-yellow-100 dark:bg-yellow-900/20";
-    return "bg-red-100 dark:bg-red-900/20";
+    if (score >= 80) return "bg-primary/10 border-primary/20";
+    if (score >= 60) return "bg-yellow-100 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800";
+    return "bg-destructive/10 border-destructive/20";
   };
 
   return (
@@ -104,7 +104,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className={`text-center p-6 rounded-lg ${getScoreBg(analysis.matchScore)}`}>
+                <div className={`text-center p-6 rounded-lg border ${getScoreBg(analysis.matchScore)}`}>
                   <div className={`text-4xl font-bold ${getScoreColor(analysis.matchScore)}`}>
                     {analysis.matchScore}%
                   </div>
@@ -131,7 +131,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className={`text-center p-6 rounded-lg ${getScoreBg(analysis.atsScore)}`}>
+                <div className={`text-center p-6 rounded-lg border ${getScoreBg(analysis.atsScore)}`}>
                   <div className={`text-4xl font-bold ${getScoreColor(analysis.atsScore)}`}>
                     {analysis.atsScore}%
                   </div>
