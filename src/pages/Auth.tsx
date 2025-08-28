@@ -222,100 +222,103 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         ))}
       </div>
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+      <div className="relative z-10 container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 min-h-screen gap-8">
         {/* Left side - Enhanced Feature showcase */}
         <div className="flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 text-center relative order-last lg:order-first">
-          <motion.div
-            initial={{ y: -30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="mb-10 sm:mb-12"
-          >
-            <img
-              src="/logo_bg.svg"
-              alt="Logo"
-              width={100}
-              height={100}
-              className="mx-auto mb-6 w-16 h-16 sm:w-24 sm:h-24"
-            />
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gradient mb-3 sm:mb-4">
-              Welcome Back
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
-              Join thousands of professionals who've accelerated their careers with our AI-powered platform
-            </p>
-          </motion.div>
-
-          {/* Feature Carousel */}
-          <div className="relative w-full max-w-lg mb-8 h-64 sm:h-72 md:h-80">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={featureIndex}
-                initial={{ opacity: 0, y: 40, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -40, scale: 0.9 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-                className="absolute inset-0"
-              >
-                <Card className={`h-full glass-card border-primary/20 bg-gradient-to-br ${features[featureIndex].color}`}>
-                  <CardContent className="flex flex-col items-center justify-center h-full p-6 sm:p-8 text-center">
-                    <div className="mb-6 p-4 bg-background/50 rounded-2xl shadow-lg">
-                      {features[featureIndex].icon}
-                    </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4">
-                      {features[featureIndex].title}
-                    </h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {features[featureIndex].description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Feature Indicators */}
-          <div className="flex justify-center gap-2 mb-8">
-            {features.map((_, index) => (
-              <motion.div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === featureIndex ? 'bg-primary w-8' : 'bg-primary/30'
-                }`}
-                whileHover={{ scale: 1.2 }}
+          {/* Constrain left column content to match auth form width for perfect alignment */}
+          <div className="w-full max-w-md mx-auto">
+            <motion.div
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="mb-10 sm:mb-12"
+            >
+              <img
+                src="/logo_bg.svg"
+                alt="Logo"
+                width={100}
+                height={100}
+                className="mx-auto mb-6 w-16 h-16 sm:w-24 sm:h-24"
               />
-            ))}
-          </div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gradient mb-3 sm:mb-4">
+                Welcome Back
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
+                Join thousands of professionals who've accelerated their careers with our AI-powered platform
+              </p>
+            </motion.div>
 
-          {/* Testimonial */}
-          <div className="relative min-h-[5rem] w-full max-w-md px-2">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={testimonialIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.5 }}
-                className="absolute inset-0 text-center"
-              >
-                <blockquote className="text-sm text-muted-foreground italic mb-2">
-                  "{testimonials[testimonialIndex].text}"
-                </blockquote>
-                <cite className="text-xs font-medium text-foreground">
-                  {testimonials[testimonialIndex].author}
-                  <span className="text-muted-foreground block">
-                    {testimonials[testimonialIndex].role}
-                  </span>
-                </cite>
-              </motion.div>
-            </AnimatePresence>
+            {/* Feature Carousel */}
+            <div className="relative w-full max-w-md mb-8 h-64 sm:h-72 md:h-80">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={featureIndex}
+                  initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -40, scale: 0.9 }}
+                  transition={{ duration: 0.6, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <Card className={`h-full glass-card border-primary/20 bg-gradient-to-br ${features[featureIndex].color}`}>
+                    <CardContent className="flex flex-col items-center justify-center h-full p-6 sm:p-8 text-center">
+                      <div className="mb-6 p-4 bg-background/50 rounded-2xl shadow-lg">
+                        {features[featureIndex].icon}
+                      </div>
+                      <h3 className="text-2xl font-bold text-foreground mb-4">
+                        {features[featureIndex].title}
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {features[featureIndex].description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Feature Indicators */}
+            <div className="flex justify-center gap-2 mb-8">
+              {features.map((_, index) => (
+                <motion.div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === featureIndex ? 'bg-primary w-8' : 'bg-primary/30'
+                  }`}
+                  whileHover={{ scale: 1.2 }}
+                />
+              ))}
+            </div>
+
+            {/* Testimonial */}
+            <div className="relative min-h-[5rem] w-full max-w-md px-2">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={testimonialIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 text-center"
+                >
+                  <blockquote className="text-sm text-muted-foreground italic mb-2">
+                    "{testimonials[testimonialIndex].text}"
+                  </blockquote>
+                  <cite className="text-xs font-medium text-foreground">
+                    {testimonials[testimonialIndex].author}
+                    <span className="text-muted-foreground block">
+                      {testimonials[testimonialIndex].role}
+                    </span>
+                  </cite>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
         {/* Right side - Enhanced Auth form */}
         <div className="flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8 relative">
           {/* Back Button */}
-          <header className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
+          <header className="w-full max-w-md mb-4 z-20">
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
