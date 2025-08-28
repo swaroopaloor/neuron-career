@@ -28,10 +28,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Id } from "@/convex/_generated/dataModel";
 import AnalysisReport from "@/components/AnalysisReport";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type JobApplication = NonNullable<ReturnType<typeof useQuery<typeof api.jobApplications.getJobApplications>>>[number];
 
@@ -278,166 +276,157 @@ export default function JobTracker() {
       </motion.header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
+        {/* Board by Status - horizontal columns */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8"
+          className="overflow-x-auto"
         >
-          {JOB_STATUSES.map((status) => (
-            <Card key={status} className="text-center">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-center mb-2">
-                  {getStatusIcon(status)}
-                </div>
-                <div className="text-2xl font-bold">{groupedApplications[status]?.length || 0}</div>
-                <div className="text-sm text-muted-foreground">{status}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </motion.div>
-
-        {/* Simplified List by Status */}
-        <Accordion type="multiple" className="space-y-4">
-          {JOB_STATUSES.map((status, idx) => (
-            <AccordionItem key={status} value={status}>
-              <AccordionTrigger className="px-4 py-3 rounded-md bg-card border hover:no-underline">
-                <div className="flex w-full items-center gap-2">
-                  {getStatusIcon(status)}
-                  <span className="font-medium">{status}</span>
-                  <Badge variant="secondary" className="ml-auto">
-                    {groupedApplications[status]?.length || 0}
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-3">
-                <div className="space-y-3">
-                  {groupedApplications[status]?.map((job, index) => (
-                    <motion.div
-                      key={job._id}
-                      initial={{ y: 8, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: (idx * 0.05) + (index * 0.03) }}
-                    >
-                      <Card className="hover:shadow-sm border-muted">
-                        <CardContent className="p-4">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
-                            <div>
-                              <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Building2 className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">{job.companyName}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={job.status}
-                                onValueChange={(value) => handleStatusUpdate(job._id, value as JobStatus)}
-                              >
-                                <SelectTrigger className="h-8 w-[140px]">
-                                  <SelectValue placeholder="Set status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {JOB_STATUSES.map((s) => (
-                                    <SelectItem key={s} value={s}>
-                                      {s}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingJob(job);
-                                  setDates({
-                                    shortlistedDate: job.shortlistedDate ? new Date(job.shortlistedDate) : undefined,
-                                    interviewDate: job.interviewDate ? new Date(job.interviewDate) : undefined,
-                                    offerDate: job.offerDate ? new Date(job.offerDate) : undefined,
-                                  });
-                                  setIsDateDialogOpen(true);
-                                }}
-                              >
-                                Edit Dates
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive"
-                                onClick={() => handleDelete(job._id)}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-2">
-                            {job.applicationDate && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  Applied: {new Date(job.applicationDate).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                            {job.shortlistedDate && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  Shortlisted: {new Date(job.shortlistedDate).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                            {job.interviewDate && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  Interview: {new Date(job.interviewDate).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                            {job.offerDate && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  Offer: {new Date(job.offerDate).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <Badge className={`text-xs ${getStatusColor(job.status)}`}>
-                            {job.status}
-                          </Badge>
-
-                          {job.analysisId && (
-                            <div className="mt-2 pt-2 border-t">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-6 text-xs"
-                                onClick={() => setSelectedAnalysisId(job.analysisId!)}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View Analysis
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-
-                  {groupedApplications[status]?.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No applications in {status.toLowerCase()}
+          <div className="grid grid-flow-col auto-cols-[minmax(280px,1fr)] gap-4 min-h-[60vh]">
+            {JOB_STATUSES.map((status, idx) => (
+              <div key={status} className="flex flex-col">
+                <Card className="h-full border-muted">
+                  <CardHeader className="py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(status)}
+                        <span className="font-medium">{status}</span>
+                      </div>
+                      <Badge variant="secondary">
+                        {groupedApplications[status]?.length || 0}
+                      </Badge>
                     </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      {groupedApplications[status]?.map((job, index) => (
+                        <motion.div
+                          key={job._id}
+                          initial={{ y: 8, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: (idx * 0.03) + (index * 0.02) }}
+                        >
+                          <Card className="hover:shadow-sm border-muted">
+                            <CardContent className="p-4">
+                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+                                <div>
+                                  <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">{job.companyName}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Select
+                                    value={job.status}
+                                    onValueChange={(value) => handleStatusUpdate(job._id, value as JobStatus)}
+                                  >
+                                    <SelectTrigger className="h-8 w-[140px]">
+                                      <SelectValue placeholder="Set status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {JOB_STATUSES.map((s) => (
+                                        <SelectItem key={s} value={s}>
+                                          {s}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingJob(job);
+                                      setDates({
+                                        shortlistedDate: job.shortlistedDate ? new Date(job.shortlistedDate) : undefined,
+                                        interviewDate: job.interviewDate ? new Date(job.interviewDate) : undefined,
+                                        offerDate: job.offerDate ? new Date(job.offerDate) : undefined,
+                                      });
+                                      setIsDateDialogOpen(true);
+                                    }}
+                                  >
+                                    Edit Dates
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive"
+                                    onClick={() => handleDelete(job._id)}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-2">
+                                {job.applicationDate && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
+                                      Applied: {new Date(job.applicationDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                                {job.shortlistedDate && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
+                                      Shortlisted: {new Date(job.shortlistedDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                                {job.interviewDate && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
+                                      Interview: {new Date(job.interviewDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                                {job.offerDate && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
+                                      Offer: {new Date(job.offerDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <Badge className={`text-xs ${getStatusColor(job.status)}`}>
+                                {job.status}
+                              </Badge>
+
+                              {job.analysisId && (
+                                <div className="mt-2 pt-2 border-t">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 text-xs"
+                                    onClick={() => setSelectedAnalysisId(job.analysisId!)}
+                                  >
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    View Analysis
+                                  </Button>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+
+                      {groupedApplications[status]?.length === 0 && (
+                        <div className="text-center py-6 text-muted-foreground text-sm border rounded-lg">
+                          No applications in {status.toLowerCase()}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </motion.div>
 
         {!jobApplications?.length && (
           <motion.div
