@@ -30,6 +30,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Id } from "@/convex/_generated/dataModel";
 import AnalysisReport from "@/components/AnalysisReport";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type JobApplication = NonNullable<ReturnType<typeof useQuery<typeof api.jobApplications.getJobApplications>>>[number];
 
@@ -57,6 +67,7 @@ export default function JobTracker() {
   const [jobDescription, setJobDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<Id<"analyses"> | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: Id<"jobApplications">; title: string } | null>(null);
 
   const jobApplications = useQuery(api.jobApplications.getJobApplications);
   const createJobApplication = useMutation(api.jobApplications.createJobApplication);
@@ -280,9 +291,9 @@ export default function JobTracker() {
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="overflow-x-auto"
+          className=""
         >
-          <div className="grid grid-flow-col auto-cols-[minmax(280px,1fr)] gap-4 min-h-[60vh]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 min-h-[60vh]">
             {JOB_STATUSES.map((status, idx) => (
               <div key={status} className="flex flex-col">
                 <Card className="h-full border-muted">
@@ -305,6 +316,7 @@ export default function JobTracker() {
                           initial={{ y: 8, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: (idx * 0.03) + (index * 0.02) }}
+                          layout
                         >
                           <Card className="hover:shadow-sm border-muted">
                             <CardContent className="p-4">
@@ -351,7 +363,7 @@ export default function JobTracker() {
                                     variant="ghost"
                                     size="sm"
                                     className="text-destructive"
-                                    onClick={() => handleDelete(job._id)}
+                                    onClick={() => setDeleteTarget({ id: job._id, title: job.jobTitle })}
                                   >
                                     Delete
                                   </Button>
@@ -507,6 +519,33 @@ export default function JobTracker() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete job application?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget
+                ? `This will permanently remove "${deleteTarget.title}". This action cannot be undone.`
+                : "This will permanently remove the job application."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (deleteTarget) {
+                  await handleDelete(deleteTarget.id);
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
