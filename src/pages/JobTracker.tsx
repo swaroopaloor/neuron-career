@@ -28,16 +28,18 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { JOB_STATUSES, JobStatus } from "@/convex/schema";
-import { Id } from "@/convex/_generated/dataModel";
-import AnalysisReport from "@/components/AnalysisReport";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Id } from "@/convex/_generated/dataModel";
+import AnalysisReport from "@/components/AnalysisReport";
 
 type JobApplication = NonNullable<ReturnType<typeof useQuery<typeof api.jobApplications.getJobApplications>>>[number];
+
+type JobStatus = "Saved" | "Applied" | "Interviewing" | "Offer" | "Rejected";
+const JOB_STATUSES: readonly JobStatus[] = ["Saved", "Applied", "Interviewing", "Offer", "Rejected"] as const;
 
 export default function JobTracker() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -183,10 +185,13 @@ export default function JobTracker() {
     );
   }
 
-  const groupedApplications = JOB_STATUSES.reduce((acc, status) => {
-    acc[status] = jobApplications?.filter(app => app.status === status) || [];
-    return acc;
-  }, {} as Record<JobStatus, typeof jobApplications>);
+  const groupedApplications = JOB_STATUSES.reduce(
+    (acc: Record<JobStatus, typeof jobApplications>, status: JobStatus) => {
+      acc[status] = jobApplications?.filter((app) => app.status === status) || [];
+      return acc;
+    },
+    {} as Record<JobStatus, typeof jobApplications>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -321,37 +326,41 @@ export default function JobTracker() {
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-2">
                             <h4 className="font-medium text-sm line-clamp-2">{job.jobTitle}</h4>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {JOB_STATUSES.filter(s => s !== job.status).map(newStatus => (
-                                  <DropdownMenuItem
-                                    key={newStatus}
-                                    onClick={() => handleStatusUpdate(job._id, newStatus)}
-                                  >
-                                    Move to {newStatus}
-                                  </DropdownMenuItem>
-                                ))}
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setEditingJob(job);
-                                    setIsDateDialogOpen(true);
-                                  }}
-                                >
-                                  Edit Dates
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleDelete(job._id)}
-                                  className="text-destructive"
-                                >
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <div className="flex items-center gap-2">
+                              <Select
+                                defaultValue={job.status}
+                                onValueChange={(value) => handleStatusUpdate(job._id, value as JobStatus)}
+                              >
+                                <SelectTrigger className="h-8 w-[140px]">
+                                  <SelectValue placeholder="Set status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {JOB_STATUSES.map((s) => (
+                                    <SelectItem key={s} value={s}>
+                                      {s}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingJob(job);
+                                  setIsDateDialogOpen(true);
+                                }}
+                              >
+                                Edit Dates
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => handleDelete(job._id)}
+                              >
+                                Delete
+                              </Button>
+                            </div>
                           </div>
                           
                           <div className="flex items-center gap-1 mb-2">
