@@ -5,192 +5,143 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Very light gray background */
-    --foreground: 240 10% 10%; /* Darker text */
-    --card: 0 0% 100%; /* White card background */
-    --card-foreground: 240 10% 10%; /* Darker text for cards */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-    --primary: 262.1 83.3% 57.8%; /* Original primary color */
-    --primary-foreground: 210 40% 98%; /* White text for primary */
-    --secondary: 220 14.3% 90%; /* Lighter secondary */
-    --secondary-foreground: 240 10% 10%; /* Darker text for secondary */
-    --muted: 220 14.3% 90%;
-    --muted-foreground: 220 8.9% 40%;
-    --accent: 220 14.3% 90%;
-    --accent-foreground: 240 10% 10%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 220 13% 85%; /* Lighter border */
-    --input: 220 13% 85%;
-    --ring: 262.1 83.3% 57.8%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
     --radius: 0.75rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-
-    /* Glass Morphism Variables - Lighter */
-    --glass-bg: rgba(255, 255, 255, 0.4); /* More transparent white */
-    --glass-border: rgba(255, 255, 255, 0.6); /* Lighter border */
-    --glass-shadow: rgba(0, 0, 0, 0.08); /* Lighter shadow */
-    --glass-blur: 15px; /* Slightly less blur */
-    --glass-hover-bg: rgba(255, 255, 255, 0.6); /* More transparent on hover */
-    --glass-active-bg: rgba(255, 255, 255, 0.7); /* More transparent on active */
   }
 
   .dark {
-    --background: 240 10% 15%; /* Darker gray background */
-    --foreground: 240 10% 90%; /* Lighter text */
-    --card: 240 10% 18%; /* Slightly lighter dark card */
-    --card-foreground: 240 10% 90%;
-    --popover: 240 10% 18%;
-    --popover-foreground: 240 10% 90%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%; /* White text for primary */
-    --secondary: 240 3.7% 20%; /* Slightly lighter dark secondary */
-    --secondary-foreground: 240 10% 90%; /* Lighter text for secondary */
-    --muted: 240 3.7% 20%;
-    --muted-foreground: 240 5% 70%;
-    --accent: 240 3.7% 20%;
-    --accent-foreground: 240 10% 90%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 240 3.7% 20%;
-    --input: 240 3.7% 20%;
-    --ring: 262.1 83.3% 57.8%;
-
-    /* Dark Glass Morphism Variables - Lighter */
-    --glass-bg: rgba(0, 0, 0, 0.4); /* More transparent black */
-    --glass-border: rgba(255, 255, 255, 0.2); /* Lighter border */
-    --glass-shadow: rgba(0, 0, 0, 0.4); /* Slightly lighter shadow */
-    --glass-blur: 15px; /* Slightly less blur */
-    --glass-hover-bg: rgba(0, 0, 0, 0.5); /* More transparent on hover */
-    --glass-active-bg: rgba(0, 0, 0, 0.6); /* More transparent on active */
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
   }
 }
 
 @layer base {
   * {
-    @apply border-[color:var(--border)];
+    border-color: hsl(var(--border));
   }
   body {
-    background-color: hsl(var(--background)); color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
-    min-height: 100vh;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
   }
 }
 
-/* Glass Morphism Utilities */
 @layer utilities {
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px var(--glass-shadow);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  .bg-background { background-color: hsl(var(--background)); }
+  .text-foreground { color: hsl(var(--foreground)); }
+  .bg-card { background-color: hsl(var(--card)); }
+  .text-card-foreground { color: hsl(var(--card-foreground)); }
+  .bg-popover { background-color: hsl(var(--popover)); }
+  .text-popover-foreground { color: hsl(var(--popover-foreground)); }
+  .bg-primary { background-color: hsl(var(--primary)); }
+  .text-primary-foreground { color: hsl(var(--primary-foreground)); }
+  .bg-secondary { background-color: hsl(var(--secondary)); }
+  .text-secondary-foreground { color: hsl(var(--secondary-foreground)); }
+  .bg-muted { background-color: hsl(var(--muted)); }
+  .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+  .bg-accent { background-color: hsl(var(--accent)); }
+  .text-accent-foreground { color: hsl(var(--accent-foreground)); }
+  .bg-destructive { background-color: hsl(var(--destructive)); }
+  .text-destructive-foreground { color: hsl(var(--destructive-foreground)); }
+  .border-border { border-color: hsl(var(--border)); }
+  .border-input { border-color: hsl(var(--input)); }
+  .ring-ring { --tw-ring-color: hsl(var(--ring)); }
+
+  .gradient-bg {
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
   }
 
-  .glass-hover:hover {
-    background: var(--glass-hover-bg);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px var(--glass-shadow);
+  .glass-effect {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
-  .glass-active:active {
-    background: var(--glass-active-bg);
-    transform: translateY(0);
+  .dark .glass-effect {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .elevation-1 {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
   }
 
-  .elevation-2 {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  }
-
-  .elevation-3 {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  }
-
-  .elevation-4 {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-  }
-
-  .ripple {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .ripple::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
-  }
-
-  .ripple:active::before {
-    width: 300px;
-    height: 300px;
+  .animate-slide-up {
+    animation: slideUp 0.8s ease-out;
   }
 
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
 
-  .animate-float-delayed {
-    animation: float 6s ease-in-out infinite 2s;
-  }
-
   .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite alternate;
+    animation: pulseGlow 2s ease-in-out infinite alternate;
   }
+}
 
-  .animate-gradient {
-    background-size: 200% 200%;
-    animation: gradient 4s ease infinite;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-  /* Add shadcn-style token utilities so components using them continue to work in Tailwind v4 */
-  .bg-background { background-color: hsl(var(--background)); }
-  .text-foreground { color: hsl(var(--foreground)); }
-
-  .bg-card { background-color: hsl(var(--card)); }
-  .text-card-foreground { color: hsl(var(--card-foreground)); }
-
-  .bg-popover { background-color: hsl(var(--popover)); }
-  .text-popover-foreground { color: hsl(var(--popover-foreground)); }
-
-  .bg-primary { background-color: hsl(var(--primary)); }
-  .text-primary-foreground { color: hsl(var(--primary-foreground)); }
-
-  .bg-secondary { background-color: hsl(var(--secondary)); }
-  .text-secondary-foreground { color: hsl(var(--secondary-foreground)); }
-
-  .bg-muted { background-color: hsl(var(--muted)); }
-  .text-muted-foreground { color: hsl(var(--muted-foreground)); }
-
-  .bg-accent { background-color: hsl(var(--accent)); }
-  .text-accent-foreground { color: hsl(var(--accent-foreground)); }
-
-  .bg-destructive { background-color: hsl(var(--destructive)); }
-  .text-destructive-foreground { color: hsl(var(--destructive-foreground)); }
-
-  .border-border { border-color: hsl(var(--border)); }
-  .border-input { border-color: hsl(var(--input)); }
-
-  /* Ring color token used by many shadcn components */
-  .ring-ring { --tw-ring-color: hsl(var(--ring)); }
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes float {
@@ -198,48 +149,32 @@
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-20px);
+    transform: translateY(-10px);
   }
 }
 
-@keyframes pulse-glow {
+@keyframes pulseGlow {
   0% {
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   }
   100% {
-    box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
   }
 }
 
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Scrollbar Styling */
-/* Temporary comment to force re-evaluation */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--glass-bg);
-  border-radius: 4px;
+  background: hsl(var(--muted));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
-  border-radius: 4px;
-  backdrop-filter: blur(10px);
+  background: hsl(var(--border));
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--glass-hover-bg);
+  background: hsl(var(--muted-foreground));
 }
