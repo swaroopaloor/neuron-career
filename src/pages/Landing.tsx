@@ -108,7 +108,7 @@ export default function Landing() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 glass-card border-b">
         <div className="container-responsive">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex justify-between items-center h-16 md:h-20">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Sparkles className="h-6 w-6 text-primary-foreground" />
@@ -174,7 +174,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-24 overflow-hidden">
+      <section className="relative pt-24 pb-16 sm:pt-28 sm:pb-20 md:pt-32 md:pb-24 overflow-hidden">
         <div className="absolute inset-0 gradient-bg-subtle"></div>
         <div className="container-responsive relative px-6">
           <div className="text-center max-w-5xl mx-auto">
@@ -193,7 +193,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-foreground mb-8 tracking-tight leading-[1.1] text-balance"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-8 tracking-tight leading-[1.1] text-balance"
             >
               Land Your Dream Job with{" "}
               <span className="text-gradient block mt-4">
@@ -215,15 +215,15 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.8 }}
-              className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16"
+              className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-16"
             >
-              <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-14 px-8 text-lg">
+              <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
                 <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
                   <Rocket className="mr-3 h-6 w-6" />
                   {isAuthenticated ? "Go to Dashboard" : "Start Free Analysis"}
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" asChild className="h-14 px-8 text-lg">
+              <Button variant="outline" size="lg" asChild className="h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
                 <Link to="/#how-it-works">
                   See How It Works
                   <ArrowRight className="ml-3 h-5 w-5" />
@@ -236,7 +236,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto mb-20"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto mb-16 sm:mb-20"
             >
               {benefits.map((benefit, index) => (
                 <div key={benefit} className="flex items-center gap-3 p-4 rounded-xl bg-card border">
@@ -255,8 +255,8 @@ export default function Landing() {
             >
               <Card className="overflow-hidden shadow-2xl border bg-gradient-to-br from-card to-muted/20">
                 <CardContent className="p-0">
-                  <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-12 sm:p-16">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                  <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-6 sm:p-12 md:p-16">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
                       {steps.map((step, index) => (
                         <motion.div
                           key={step.step}
@@ -265,14 +265,14 @@ export default function Landing() {
                           transition={{ delay: 0.8 + index * 0.1, duration: 0.8 }}
                           className="text-center"
                         >
-                          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 relative border border-primary/20">
-                            <step.icon className="h-10 w-10 text-primary" />
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-5 sm:mb-6 relative border border-primary/20">
+                            <step.icon className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
                             <div className="absolute -top-3 -right-3 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shadow-lg">
                               {index + 1}
                             </div>
                           </div>
-                          <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
-                          <p className="text-muted-foreground leading-relaxed">{step.description.split('.')[0]}</p>
+                          <h3 className="text-lg sm:text-xl font-bold text-foreground mb-3">{step.title}</h3>
+                          <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">{step.description.split('.')[0]}</p>
                         </motion.div>
                       ))}
                     </div>
@@ -292,7 +292,7 @@ export default function Landing() {
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12"
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-12"
           >
             {stats.map((stat, index) => (
               <motion.div
@@ -303,11 +303,11 @@ export default function Landing() {
                 transition={{ delay: index * 0.1, duration: 0.8 }}
                 className="text-center group"
               >
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-105 transition-transform border border-primary/20">
-                  <stat.icon className="h-8 w-8 text-primary" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-105 transition-transform border border-primary/20">
+                  <stat.icon className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
                 </div>
-                <div className="text-4xl font-bold text-foreground mb-2">{stat.value}</div>
-                <div className="text-muted-foreground font-medium">{stat.label}</div>
+                <div className="text-3xl sm:text-4xl font-bold text-foreground mb-1 sm:mb-2">{stat.value}</div>
+                <div className="text-muted-foreground text-sm sm:text-base font-medium">{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -332,7 +332,7 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
@@ -342,14 +342,14 @@ export default function Landing() {
                 transition={{ delay: index * 0.1, duration: 0.8 }}
               >
                 <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
-                  <CardHeader className="pb-4">
-                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform border border-primary/20">
-                      <feature.icon className="h-8 w-8 text-primary" />
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-105 transition-transform border border-primary/20">
+                      <feature.icon className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl mb-3">{feature.title}</CardTitle>
+                    <CardTitle className="text-xl sm:text-2xl mb-2 sm:mb-3">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-lg leading-relaxed text-muted-foreground">
+                    <CardDescription className="text-base sm:text-lg leading-relaxed text-muted-foreground">
                       {feature.description}
                     </CardDescription>
                   </CardContent>
@@ -378,7 +378,7 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-16">
             {steps.map((step, index) => (
               <motion.div
                 key={step.step}
@@ -388,18 +388,18 @@ export default function Landing() {
                 transition={{ delay: index * 0.2, duration: 0.8 }}
                 className="text-center group"
               >
-                <div className="relative mb-8">
-                  <div className="w-24 h-24 bg-primary rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:scale-105 transition-transform">
-                    <step.icon className="h-12 w-12 text-primary-foreground" />
+                <div className="relative mb-6 sm:mb-8">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:scale-105 transition-transform">
+                    <step.icon className="h-10 w-10 sm:h-12 sm:w-12 text-primary-foreground" />
                   </div>
-                  <div className="absolute -top-3 -right-3 w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-lg font-bold text-secondary-foreground shadow-lg">
+                  <div className="absolute -top-3 -right-3 w-9 h-9 sm:w-10 sm:h-10 bg-secondary rounded-full flex items-center justify-center text-base sm:text-lg font-bold text-secondary-foreground shadow-lg">
                     {step.step}
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-foreground mb-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 sm:mb-4">
                   {step.title}
                 </h3>
-                <p className="text-muted-foreground leading-relaxed text-lg">
+                <p className="text-muted-foreground leading-relaxed text-base">
                   {step.description}
                 </p>
               </motion.div>
@@ -419,14 +419,14 @@ export default function Landing() {
             className="text-center max-w-4xl mx-auto"
           >
             <Card className="border-0 shadow-2xl bg-gradient-to-br from-primary/5 to-secondary/5">
-              <CardContent className="p-16">
+              <CardContent className="p-8 sm:p-12 md:p-16">
                 <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-8 text-balance">
                   Ready to Transform Your Career?
                 </h2>
                 <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
                   Join thousands of professionals who have optimized their resumes and landed their dream jobs with our AI-powered platform.
                 </p>
-                <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-16 px-12 text-xl">
+                <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-8 text-base sm:h-16 sm:px-12 sm:text-xl">
                   <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
                     <Rocket className="mr-3 h-6 w-6" />
                     {isAuthenticated ? "Go to Dashboard" : "Start Your Free Analysis"}
@@ -441,7 +441,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t bg-muted/30">
         <div className="container-responsive">
-          <div className="flex flex-col md:flex-row justify-between items-center py-16 px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center py-10 md:py-16 px-6">
             <Link to="/" className="flex items-center gap-3 mb-6 md:mb-0 group">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Sparkles className="h-5 w-5 text-primary-foreground" />
