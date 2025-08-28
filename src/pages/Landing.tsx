@@ -176,6 +176,28 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 sm:pt-28 sm:pb-20 md:pt-32 md:pb-24 overflow-hidden">
         <div className="absolute inset-0 gradient-bg-subtle"></div>
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full blur-3xl opacity-30"
+              style={{
+                width: `${120 + (i % 3) * 40}px`,
+                height: `${120 + (i % 3) * 40}px`,
+                left: `${(i * 12) % 100}%`,
+                top: `${(i * 9 + 10) % 90}%`,
+                background:
+                  i % 2 === 0
+                    ? "radial-gradient(circle at 30% 30%, rgba(99,102,241,0.6), transparent 60%)"
+                    : "radial-gradient(circle at 70% 70%, rgba(236,72,153,0.6), transparent 60%)",
+              }}
+              initial={{ y: 0, scale: 0.95 }}
+              animate={{ y: [0, -18, 0], scale: [0.95, 1.02, 0.95], rotate: [0, 6, 0] }}
+              transition={{ duration: 6 + i * 0.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+            />
+          ))}
+        </div>
+
         <div className="container-responsive relative px-6">
           <div className="text-center max-w-5xl mx-auto">
             <motion.div
@@ -193,7 +215,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[1.15] text-balance"
+              className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-8 tracking-tight leading-[1.15] text-balance"
             >
               Land Your Dream Job with{" "}
               <span className="text-gradient block mt-4">
@@ -205,7 +227,7 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.8 }}
-              className="text-base sm:text-lg text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
+              className="text-sm sm:text-base text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
             >
               Upload your resume and job description to get instant AI analysis, 
               ATS optimization scores, and personalized recommendations that boost your hiring chances by 3x.
@@ -217,18 +239,25 @@ export default function Landing() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-16"
             >
-              <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
-                <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
-                  <Rocket className="mr-3 h-6 w-6" />
-                  {isAuthenticated ? "Go to Dashboard" : "Start Free Analysis"}
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild className="h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
-                <Link to="/#how-it-works">
-                  See How It Works
-                  <ArrowRight className="ml-3 h-5 w-5" />
-                </Link>
-              </Button>
+              <motion.div
+                animate={{ y: [0, -2, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
+                  <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                    <Rocket className="mr-3 h-6 w-6" />
+                    {isAuthenticated ? "Go to Dashboard" : "Start Free Analysis"}
+                  </Link>
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                <Button variant="outline" size="lg" asChild className="h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
+                  <Link to="/#how-it-works">
+                    See How It Works
+                    <ArrowRight className="ml-3 h-5 w-5" />
+                  </Link>
+                </Button>
+              </motion.div>
             </motion.div>
 
             {/* Benefits List */}
@@ -324,10 +353,10 @@ export default function Landing() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6 text-balance">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6 text-balance">
               Powerful Features for Modern Job Seekers
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Everything you need to optimize your resume and land more interviews with cutting-edge AI technology
             </p>
           </motion.div>
@@ -340,7 +369,7 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1, duration: 0.8 }}
-                whileHover={{ y: -6, rotate: -0.25, transition: { type: "spring", stiffness: 220, damping: 18 } }}
+                whileHover={{ y: -8, rotate: -0.35, scale: 1.02, transition: { type: "spring", stiffness: 220, damping: 18 } }}
               >
                 <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
                   <CardHeader className="pb-3 sm:pb-4">
@@ -371,10 +400,10 @@ export default function Landing() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6 text-balance">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6 text-balance">
               How It Works
             </h2>
-            <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Get professional resume analysis in three simple steps
             </p>
           </motion.div>
@@ -387,7 +416,7 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2, duration: 0.8 }}
-                whileHover={{ y: -8, rotate: 0.35, transition: { type: "spring", stiffness: 240, damping: 16 } }}
+                whileHover={{ y: -10, rotate: 0.6, scale: 1.03, transition: { type: "spring", stiffness: 240, damping: 16 } }}
                 className="text-center group"
               >
                 <div className="relative mb-6 sm:mb-8">
@@ -422,18 +451,20 @@ export default function Landing() {
           >
             <Card className="border-0 shadow-2xl bg-gradient-to-br from-primary/5 to-secondary/5">
               <CardContent className="p-8 sm:p-12 md:p-16">
-                <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-8 text-balance">
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-8 text-balance">
                   Ready to Transform Your Career?
                 </h2>
-                <p className="text-lg text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
+                <p className="text-base text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
                   Join thousands of professionals who have optimized their resumes and landed their dream jobs with our AI-powered platform.
                 </p>
-                <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-8 text-base sm:h-16 sm:px-12 sm:text-xl">
-                  <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
-                    <Rocket className="mr-3 h-6 w-6" />
-                    {isAuthenticated ? "Go to Dashboard" : "Start Your Free Analysis"}
-                  </Link>
-                </Button>
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                  <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-8 text-base sm:h-16 sm:px-12 sm:text-xl">
+                    <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                      <Rocket className="mr-3 h-6 w-6" />
+                      {isAuthenticated ? "Go to Dashboard" : "Start Your Free Analysis"}
+                    </Link>
+                  </Button>
+                </motion.div>
               </CardContent>
             </Card>
           </motion.div>

@@ -30,6 +30,17 @@ import {
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -101,6 +112,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [error, setError] = useState<string | null>(null);
   const [featureIndex, setFeatureIndex] = useState(0);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -127,6 +140,13 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    if (!acceptedTerms) {
+      setIsLoading(false);
+      setError("Please accept the Terms & Conditions and Privacy Policy to continue.");
+      return;
+    }
+
     try {
       const formData = new FormData(event.currentTarget);
       await signIn("email-otp", formData);
@@ -218,7 +238,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               height={100}
               className="mx-auto mb-6 w-16 h-16 sm:w-24 sm:h-24"
             />
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gradient mb-3 sm:mb-4">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gradient mb-3 sm:mb-4">
               Welcome Back
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
@@ -320,7 +340,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 >
                   <Card className="glass-card border-primary/20 shadow-2xl">
                     <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-2xl font-bold text-gradient">Get Started</CardTitle>
+                      <CardTitle className="text-xl font-bold text-gradient">Get Started</CardTitle>
                       <CardDescription className="text-sm sm:text-base">
                         Enter your email to log in or create an account
                       </CardDescription>
@@ -343,7 +363,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                             type="submit"
                             size="lg"
                             className="h-12 px-6 w-full sm:w-auto"
-                            disabled={isLoading}
+                            disabled={isLoading || !acceptedTerms}
                           >
                             {isLoading ? (
                               <Loader2 className="h-5 w-5 animate-spin" />
@@ -352,6 +372,40 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                             )}
                           </Button>
                         </div>
+
+                        <div className="flex items-start gap-3 rounded-lg border p-3">
+                          <Checkbox
+                            id="accept-terms"
+                            checked={acceptedTerms}
+                            onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
+                            disabled={isLoading}
+                          />
+                          <div className="space-y-1">
+                            <Label htmlFor="accept-terms" className="text-sm font-medium">
+                              I agree to the{" "}
+                              <button
+                                type="button"
+                                className="underline underline-offset-2 text-primary hover:text-primary/80"
+                                onClick={() => setTermsOpen(true)}
+                              >
+                                Terms & Conditions
+                              </button>{" "}
+                              and{" "}
+                              <button
+                                type="button"
+                                className="underline underline-offset-2 text-primary hover:text-primary/80"
+                                onClick={() => setTermsOpen(true)}
+                              >
+                                Privacy Policy
+                              </button>
+                              .
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              You must accept to continue.
+                            </p>
+                          </div>
+                        </div>
+
                         {error && (
                           <motion.p
                             initial={{ opacity: 0, y: -10 }}
@@ -480,6 +534,49 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           </div>
         </div>
       </div>
+
+      {/* Terms & Conditions Dialog */}
+      <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Terms & Conditions</DialogTitle>
+            <DialogDescription>
+              Please review the following terms. By accepting, you agree to our Terms & Conditions and Privacy Policy.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[45vh] overflow-y-auto space-y-4 text-sm leading-relaxed">
+            <p>
+              Welcome to our platform. By creating an account or using our services, you agree to the following terms. 
+              We process your data solely to provide resume analysis, job tracking, and related features. We never sell your data.
+            </p>
+            <p>
+              You are responsible for the content you upload. Do not upload confidential or proprietary content without permission.
+              We may update these terms; continued use signifies acceptance of any changes.
+            </p>
+            <p>
+              Security: We use industry-standard encryption and secure storage for files and personal data. 
+              For details on how we handle your data, please review our Privacy Policy.
+            </p>
+            <p>
+              Limitation of Liability: Our services are provided "as is" without warranties. 
+              We are not liable for indirect or incidental damages arising from use of the platform.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTermsOpen(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setAcceptedTerms(true);
+                setTermsOpen(false);
+              }}
+            >
+              Accept
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
