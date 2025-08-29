@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useInView, animate } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +24,91 @@ import {
   ArrowRight,
   CheckCircle
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+
+// Animated numeric counter for stats
+function AnimatedCounter({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
+
+  // Determine if we should animate this value (skip complex formats like "4.9/5" or "< 30s")
+  const containsSlash = value.includes("/");
+  const startsWithAngle = value.trim().startsWith("<");
+  const numericMatch = value.match(/([0-9,.]+)/);
+  const end = numericMatch ? parseFloat(numericMatch[1].replace(/,/g, "")) : NaN;
+  const suffix = numericMatch ? value.replace(numericMatch[1], "") : "";
+
+  const [display, setDisplay] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    if (!isFinite(end) || containsSlash || startsWithAngle) return;
+
+    const controls = animate(0, end, {
+      duration: 1.2,
+      ease: "easeOut",
+      onUpdate: (v) => setDisplay(v),
+    });
+    return () => controls.stop();
+  }, [isInView, end, containsSlash, startsWithAngle]);
+
+  if (!isFinite(end) || containsSlash || startsWithAngle) {
+    return (
+      <span ref={ref} className="tabular-nums">
+        {value}
+      </span>
+    );
+  }
+
+  const formatted =
+    end >= 1000 ? Math.floor(display).toLocaleString() : Math.round(display).toString();
+
+  return (
+    <span ref={ref} className="tabular-nums">
+      {formatted}
+      {suffix}
+    </span>
+  );
+}
+
+// Subtle particle field background for hero
+function ParticleField({
+  count = 35,
+}: {
+  count?: number;
+}) {
+  return (
+    <div className="pointer-events-none absolute inset-0 -z-10">
+      {Array.from({ length: count }).map((_, i) => (
+        <motion.span
+          key={i}
+          className="absolute block rounded-full bg-primary/15"
+          style={{
+            width: 6 + (i % 4),
+            height: 6 + (i % 4),
+            left: `${(i * 37) % 100}%`,
+            top: `${(i * 53) % 100}%`,
+            filter: "blur(0.5px)",
+          }}
+          initial={{ opacity: 0, y: 10, scale: 0.7 }}
+          animate={{
+            opacity: [0.2, 0.6, 0.2],
+            y: [0, -8 - (i % 6), 0],
+            x: [0, (i % 2 === 0 ? 6 : -6), 0],
+            scale: [0.8, 1.1, 0.8],
+          }}
+          transition={{
+            duration: 6 + (i % 5),
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.08,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function Landing() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -174,8 +257,9 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 sm:pt-28 sm:pb-20 md:pt-32 md:pb-24 overflow-hidden">
+      <section className="relative pt-20 pb-12 sm:pt-24 sm:pb-14 md:pt-28 md:pb-16 overflow-hidden">
         <div className="absolute inset-0 gradient-bg-subtle"></div>
+        <ParticleField />
         <div className="pointer-events-none absolute inset-0 -z-10">
           {Array.from({ length: 8 }).map((_, i) => (
             <motion.div
@@ -271,13 +355,18 @@ export default function Landing() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto mb-16 sm:mb-20"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto mb-10 sm:mb-12"
             >
               {benefits.map((benefit, index) => (
-                <div key={benefit} className="flex items-center gap-3 p-4 rounded-xl bg-card border">
+                <motion.div
+                  key={benefit}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 220, damping: 16 }}
+                  className="flex items-center gap-3 p-4 rounded-xl bg-card border"
+                >
                   <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
                   <span className="text-sm font-medium text-foreground">{benefit}</span>
-                </div>
+                </motion.div>
               ))}
             </motion.div>
           </div>
@@ -285,7 +374,7 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="section-padding bg-secondary/30">
+      <section className="bg-secondary/30 py-12 sm:py-14">
         <div className="container-responsive">
           <motion.div
             initial={{ y: 40, opacity: 0 }}
@@ -301,12 +390,15 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1, duration: 0.8 }}
+                whileHover={{ y: -6, scale: 1.03 }}
                 className="text-center group"
               >
                 <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-105 transition-transform border border-primary/20">
                   <stat.icon className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
                 </div>
-                <div className="text-3xl sm:text-4xl font-bold text-foreground mb-1 sm:mb-2">{stat.value}</div>
+                <div className="text-3xl sm:text-4xl font-bold text-foreground mb-1 sm:mb-2">
+                  <AnimatedCounter value={stat.value} />
+                </div>
                 <div className="text-muted-foreground text-sm sm:text-base font-medium">{stat.label}</div>
               </motion.div>
             ))}
@@ -315,7 +407,7 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="section-padding">
+      <section id="features" className="py-16 md:py-20">
         <div className="container-responsive">
           <motion.div
             initial={{ y: 40, opacity: 0 }}
@@ -340,7 +432,12 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1, duration: 0.8 }}
-                whileHover={{ y: -8, rotate: -0.35, scale: 1.02, transition: { type: "spring", stiffness: 220, damping: 18 } }}
+                whileHover={{
+                  y: -10,
+                  rotate: -0.6,
+                  scale: 1.03,
+                  transition: { type: "spring", stiffness: 240, damping: 16 },
+                }}
               >
                 <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
                   <CardHeader className="pb-3 sm:pb-4">
@@ -362,7 +459,7 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="section-padding bg-secondary/30">
+      <section id="how-it-works" className="py-16 md:py-20 bg-secondary/30">
         <div className="container-responsive">
           <motion.div
             initial={{ y: 40, opacity: 0 }}
@@ -387,7 +484,12 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2, duration: 0.8 }}
-                whileHover={{ y: -10, rotate: 0.6, scale: 1.03, transition: { type: "spring", stiffness: 240, damping: 16 } }}
+                whileHover={{
+                  y: -12,
+                  rotate: 0.8,
+                  scale: 1.04,
+                  transition: { type: "spring", stiffness: 250, damping: 16 },
+                }}
                 className="text-center group"
               >
                 <div className="relative mb-6 sm:mb-8">
@@ -411,7 +513,7 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="section-padding">
+      <section className="py-16 md:py-20">
         <div className="container-responsive">
           <motion.div
             initial={{ y: 40, opacity: 0 }}
