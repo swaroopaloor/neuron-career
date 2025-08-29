@@ -195,7 +195,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   };
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden">
+    <div className="min-h-[100svh] w-full relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 gradient-bg-subtle">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" />
@@ -222,34 +222,34 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         ))}
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 min-h-screen gap-8">
+      <div className="relative z-10 container max-w-3xl mx-auto px-1 sm:px-2 grid grid-cols-1 lg:grid-cols-2 min-h-[100svh] items-center gap-1 lg:gap-2">
         {/* Left side - Enhanced Feature showcase */}
-        <div className="flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 text-center relative order-last lg:order-first">
+        <div className="flex flex-col items-center justify-center p-1 sm:p-2 lg:p-3 text-center relative order-last lg:order-first">
           {/* Constrain left column content to match auth form width for perfect alignment */}
-          <div className="w-full max-w-md mx-auto">
+          <div className="w-full max-w-sm mx-auto">
             <motion.div
               initial={{ y: -30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="mb-10 sm:mb-12"
+              className="mb-2 sm:mb-3"
             >
               <img
                 src="/logo_bg.svg"
                 alt="Logo"
-                width={100}
-                height={100}
-                className="mx-auto mb-6 w-16 h-16 sm:w-24 sm:h-24"
+                width={84}
+                height={84}
+                className="mx-auto mb-2 w-10 h-10 sm:w-12 sm:h-12"
               />
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gradient mb-3 sm:mb-4">
+              <h1 className="text-sm sm:text-base lg:text-lg font-bold text-gradient mb-2">
                 Welcome Back
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
                 Join thousands of professionals who've accelerated their careers with our AI-powered platform
               </p>
             </motion.div>
 
             {/* Feature Carousel */}
-            <div className="relative w-full max-w-md mb-8 h-64 sm:h-72 md:h-80">
+            <div className="relative w-full max-w-md mb-3 h-32 sm:h-36 md:h-40">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={featureIndex}
@@ -260,11 +260,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   className="absolute inset-0"
                 >
                   <Card className={`h-full glass-card border-primary/20 bg-gradient-to-br ${features[featureIndex].color}`}>
-                    <CardContent className="flex flex-col items-center justify-center h-full p-6 sm:p-8 text-center">
+                    <CardContent className="flex flex-col items-center justify-center h-full p-6 sm:p-7 text-center">
                       <div className="mb-6 p-4 bg-background/50 rounded-2xl shadow-lg">
                         {features[featureIndex].icon}
                       </div>
-                      <h3 className="text-2xl font-bold text-foreground mb-4">
+                      <h3 className="text-xl font-bold text-foreground mb-3">
                         {features[featureIndex].title}
                       </h3>
                       <p className="text-muted-foreground leading-relaxed">
@@ -277,7 +277,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </div>
 
             {/* Feature Indicators */}
-            <div className="flex justify-center gap-2 mb-8">
+            <div className="flex justify-center gap-1 mb-2">
               {features.map((_, index) => (
                 <motion.div
                   key={index}
@@ -290,7 +290,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </div>
 
             {/* Testimonial */}
-            <div className="relative min-h-[5rem] w-full max-w-md px-2">
+            <div className="relative min-h-[2.5rem] w-full max-w-md px-1">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={testimonialIndex}
@@ -316,9 +316,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         </div>
 
         {/* Right side - Enhanced Auth form */}
-        <div className="flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8 relative">
+        <div className="flex items-center justify-center py-1 px-1 sm:px-2 lg:px-3 relative">
           {/* Back Button */}
-          <header className="w-full max-w-md mb-4 z-20">
+          <header className="w-full max-w-md mb-1 z-20">
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
@@ -329,7 +329,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </Button>
           </header>
 
-          <div className="w-full max-w-md mt-8 sm:mt-0">
+          <div className="w-full max-w-md mt-0">
             <AnimatePresence mode="wait">
               {step === "signIn" ? (
                 <motion.div
@@ -342,41 +342,41 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   whileTap={{ scale: 0.995 }}
                 >
                   <Card className="glass-card border-primary/20 shadow-2xl">
-                    <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-xl font-bold text-gradient">Get Started</CardTitle>
-                      <CardDescription className="text-sm sm:text-base">
+                    <CardHeader className="text-center pb-2">
+                      <CardTitle className="text-sm font-bold text-gradient">Get Started</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
                         Enter your email to log in or create an account
                       </CardDescription>
                     </CardHeader>
                     <form onSubmit={handleEmailSubmit}>
-                      <CardContent className="space-y-6">
-                        <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                      <CardContent className="space-y-2.5">
+                        <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <div className="relative flex-1 w-full">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                               name="email"
                               placeholder="name@example.com"
                               type="email"
-                              className="pl-12 h-12 text-base border-primary/20 focus:border-primary"
+                              className="pl-12 h-9 text-xs sm:text-sm border-primary/20 focus:border-primary"
                               disabled={isLoading}
                               required
                             />
                           </div>
                           <Button
                             type="submit"
-                            size="lg"
-                            className="h-12 px-6 w-full sm:w-auto"
+                            size="sm"
+                            className="h-9 px-4 w-full sm:w-auto"
                             disabled={isLoading || !acceptedTerms}
                           >
                             {isLoading ? (
-                              <Loader2 className="h-5 w-5 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <ArrowRight className="h-5 w-5" />
+                              <ArrowRight className="h-4 w-4" />
                             )}
                           </Button>
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-lg border p-3">
+                        <div className="flex items-start gap-3 rounded-lg border p-2">
                           <Checkbox
                             id="accept-terms"
                             checked={acceptedTerms}
@@ -413,35 +413,35 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                           <motion.p
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg"
+                            className="text-xs sm:text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg"
                           >
                             {error}
                           </motion.p>
                         )}
-                        
+
                         <div className="relative">
                           <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-primary/20" />
                           </div>
-                          <div className="relative flex justify-center text-sm uppercase">
-                            <span className="bg-card px-4 text-muted-foreground font-medium">
+                          <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
+                            <span className="bg-card px-3 text-muted-foreground font-medium">
                               Or continue with
                             </span>
                           </div>
                         </div>
-                        
+
                         <Button
                           type="button"
                           variant="outline"
-                          size="lg"
-                          className="w-full h-12 border-primary/20 hover:border-primary"
+                          size="sm"
+                          className="w-full h-9 border-primary/20 hover:border-primary"
                           onClick={handleGuestLogin}
                           disabled={isLoading}
                         >
                           {isLoading ? (
-                            <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                            <Loader2 className="mr-3 h-4 w-4 animate-spin" />
                           ) : (
-                            <UserX className="mr-3 h-5 w-5" />
+                            <UserX className="mr-3 h-4 w-4" />
                           )}
                           Continue as Guest
                         </Button>
@@ -460,31 +460,31 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   whileTap={{ scale: 0.995 }}
                 >
                   <Card className="glass-card border-primary/20 shadow-2xl">
-                    <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-2xl font-bold text-gradient">Check your email</CardTitle>
-                      <CardDescription className="text-sm sm:text-base">
+                    <CardHeader className="text-center pb-2">
+                      <CardTitle className="text-base font-bold text-gradient">Check your email</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
                         We've sent a 6-digit code to{" "}
                         <span className="font-medium text-foreground">{step.email}</span>
                       </CardDescription>
                     </CardHeader>
                     <form onSubmit={handleOtpSubmit}>
-                      <CardContent className="pb-6">
+                      <CardContent className="pb-3">
                         <input type="hidden" name="email" value={step.email} />
                         <input type="hidden" name="code" value={otp} />
 
-                        <div className="flex justify-center mb-6">
+                        <div className="flex justify-center mb-5">
                           <InputOTP
                             value={otp}
                             onChange={setOtp}
                             maxLength={6}
                             disabled={isLoading}
                           >
-                            <InputOTPGroup className="gap-2 sm:gap-3">
+                            <InputOTPGroup className="gap-2">
                               {Array.from({ length: 6 }).map((_, index) => (
-                                <InputOTPSlot 
-                                  key={index} 
-                                  index={index} 
-                                  className="w-10 h-12 sm:w-12 sm:h-12 text-base sm:text-lg border-primary/20 focus:border-primary"
+                                <InputOTPSlot
+                                  key={index}
+                                  index={index}
+                                  className="w-8 h-9 text-sm border-primary/20 focus:border-primary"
                                 />
                               ))}
                             </InputOTPGroup>
@@ -494,29 +494,29 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                           <motion.p
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-sm text-red-500 text-center bg-red-50 dark:bg-red-900/20 p-3 rounded-lg"
+                            className="text-xs sm:text-sm text-red-500 text-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg"
                           >
                             {error}
                           </motion.p>
                         )}
                       </CardContent>
-                      <CardFooter className="flex-col gap-6">
+                      <CardFooter className="flex-col gap-4">
                         <Button
                           type="submit"
-                          size="lg"
-                          className="w-full h-12"
+                          size="sm"
+                          className="w-full h-9"
                           disabled={isLoading || otp.length !== 6}
                         >
                           {isLoading ? (
                             <>
-                              <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                              <Loader2 className="mr-3 h-4 w-4 animate-spin" />
                               Verifying...
                             </>
                           ) : (
                             "Verify Code"
                           )}
                         </Button>
-                        <p className="text-sm text-muted-foreground text-center">
+                        <p className="text-xs sm:text-sm text-muted-foreground text-center">
                           Didn't receive a code?{" "}
                           <Button
                             type="button"
@@ -540,14 +540,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
       {/* Terms & Conditions Dialog */}
       <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Terms & Conditions</DialogTitle>
             <DialogDescription>
               Please review the following terms. By accepting, you agree to our Terms & Conditions and Privacy Policy.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[45vh] overflow-y-auto space-y-4 text-sm leading-relaxed">
+          <div className="max-h-[40vh] overflow-y-auto space-y-4 text-sm leading-relaxed">
             <p>
               Welcome to our platform. By creating an account or using our services, you agree to the following terms. 
               We process your data solely to provide resume analysis, job tracking, and related features. We never sell your data.
