@@ -6,7 +6,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+  } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   InputOTP,
@@ -222,11 +222,30 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         ))}
       </div>
 
-      <div className="relative z-10 container max-w-3xl mx-auto px-1 sm:px-2 grid grid-cols-1 lg:grid-cols-2 min-h-[100svh] items-center gap-1 lg:gap-2">
-        {/* Left side - Enhanced Feature showcase */}
+      {/* New Fixed Back Button - prevents overlap and stays consistent */}
+      <div className="pointer-events-none fixed top-0 left-0 right-0 z-40">
+        <div className="pointer-events-auto px-4 pt-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/")}
+            className="h-9 rounded-full bg-background/70 backdrop-blur border border-white/10 hover:bg-background/90 text-muted-foreground hover:text-foreground shadow-lg"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+      </div>
+
+      {/* Main container: balanced gap and alignment */}
+      <div className="relative z-10 container max-w-5xl mx-auto px-4 lg:px-6 grid grid-cols-1 lg:grid-cols-2 min-h-[100svh] items-center gap-4 lg:gap-6 py-8">
+        {/* Subtle center divider for desktop to add structure */}
+        <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[70%] w-px bg-white/10" />
+
+        {/* Left side - Feature showcase */}
         <div className="flex flex-col items-center justify-center p-1 sm:p-2 lg:p-3 text-center relative order-last lg:order-first">
-          {/* Constrain left column content to match auth form width for perfect alignment */}
-          <div className="w-full max-w-sm mx-auto">
+          {/* Constrain left column content width for balance with form */}
+          <div className="w-full max-w-lg mx-auto">
             <motion.div
               initial={{ y: -30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -249,7 +268,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </motion.div>
 
             {/* Feature Carousel */}
-            <div className="relative w-full max-w-md mb-3 h-32 sm:h-36 md:h-40">
+            <div className="relative w-full max-w-md mb-3 h-28 sm:h-32 md:h-36">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={featureIndex}
@@ -261,7 +280,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 >
                   <Card className={`h-full glass-card border-primary/20 bg-gradient-to-br ${features[featureIndex].color}`}>
                     <CardContent className="flex flex-col items-center justify-center h-full p-6 sm:p-7 text-center">
-                      <div className="mb-6 p-4 bg-background/50 rounded-2xl shadow-lg">
+                      <div className="mb-5 p-3 bg-background/50 rounded-2xl shadow-lg [&>svg]:h-10 [&>svg]:w-10">
                         {features[featureIndex].icon}
                       </div>
                       <h3 className="text-xl font-bold text-foreground mb-3">
@@ -315,14 +334,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           </div>
         </div>
 
-        {/* Right side - Enhanced Auth form */}
-        <div className="flex items-center justify-center py-1 px-1 sm:px-2 lg:px-3 relative">
-          {/* Back Button */}
-          <header className="w-full max-w-md mb-1 z-20">
+        {/* Right side - Auth form */}
+        <div className="flex items-center justify-center py-2 px-2 sm:px-3 lg:px-4 relative">
+          {/* Back Button (hidden now, replaced by fixed button above) */}
+          <header className="sr-only">
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground glass-card"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Home
@@ -343,8 +362,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 >
                   <Card className="glass-card border-primary/20 shadow-2xl">
                     <CardHeader className="text-center pb-2">
-                      <CardTitle className="text-sm font-bold text-gradient">Get Started</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
+                      <CardTitle className="text-lg font-bold text-gradient">Get Started</CardTitle>
+                      <CardDescription className="text-sm">
                         Enter your email to log in or create an account
                       </CardDescription>
                     </CardHeader>
@@ -462,7 +481,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   <Card className="glass-card border-primary/20 shadow-2xl">
                     <CardHeader className="text-center pb-2">
                       <CardTitle className="text-base font-bold text-gradient">Check your email</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
+                      <CardDescription className="text-sm">
                         We've sent a 6-digit code to{" "}
                         <span className="font-medium text-foreground">{step.email}</span>
                       </CardDescription>
