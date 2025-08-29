@@ -113,7 +113,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTestimonialIndex((prevIndex) => (prevIndex + 1) % testimonials.length);
+      setTestimonialIndex((prevIndex) => (prevIndex + 1) % resumeFacts.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -298,7 +298,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </div>
 
             {/* Testimonial */}
-            <div className="relative min-h-[2.5rem] w-full max-w-md px-1">
+            <div className="relative w-full max-w-md px-1 mt-4">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={testimonialIndex}
@@ -308,15 +308,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   transition={{ duration: 0.5 }}
                   className="absolute inset-0 text-center"
                 >
-                  <blockquote className="text-sm text-muted-foreground italic mb-2">
-                    "{testimonials[testimonialIndex].text}"
-                  </blockquote>
-                  <cite className="text-xs font-medium text-foreground">
-                    {testimonials[testimonialIndex].author}
-                    <span className="text-muted-foreground block">
-                      {testimonials[testimonialIndex].role}
-                    </span>
-                  </cite>
+                  <div className="text-center text-sm font-medium text-foreground px-4 py-3 bg-background/70 rounded-lg border border-primary/10">
+                    "{resumeFacts[testimonialIndex]}"
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -384,7 +378,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                           </Button>
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-lg border p-2">
+                        <div className="flex items-start gap-3 rounded-xl bg-background/80 p-4 border border-primary/20 shadow-sm">
                           <Checkbox
                             id="accept-terms"
                             checked={acceptedTerms}
