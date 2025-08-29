@@ -85,22 +85,11 @@ const features = [
   },
 ];
 
-const testimonials = [
-  {
-    text: "This platform helped me land my dream job in just 2 weeks!",
-    author: "Sarah Chen",
-    role: "Software Engineer at Google"
-  },
-  {
-    text: "The AI feedback on my resume was incredibly detailed and helpful.",
-    author: "Michael Rodriguez",
-    role: "Product Manager at Microsoft"
-  },
-  {
-    text: "Finally, a job tracker that actually makes sense and is easy to use.",
-    author: "Emily Johnson",
-    role: "UX Designer at Apple"
-  }
+const resumeFacts = [
+  "Your resume is your first impression - make it count with professional presentation",
+  "Top candidates spend 5x more time refining their resumes than average applicants",
+  "A well-crafted resume increases interview chances by 70% according to industry studies",
+  "Recruiters spend only 6 seconds on initial resume screening - every detail matters"
 ];
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
