@@ -51,9 +51,10 @@ createRoot(document.getElementById("root")!).render(
         <ThemeProvider>
           <BrowserRouter>
             <RouteSyncer />
+            <GlobalHeader />
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<AuthPage redirectAfterAuth="/resume-builder" />} />
+              <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/job-tracker" element={<JobTracker />} />
