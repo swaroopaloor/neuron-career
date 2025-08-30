@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +28,7 @@ import jsPDF from "jspdf";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useRef } from "react";
 import { Download } from "lucide-react";
+import { AuthRedirect } from "@/components/AuthRedirect";
 
 type ResumePersonalInfo = {
   name: string;
@@ -567,13 +567,6 @@ export default function ResumeBuilder() {
   const [uploadedPdf, setUploadedPdf] = useState<{ id: string; name: string } | null>(null);
   const [isRefiningSummary, setIsRefiningSummary] = useState(false);
   const [refiningExpIndex, setRefiningExpIndex] = useState<number | null>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate("/auth", { replace: true });
-    }
-  }, [isLoading, isAuthenticated, navigate]);
 
   const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
   const updateProfile = useMutation(api.users.updateProfile);
@@ -762,8 +755,7 @@ export default function ResumeBuilder() {
   }
 
   if (!isAuthenticated) {
-    // Programmatic redirect handled via useNavigate in a useEffect.
-    return null;
+    return <AuthRedirect to="/auth" />;
   }
 
   return (
