@@ -87,11 +87,37 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
           {resumeData.personalInfo.name || "Your Name"}
         </h1>
         <div className="text-sm text-gray-600 space-y-1">
-          {resumeData.personalInfo.email && <p>{resumeData.personalInfo.email}</p>}
-          {resumeData.personalInfo.phone && <p>{resumeData.personalInfo.phone}</p>}
-          {resumeData.personalInfo.location && <p>{resumeData.personalInfo.location}</p>}
-          {resumeData.personalInfo.website && <p>{resumeData.personalInfo.website}</p>}
-          {resumeData.personalInfo.linkedin && <p>{resumeData.personalInfo.linkedin}</p>}
+          {/* Line 1: email • phone • location */}
+          <div className="flex items-center justify-center">
+            {(() => {
+              const parts = [
+                resumeData.personalInfo.email,
+                resumeData.personalInfo.phone,
+                resumeData.personalInfo.location,
+              ].filter((s) => !!s && s.trim().length > 0) as string[];
+              return parts.map((part, idx) => (
+                <span key={`info-line1-${idx}`} className="inline-flex items-center">
+                  {part}
+                  {idx < parts.length - 1 && <span className="mx-2 text-gray-400">•</span>}
+                </span>
+              ));
+            })()}
+          </div>
+          {/* Line 2: website • linkedin */}
+          <div className="flex items-center justify-center">
+            {(() => {
+              const parts = [
+                resumeData.personalInfo.website,
+                resumeData.personalInfo.linkedin,
+              ].filter((s) => !!s && s.trim().length > 0) as string[];
+              return parts.map((part, idx) => (
+                <span key={`info-line2-${idx}`} className="inline-flex items-center">
+                  {part}
+                  {idx < parts.length - 1 && <span className="mx-2 text-gray-400">•</span>}
+                </span>
+              ));
+            })()}
+          </div>
         </div>
       </div>
 
