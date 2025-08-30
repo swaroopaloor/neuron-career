@@ -671,8 +671,21 @@ export default function ResumeBuilder() {
   };
 
   const updateSkills = (skillsText: string) => {
-    const skills = skillsText.split(',').map(s => s.trim()).filter(s => s);
-    setResumeData(prev => ({ ...prev, skills }));
+    // Robust parsing: split by commas, semicolons, or newlines; trim; remove empties; dedupe (case-insensitive)
+    const parts = skillsText
+      .split(/[,\n;]+/)
+      .map((s) => s.trim())
+      .filter((s) => s !== "");
+    const seen = new Set<string>();
+    const unique: Array<string> = [];
+    for (const s of parts) {
+      const key = s.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(s);
+      }
+    }
+    setResumeData((prev) => ({ ...prev, skills: unique }));
   };
 
   const handleRefineSummary = async () => {
