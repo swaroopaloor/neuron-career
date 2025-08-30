@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import AbstractThreeDVisual from "@/components/AbstractThreeDVisual";
 
 // Animated numeric counter for stats
 function AnimatedCounter({ value }: { value: string }) {
@@ -265,33 +264,6 @@ export default function Landing() {
       <section className="relative pt-20 pb-12 sm:pt-24 sm:pb-14 md:pt-28 md:pb-16 overflow-hidden">
         <div className="absolute inset-0 -z-20 gradient-bg-subtle"></div>
         
-        {/* 3D WebGL Visual */}
-        <AbstractThreeDVisual />
-        
-        {!reduceMotion && <ParticleField count={16} />}
-        {!reduceMotion && (
-          <div className="pointer-events-none absolute inset-0 -z-10">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full blur-3xl opacity-30"
-                style={{
-                  width: `${120 + (i % 3) * 40}px`,
-                  height: `${120 + (i % 3) * 40}px`,
-                  left: `${(i * 12) % 100}%`,
-                  top: `${(i * 9 + 10) % 90}%`,
-                  background:
-                    i % 2 === 0
-                      ? "radial-gradient(circle at 30% 30%, rgba(99,102,241,0.6), transparent 60%)"
-                      : "radial-gradient(circle at 70% 70%, rgba(236,72,153,0.6), transparent 60%)",
-                }}
-                initial={{ y: 0, scale: 0.98 }}
-                animate={{ y: [0, -12, 0], scale: [0.98, 1.02, 0.98] }}
-                transition={{ duration: 7 + i * 0.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.25 }}
-              />
-            ))}
-          </div>
-        )}
         {/* Readability overlay to ensure professional contrast over WebGL */}
         <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-background/25 via-background/10 to-transparent backdrop-blur-[1px]" />
 
