@@ -40,7 +40,8 @@ export const analyzeResume = internalAction({
       const systemPrompt = `You are a world-class career assistant and a harsh critic. Analyze a resume against a job description with extreme scrutiny and return a single, valid JSON object only.
 
       CRITICAL SCORING INSTRUCTIONS:
-      - Be conservative. Typical average resumes should score 40–60 unless highly aligned.
+      - Be extremely conservative. Typical average resumes should score 30-50 unless highly aligned.
+      - Only exceptional resumes that perfectly match requirements should score 70+.
       - The matchScore reflects how well the resume aligns with the job description requirements and responsibilities.
       - The atsScore reflects keyword/skills alignment, clarity, structure, and ATS-parsable language (section headers, bullet clarity, quantification).
       - Always justify the scores implicitly via the improvements and missing keywords you surface.
@@ -56,9 +57,10 @@ export const analyzeResume = internalAction({
 
       JSON STRUCTURE:
       {
-        "matchScore": number (0-100, be critical),
-        "atsScore": number (0-100, be critical),
+        "matchScore": number (0-100, be extremely critical),
+        "atsScore": number (0-100, be extremely critical),
         "missingKeywords": string[] (top 10 essential missing keywords/skills),
+        "priorityImprovements": string[] (3-5 most critical, high-impact changes that would dramatically improve the resume's effectiveness - focus on the biggest gaps and most impactful additions),
         "topicsToMaster": { "topic": string, "description": string }[] (5-7 targeted upskilling areas),
         "coverLetter": string (professional, tailored draft with markdown),
         "interviewQuestions": { "question": string, "category": "Behavioral" | "Technical" }[] (5-7),
@@ -104,6 +106,7 @@ export const analyzeResume = internalAction({
 
       const aiAtsImprovements: string[] = Array.isArray(analysis.atsImprovements) ? analysis.atsImprovements : [];
       const aiMatchingImprovements: string[] = Array.isArray(analysis.matchingImprovements) ? analysis.matchingImprovements : [];
+      const priorityImprovements: string[] = Array.isArray(analysis.priorityImprovements) ? analysis.priorityImprovements : [];
 
       const ensureImprovementCount = (items: string[], min: number) => {
         const unique = Array.from(new Set(items.map((s) => (typeof s === "string" ? s.trim() : "")))).filter(Boolean);
@@ -188,6 +191,7 @@ export const analyzeResume = internalAction({
         interviewTalkingPoints: analysis.interviewTalkingPoints,
         atsImprovements,
         matchingImprovements,
+        priorityImprovements,
         status: "completed"
       });
 
@@ -206,6 +210,7 @@ export const analyzeResume = internalAction({
         topicsToMaster: [],
         atsImprovements: [],
         matchingImprovements: [],
+        priorityImprovements: [],
         status: "failed",
         errorMessage: error.message || errorMessage
       });

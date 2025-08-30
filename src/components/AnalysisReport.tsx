@@ -18,7 +18,9 @@ import {
   FileText,
   MessageSquare,
   Sparkles,
-  Copy
+  Copy,
+  Zap,
+  Star
 } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import AnalysisLoading from "@/components/AnalysisLoading";
@@ -287,6 +289,77 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Priority Changes Section */}
+        {analysis.priorityImprovements && analysis.priorityImprovements.length > 0 && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.12 }}
+            className="mb-8"
+          >
+            <Card className="elevation-2 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
+                  <Zap className="h-5 w-5" />
+                  Priority Changes
+                  <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                    High Impact
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-orange-700 dark:text-orange-300">
+                  The most critical changes that will dramatically improve your resume's effectiveness
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {analysis.priorityImprovements.map((improvement, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="flex items-start gap-3 p-4 bg-white dark:bg-gray-900/50 rounded-lg border border-orange-200 dark:border-orange-800"
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground font-medium leading-relaxed">
+                          {improvement}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(improvement)}
+                        className="flex-shrink-0 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-950/20"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </motion.div>
+                  ))}
+                  
+                  <div className="flex items-center justify-between pt-4 border-t border-orange-200 dark:border-orange-800">
+                    <div className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
+                      <Star className="h-4 w-4" />
+                      <span>Focus on these changes first for maximum impact</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleCopy(analysis.priorityImprovements?.join('\n\n') || '')}
+                      className="bg-orange-100 hover:bg-orange-200 text-orange-800 dark:bg-orange-900 dark:hover:bg-orange-800 dark:text-orange-200"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy All Priority Changes
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Single Unified Improvement Suggestions Section */}
         <motion.div

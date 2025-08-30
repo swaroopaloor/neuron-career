@@ -62,6 +62,7 @@ const schema = defineSchema(
       // ADD: Improvement suggestions for clarity on how to boost scores
       atsImprovements: v.array(v.string()),
       matchingImprovements: v.array(v.string()),
+      priorityImprovements: v.array(v.string()), // Most critical changes for maximum impact
       
       // Feature: Deeper Skill-Gap Analysis
       topicsToMaster: v.array(v.object({
