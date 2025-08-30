@@ -146,6 +146,74 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
           </Card>
         </motion.div>
 
+        {/* Improvement Suggestions - side by side columns */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
+        >
+          {/* Improve Match Score */}
+          <Card className="elevation-2 h-fit">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Improve Match Score
+              </CardTitle>
+              <CardDescription>
+                Concrete updates to better align your resume with the job
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {analysis.matchingImprovements && analysis.matchingImprovements.length > 0 ? (
+                <ul className="space-y-3 list-disc pl-5">
+                  {analysis.matchingImprovements.map((tip, i) => (
+                    <li key={i} className="text-sm text-foreground">
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground text-sm">
+                    No specific improvements identified for matching score.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Improve ATS Score */}
+          <Card className="elevation-2 h-fit">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Improve ATS Score
+              </CardTitle>
+              <CardDescription>
+                Practical steps to increase ATS compatibility
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {analysis.atsImprovements && analysis.atsImprovements.length > 0 ? (
+                <ul className="space-y-3 list-disc pl-5">
+                  {analysis.atsImprovements.map((tip, i) => (
+                    <li key={i} className="text-sm text-foreground">
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground text-sm">
+                    No specific improvements identified for ATS score.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column */}
           <div className="space-y-8">

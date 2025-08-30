@@ -58,6 +58,10 @@ const schema = defineSchema(
       matchScore: v.number(), // 0-100
       atsScore: v.number(), // 0-100
       missingKeywords: v.array(v.string()), // top 10 missing keywords
+
+      // ADD: Improvement suggestions for clarity on how to boost scores
+      atsImprovements: v.array(v.string()),
+      matchingImprovements: v.array(v.string()),
       
       // Feature: Deeper Skill-Gap Analysis
       topicsToMaster: v.array(v.object({
