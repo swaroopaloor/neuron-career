@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import AbstractThreeDVisual from "@/components/AbstractThreeDVisual";
 
 // Animated numeric counter for stats
 function AnimatedCounter({ value }: { value: string }) {
@@ -263,6 +264,10 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative pt-20 pb-12 sm:pt-24 sm:pb-14 md:pt-28 md:pb-16 overflow-hidden">
         <div className="absolute inset-0 gradient-bg-subtle"></div>
+        
+        {/* 3D WebGL Visual */}
+        <AbstractThreeDVisual />
+        
         {!reduceMotion && <ParticleField count={16} />}
         {!reduceMotion && (
           <div className="pointer-events-none absolute inset-0 -z-10">
