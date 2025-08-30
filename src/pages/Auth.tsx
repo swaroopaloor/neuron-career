@@ -257,7 +257,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </motion.div>
 
             {/* Feature Carousel */}
-            <div className="relative w-full max-w-md mb-3 h-28 sm:h-32 md:h-36">
+            <div className="relative w-full max-w-md mb-3 h-40 sm:h-44 md:h-48">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={featureIndex}
@@ -267,15 +267,15 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   transition={{ duration: 0.6, ease: "easeInOut" }}
                   className="absolute inset-0"
                 >
-                  <Card className={`h-full glass-card border-primary/20 bg-gradient-to-br ${features[featureIndex].color}`}>
-                    <CardContent className="flex flex-col items-center justify-center h-full p-6 sm:p-7 text-center">
-                      <div className="mb-5 p-3 bg-background/50 rounded-2xl shadow-lg [&>svg]:h-10 [&>svg]:w-10">
+                  <Card className={`h-full overflow-hidden rounded-2xl glass-card border-primary/20 bg-gradient-to-br ${features[featureIndex].color}`}>
+                    <CardContent className="flex flex-col items-center justify-center h-full p-5 sm:p-6 text-center">
+                      <div className="mb-3 p-2.5 bg-background/60 rounded-2xl shadow-lg [&>svg]:h-8 [&>svg]:w-8">
                         {features[featureIndex].icon}
                       </div>
-                      <h3 className="text-xl font-bold text-foreground mb-3">
+                      <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2">
                         {features[featureIndex].title}
                       </h3>
-                      <p className="text-muted-foreground leading-relaxed">
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto break-words hyphens-auto">
                         {features[featureIndex].description}
                       </p>
                     </CardContent>
@@ -378,36 +378,43 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                           </Button>
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-xl bg-background/80 p-4 border border-primary/20 shadow-sm">
-                          <Checkbox
-                            id="accept-terms"
-                            checked={acceptedTerms}
-                            onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
-                            disabled={isLoading}
-                          />
-                          <div className="space-y-1">
-                            <Label htmlFor="accept-terms" className="text-sm font-medium">
-                              I agree to the{" "}
-                              <button
-                                type="button"
-                                className="underline underline-offset-2 text-primary hover:text-primary/80"
-                                onClick={() => setTermsOpen(true)}
+                        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
+                          <div className="grid grid-cols-[auto,1fr] items-start gap-3">
+                            <Checkbox
+                              id="accept-terms"
+                              checked={acceptedTerms}
+                              onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
+                              disabled={isLoading}
+                              className="mt-0.5"
+                              aria-describedby="terms-help"
+                            />
+                            <div className="space-y-1">
+                              <Label
+                                htmlFor="accept-terms"
+                                className="text-sm font-medium leading-5"
                               >
-                                Terms & Conditions
-                              </button>{" "}
-                              and{" "}
-                              <button
-                                type="button"
-                                className="underline underline-offset-2 text-primary hover:text-primary/80"
-                                onClick={() => setTermsOpen(true)}
-                              >
-                                Privacy Policy
-                              </button>
-                              .
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              You must accept to continue.
-                            </p>
+                                I agree to the{" "}
+                                <button
+                                  type="button"
+                                  className="underline underline-offset-2 text-primary hover:text-primary/80"
+                                  onClick={() => setTermsOpen(true)}
+                                >
+                                  Terms & Conditions
+                                </button>{" "}
+                                and{" "}
+                                <button
+                                  type="button"
+                                  className="underline underline-offset-2 text-primary hover:text-primary/80"
+                                  onClick={() => setTermsOpen(true)}
+                                >
+                                  Privacy Policy
+                                </button>
+                                .
+                              </Label>
+                              <p id="terms-help" className="text-xs text-muted-foreground">
+                                Required to continue. Your information is protected and used only to provide the service.
+                              </p>
+                            </div>
                           </div>
                         </div>
 
