@@ -75,6 +75,23 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     ? currentSuggestions 
     : currentSuggestions.filter(s => s.section === sectionFilter);
 
+  // Group suggestions by section to reduce noise and show one combined item per section
+  const groupOrder: Array<string> = ["summary","skills","experience","projects","education","certifications"];
+  const groupsMap: Map<string, string[]> = new Map();
+  for (const s of currentSuggestions) {
+    if (sectionFilter !== "all" && s.section !== sectionFilter) continue;
+    const arr = groupsMap.get(s.section) ?? [];
+    arr.push(s.text);
+    groupsMap.set(s.section, arr);
+  }
+  const groupedSuggestions = (sectionFilter === "all" ? groupOrder : [sectionFilter])
+    .filter((sec) => groupsMap.has(sec))
+    .map((sec, idx) => ({
+      id: idx,
+      section: sec,
+      texts: groupsMap.get(sec) as string[],
+    }));
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-primary";
     if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
@@ -92,8 +109,9 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     toast("Copied to clipboard");
   };
 
-  const formatSuggestion = (sectionKey: string, suggestion: string, type: string) => {
-    const sectionMap: Record<string, string> = {
+  // Helper to humanize section labels and new formatter for grouped items
+  const sectionLabel = (key: string) => {
+    const map: Record<string, string> = {
       summary: "Summary",
       skills: "Skills", 
       experience: "Experience",
@@ -101,8 +119,18 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
       education: "Education",
       certifications: "Certifications",
     };
-    const label = sectionMap[sectionKey] || "General";
+    return map[key] || "General";
+  };
+
+  const formatSuggestion = (sectionKey: string, suggestion: string, type: string) => {
+    const label = sectionLabel(sectionKey);
     return `[${type} Improvement]\nSection: ${label}\nChange: ${suggestion}\n\nInstructions:\nUpdate the ${label} section of your resume to incorporate the above change in clear, concise bullet points.`;
+  };
+
+  const formatSectionGroup = (sectionKey: string, texts: string[], type: string) => {
+    const label = sectionLabel(sectionKey);
+    const bullets = texts.map((t) => `- ${t}`).join("\n");
+    return `[${type} Improvement]\nSection: ${label}\nAction Plan:\n${bullets}\n\nInstructions:\nUpdate the ${label} section of your resume to incorporate the above changes as clear, concise bullet points.`;
   };
 
   const handleToggleSuggestion = (suggestionId: number) => {
@@ -118,10 +146,10 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
   };
 
   const handleSelectAll = () => {
-    if (selectedSuggestions.size === filteredSuggestions.length) {
+    if (selectedSuggestions.size === groupedSuggestions.length) {
       setSelectedSuggestions(new Set());
     } else {
-      setSelectedSuggestions(new Set(filteredSuggestions.map(s => s.id)));
+      setSelectedSuggestions(new Set(groupedSuggestions.map(g => g.id)));
     }
   };
 
@@ -131,17 +159,21 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
       return;
     }
     
-    const selectedText = filteredSuggestions
-      .filter(s => selectedSuggestions.has(s.id))
-      .map(s => formatSuggestion(s.section, s.text, activeTab === "match" ? "Match" : "ATS"))
+    const selectedText = groupedSuggestions
+      .filter(g => selectedSuggestions.has(g.id))
+      .map(g => formatSectionGroup(g.section, g.texts, activeTab === "match" ? "Match" : "ATS"))
       .join("\n\n");
     
     await handleCopy(selectedText);
   };
 
   const handleCopyAll = async () => {
-    const allText = filteredSuggestions
-      .map(s => formatSuggestion(s.section, s.text, activeTab === "match" ? "Match" : "ATS"))
+    if (groupedSuggestions.length === 0) {
+      toast("No suggestions to copy");
+      return;
+    }
+    const allText = groupedSuggestions
+      .map(g => formatSectionGroup(g.section, g.texts, activeTab === "match" ? "Match" : "ATS"))
       .join("\n\n");
     
     await handleCopy(allText);
@@ -288,7 +320,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                     }`}
                   >
                     <Target className="h-4 w-4 mr-2 inline" />
-                    Match Score Improvements
+                    {`Match Improvements${sectionFilter !== "all" ? ` — ${sectionLabel(sectionFilter)}` : ""}`}
                   </button>
                   <button
                     onClick={() => handleTabChange("ats")}
@@ -299,12 +331,12 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                     }`}
                   >
                     <TrendingUp className="h-4 w-4 mr-2 inline" />
-                    ATS Score Improvements
+                    {`ATS Improvements${sectionFilter !== "all" ? ` — ${sectionLabel(sectionFilter)}` : ""}`}
                   </button>
                 </div>
               </div>
 
-              {currentSuggestions.length > 0 ? (
+              {groupedSuggestions.length > 0 ? (
                 <div className="space-y-6">
                   {/* Filter Controls */}
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-muted/30 rounded-lg">
@@ -327,8 +359,8 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                     </div>
                     
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      Showing {filteredSuggestions.length} {activeTab === "match" ? "match" : "ATS"} suggestions
-                      {sectionFilter !== "all" && ` for ${sectionFilter}`}
+                      {`Showing ${groupedSuggestions.length} ${activeTab === "match" ? "match" : "ATS"} action items`}
+                      {sectionFilter !== "all" && ` for ${sectionLabel(sectionFilter)}`}
                     </div>
                   </div>
 
@@ -340,10 +372,10 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                         variant="outline"
                         onClick={handleSelectAll}
                       >
-                        {selectedSuggestions.size === filteredSuggestions.length ? "Deselect All" : "Select All"}
+                        {selectedSuggestions.size === groupedSuggestions.length ? "Deselect All" : "Select All"}
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        {selectedSuggestions.size} of {filteredSuggestions.length} selected
+                        {selectedSuggestions.size} of {groupedSuggestions.length} selected
                       </span>
                     </div>
                     
@@ -355,30 +387,30 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                         disabled={selectedSuggestions.size === 0}
                       >
                         <Copy className="h-4 w-4 mr-2" />
-                        Copy Selected ({selectedSuggestions.size})
+                        {`Copy Selected (${selectedSuggestions.size})`}
                       </Button>
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={handleCopyAll}
-                        disabled={filteredSuggestions.length === 0}
+                        disabled={groupedSuggestions.length === 0}
                       >
                         <Copy className="h-4 w-4 mr-2" />
-                        Copy All ({filteredSuggestions.length})
+                        {`Copy All (${groupedSuggestions.length})`}
                       </Button>
                     </div>
                   </div>
 
                   {/* Suggestions List */}
-                  {filteredSuggestions.length > 0 ? (
+                  {groupedSuggestions.length > 0 ? (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {filteredSuggestions.map((suggestion) => (
-                        <div key={suggestion.id} className="p-4 bg-muted/50 rounded-lg border">
+                      {groupedSuggestions.map((group) => (
+                        <div key={group.id} className="p-4 bg-muted/50 rounded-lg border">
                           <div className="flex items-start gap-3">
                             <input
                               type="checkbox"
-                              checked={selectedSuggestions.has(suggestion.id)}
-                              onChange={() => handleToggleSuggestion(suggestion.id)}
+                              checked={selectedSuggestions.has(group.id)}
+                              onChange={() => handleToggleSuggestion(group.id)}
                               className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                             />
                             <div className="flex-1 space-y-3">
@@ -390,17 +422,28 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                                   {activeTab === "match" ? "Match" : "ATS"}
                                 </Badge>
                                 <Badge variant="outline" className="text-xs capitalize">
-                                  {suggestion.section}
+                                  {group.section}
                                 </Badge>
-                                <span className="text-sm text-foreground flex-1">{suggestion.text}</span>
                               </div>
+
+                              <ul className="list-disc pl-5 space-y-1 text-sm text-foreground">
+                                {group.texts.map((t, idx) => (
+                                  <li key={idx}>{t}</li>
+                                ))}
+                              </ul>
                               
                               <div className="flex items-center justify-end">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    handleCopy(formatSuggestion(suggestion.section, suggestion.text, activeTab === "match" ? "Match" : "ATS"))
+                                    handleCopy(
+                                      formatSectionGroup(
+                                        group.section,
+                                        group.texts,
+                                        activeTab === "match" ? "Match" : "ATS"
+                                      )
+                                    )
                                   }
                                 >
                                   <Copy className="h-4 w-4 mr-1" />
