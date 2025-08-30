@@ -8,38 +8,32 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { useTheme } from "@/components/ThemeProvider";
-import { 
-  FileText, 
-  Plus, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle, 
-  XCircle,
-  LogOut,
-  User,
-  Loader2,
-  Heart,
-  Filter,
-  Search,
-  Sparkles,
-  Sun,
-  Moon,
-  Settings,
-  Briefcase,
-  Calendar,
-  Star,
-  ArrowRight
-} from "lucide-react";
-import { useState } from "react";
 import UploadDialog from "@/components/UploadDialog";
 import AnalysisReport from "@/components/AnalysisReport";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { GlobalHeader } from "@/components/GlobalHeader";
+import { useState } from "react";
+import {
+  FileText,
+  Plus,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  XCircle,
+  User,
+  Heart,
+  Search,
+  Sparkles,
+  Settings,
+  Briefcase,
+  Calendar,
+  Star,
+  ArrowRight,
+} from "lucide-react";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<Id<"analyses"> | null>(null);
@@ -136,42 +130,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Compact Header */}
-      <motion.header 
-        initial={{ y: -50 }}
-        animate={{ y: 0 }}
-        className="bg-card/80 border-b border-border backdrop-blur-lg sticky top-0 z-50"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
-            <motion.div 
-              className="flex items-center gap-2"
-              whileHover={{ scale: 1.02 }}
-            >
-              <img src="/logo.svg" alt="Logo" width={28} height={28} className="rounded-lg" />
-              <h1 className="text-lg font-semibold text-foreground">Resume Analyzer</h1>
-            </motion.div>
-            
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground hover:text-foreground">
-                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/job-tracker")} className="text-muted-foreground hover:text-foreground px-2">
-                <Briefcase className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline text-xs">Jobs</span>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="text-muted-foreground hover:text-foreground px-2">
-                <Settings className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline text-xs">Profile</span>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} disabled={isSigningOut} className="text-muted-foreground hover:text-foreground px-2">
-                {isSigningOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4 sm:mr-1" />}
-                <span className="hidden sm:inline text-xs">Sign Out</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </motion.header>
+      <GlobalHeader />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isNewUser ? (
