@@ -292,8 +292,10 @@ export default function Landing() {
             ))}
           </div>
         )}
+        {/* Readability overlay to ensure professional contrast over WebGL */}
+        <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-background/70 via-background/45 to-transparent" />
 
-        <div className="container-responsive relative px-6">
+        <div className="container-responsive relative px-6 z-10">
           <div className="text-center max-w-5xl mx-auto">
             <motion.div
               initial={{ y: 40, opacity: 0 }}

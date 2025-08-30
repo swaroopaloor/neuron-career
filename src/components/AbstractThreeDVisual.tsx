@@ -53,6 +53,8 @@ export default function AbstractThreeDVisual() {
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
     renderer.domElement.style.pointerEvents = "none";
+    // Subtle global smoothing to make it less distracting
+    renderer.domElement.style.filter = "saturate(0.9) blur(0.4px)";
     container.appendChild(renderer.domElement);
 
     // Store refs
@@ -60,41 +62,41 @@ export default function AbstractThreeDVisual() {
     rendererRef.current = renderer;
     cameraRef.current = camera;
 
-    // Camera position
-    camera.position.set(0, 0, 15);
+    // Camera position (keep stable; slight parallax only)
+    camera.position.set(0, 0.2, 18);
     camera.lookAt(0, 0, 0);
 
     // Create nodes
-    const nodeCount = 24;
+    const nodeCount = 32;
     const nodes: Node[] = [];
     
-    // Node geometry and materials
-    const nodeGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+    // Node geometry and materials (more subtle/professional)
+    const nodeGeometry = new THREE.SphereGeometry(0.06, 16, 16);
     const primaryMaterial = new THREE.MeshBasicMaterial({ 
       color: 0x6366f1,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.6,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const secondaryMaterial = new THREE.MeshBasicMaterial({ 
       color: 0xec4899,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.45,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
 
-    // Create nodes in a distributed pattern
+    // Create nodes in a halo pattern with a central exclusion zone for better legibility
     for (let i = 0; i < nodeCount; i++) {
       const angle = (i / nodeCount) * Math.PI * 2;
-      const radius = 3 + Math.random() * 4;
-      const height = (Math.random() - 0.5) * 6;
+      const radius = 5 + Math.random() * 3; // 5 - 8
+      const height = (Math.random() - 0.5) * 2.4; // -1.2 to 1.2
       
       const position = new THREE.Vector3(
-        Math.cos(angle) * radius + (Math.random() - 0.5) * 2,
+        Math.cos(angle) * radius + (Math.random() - 0.5) * 1.2,
         height,
-        Math.sin(angle) * radius + (Math.random() - 0.5) * 2
+        Math.sin(angle) * radius + (Math.random() - 0.5) * 1.2
       );
 
       const mesh = new THREE.Mesh(
@@ -107,9 +109,9 @@ export default function AbstractThreeDVisual() {
       const node: Node = {
         position: position.clone(),
         velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02
+          (Math.random() - 0.5) * 0.015,
+          (Math.random() - 0.5) * 0.015,
+          (Math.random() - 0.5) * 0.015
         ),
         mesh,
         targetPosition: position.clone(),
@@ -121,12 +123,12 @@ export default function AbstractThreeDVisual() {
 
     nodesRef.current = nodes;
 
-    // Create connections between nearby nodes
+    // Create connections between nearby nodes (more subtle lines)
     const connections: Connection[] = [];
     const lineMaterial = new THREE.LineBasicMaterial({ 
       color: 0x6366f1,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.12,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -134,7 +136,7 @@ export default function AbstractThreeDVisual() {
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const distance = nodes[i].position.distanceTo(nodes[j].position);
-        if (distance < 4 && Math.random() > 0.6) {
+        if (distance < 4 && Math.random() > 0.7) {
           const geometry = new THREE.BufferGeometry().setFromPoints([
             nodes[i].position,
             nodes[j].position
@@ -156,47 +158,59 @@ export default function AbstractThreeDVisual() {
 
     connectionsRef.current = connections;
 
+    // Subtle parallax based on cursor (non-intrusive)
+    let pointerX = 0;
+    let pointerY = 0;
+    const onPointerMove = (e: MouseEvent) => {
+      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+      pointerX = nx;
+      pointerY = ny;
+    };
+    window.addEventListener("mousemove", onPointerMove);
+
     // Animation loop
     let time = 0;
     const animate = () => {
       if (!reduceMotion) {
         time += 0.01;
 
-        // Animate nodes
-        nodes.forEach((node, index) => {
-          // Gentle floating motion
+        // Animate nodes (gentle)
+        nodes.forEach((node) => {
           node.pulsePhase += 0.02;
-          const pulseScale = 1 + Math.sin(node.pulsePhase) * 0.1;
+          const pulseScale = 1 + Math.sin(node.pulsePhase) * 0.06;
           node.mesh.scale.setScalar(pulseScale);
 
-          // Subtle position drift
+          // Subtle position drift with soft bounds
           node.position.add(node.velocity);
-          
-          // Boundary constraints
-          if (Math.abs(node.position.x) > 8) node.velocity.x *= -1;
-          if (Math.abs(node.position.y) > 4) node.velocity.y *= -1;
-          if (Math.abs(node.position.z) > 8) node.velocity.z *= -1;
-
+          if (node.position.length() < 3.5) {
+            node.position.multiplyScalar(1.01);
+          }
+          if (node.position.length() > 9) {
+            node.position.multiplyScalar(0.99);
+          }
           node.mesh.position.copy(node.position);
 
           // Gentle rotation
-          node.mesh.rotation.y += 0.005;
-          node.mesh.rotation.x += 0.003;
+          node.mesh.rotation.y += 0.003;
+          node.mesh.rotation.x += 0.002;
         });
 
         // Update connections
-        connections.forEach((connection, index) => {
+        connections.forEach((connection) => {
           const points = [connection.from.position, connection.to.position];
           connection.line.geometry.setFromPoints(points);
 
-          // Pulsing opacity
-          const pulse = Math.sin(time * 2 + connection.pulseOffset) * 0.5 + 0.5;
-          (connection.line.material as THREE.LineBasicMaterial).opacity = 0.1 + pulse * 0.3;
+          // Subtle pulsing opacity for flow effect
+          const pulse = Math.sin(time * 1.6 + connection.pulseOffset) * 0.5 + 0.5;
+          (connection.line.material as THREE.LineBasicMaterial).opacity = 0.12 + pulse * 0.15;
         });
 
-        // Gentle camera rotation
-        camera.position.x = Math.cos(time * 0.1) * 15;
-        camera.position.z = Math.sin(time * 0.1) * 15;
+        // Subtle parallax only (no orbiting)
+        const parallaxX = pointerX * 0.6;
+        const parallaxY = pointerY * 0.3;
+        camera.position.x += (parallaxX - camera.position.x * 0.05) * 0.05;
+        camera.position.y += (parallaxY - camera.position.y * 0.05) * 0.05;
         camera.lookAt(0, 0, 0);
       }
 
@@ -221,6 +235,7 @@ export default function AbstractThreeDVisual() {
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener("mousemove", onPointerMove);
       
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
@@ -253,7 +268,7 @@ export default function AbstractThreeDVisual() {
   return (
     <div 
       ref={mountRef} 
-      className={`absolute inset-0 z-0 transition-opacity duration-1000 ${
+      className={`absolute inset-0 -z-10 transition-opacity duration-1000 ${
         isLoaded ? 'opacity-100' : 'opacity-0'
       }`}
       style={{ 
