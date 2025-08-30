@@ -55,6 +55,16 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     return 'summary'; // default
   };
 
+  // Add: shared section labels used across formatting and UI
+  const sectionLabels: Record<string, string> = {
+    summary: "Summary",
+    skills: "Skills",
+    experience: "Experience",
+    projects: "Projects",
+    education: "Education",
+    certifications: "Certifications",
+  };
+
   const matchSuggestions = (analysis.matchingImprovements || []).map((suggestion, index) => ({
     id: index,
     text: suggestion,
@@ -75,22 +85,16 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     ? currentSuggestions 
     : currentSuggestions.filter(s => s.section === sectionFilter);
 
-  // Group suggestions by section to reduce noise and show one combined item per section
-  const groupOrder: Array<string> = ["summary","skills","experience","projects","education","certifications"];
-  const groupsMap: Map<string, string[]> = new Map();
-  for (const s of currentSuggestions) {
-    if (sectionFilter !== "all" && s.section !== sectionFilter) continue;
-    const arr = groupsMap.get(s.section) ?? [];
-    arr.push(s.text);
-    groupsMap.set(s.section, arr);
+  // Add: group filtered suggestions by section to reduce item count
+  const sectionOrder: Array<string> = ["summary", "skills", "experience", "projects", "education", "certifications"];
+  const groupedBySection: Record<string, Array<string>> = {};
+  for (const s of filteredSuggestions) {
+    if (!groupedBySection[s.section]) groupedBySection[s.section] = [];
+    groupedBySection[s.section].push(s.text);
   }
-  const groupedSuggestions = (sectionFilter === "all" ? groupOrder : [sectionFilter])
-    .filter((sec) => groupsMap.has(sec))
-    .map((sec, idx) => ({
-      id: idx,
-      section: sec,
-      texts: groupsMap.get(sec) as string[],
-    }));
+  const groupedSuggestions: Array<{ id: number; section: string; texts: Array<string> }> = sectionOrder
+    .filter((sec) => groupedBySection[sec] && groupedBySection[sec].length > 0)
+    .map((sec, idx) => ({ id: idx, section: sec, texts: groupedBySection[sec] }));
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-primary";
@@ -109,28 +113,17 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     toast("Copied to clipboard");
   };
 
-  // Helper to humanize section labels and new formatter for grouped items
-  const sectionLabel = (key: string) => {
-    const map: Record<string, string> = {
-      summary: "Summary",
-      skills: "Skills", 
-      experience: "Experience",
-      projects: "Projects",
-      education: "Education",
-      certifications: "Certifications",
-    };
-    return map[key] || "General";
-  };
-
+  // Update: use shared section labels for single-suggestion formatter (kept for other uses)
   const formatSuggestion = (sectionKey: string, suggestion: string, type: string) => {
-    const label = sectionLabel(sectionKey);
+    const label = sectionLabels[sectionKey] || "General";
     return `[${type} Improvement]\nSection: ${label}\nChange: ${suggestion}\n\nInstructions:\nUpdate the ${label} section of your resume to incorporate the above change in clear, concise bullet points.`;
   };
 
-  const formatSectionGroup = (sectionKey: string, texts: string[], type: string) => {
-    const label = sectionLabel(sectionKey);
+  // Add: formatter for grouped section suggestions
+  const formatSectionGroup = (sectionKey: string, texts: Array<string>, type: string) => {
+    const label = sectionLabels[sectionKey] || "General";
     const bullets = texts.map((t) => `- ${t}`).join("\n");
-    return `[${type} Improvement]\nSection: ${label}\nAction Plan:\n${bullets}\n\nInstructions:\nUpdate the ${label} section of your resume to incorporate the above changes as clear, concise bullet points.`;
+    return `[${type} Improvement]\nSection: ${label}\n\nAction Plan:\n${bullets}\n\nInstructions:\nUpdate the ${label} section of your resume using the above bullet points. Keep wording concise and achievement-oriented.`;
   };
 
   const handleToggleSuggestion = (suggestionId: number) => {
@@ -145,6 +138,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     });
   };
 
+  // Update: select/deselect all based on grouped items
   const handleSelectAll = () => {
     if (selectedSuggestions.size === groupedSuggestions.length) {
       setSelectedSuggestions(new Set());
@@ -153,27 +147,31 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     }
   };
 
+  // Update: copy only selected grouped items
   const handleCopySelected = async () => {
     if (selectedSuggestions.size === 0) {
-      toast("No suggestions selected");
+      toast("No items selected");
       return;
     }
     
+    const typeLabel = activeTab === "match" ? "Match" : "ATS";
     const selectedText = groupedSuggestions
       .filter(g => selectedSuggestions.has(g.id))
-      .map(g => formatSectionGroup(g.section, g.texts, activeTab === "match" ? "Match" : "ATS"))
+      .map(g => formatSectionGroup(g.section, g.texts, typeLabel))
       .join("\n\n");
     
     await handleCopy(selectedText);
   };
 
+  // Update: copy all visible grouped items
   const handleCopyAll = async () => {
     if (groupedSuggestions.length === 0) {
-      toast("No suggestions to copy");
+      toast("Nothing to copy");
       return;
     }
+    const typeLabel = activeTab === "match" ? "Match" : "ATS";
     const allText = groupedSuggestions
-      .map(g => formatSectionGroup(g.section, g.texts, activeTab === "match" ? "Match" : "ATS"))
+      .map(g => formatSectionGroup(g.section, g.texts, typeLabel))
       .join("\n\n");
     
     await handleCopy(allText);
@@ -320,7 +318,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                     }`}
                   >
                     <Target className="h-4 w-4 mr-2 inline" />
-                    {`Match Improvements${sectionFilter !== "all" ? ` — ${sectionLabel(sectionFilter)}` : ""}`}
+                    Match Score Improvements
                   </button>
                   <button
                     onClick={() => handleTabChange("ats")}
@@ -331,12 +329,12 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                     }`}
                   >
                     <TrendingUp className="h-4 w-4 mr-2 inline" />
-                    {`ATS Improvements${sectionFilter !== "all" ? ` — ${sectionLabel(sectionFilter)}` : ""}`}
+                    ATS Score Improvements
                   </button>
                 </div>
               </div>
 
-              {groupedSuggestions.length > 0 ? (
+              {currentSuggestions.length > 0 ? (
                 <div className="space-y-6">
                   {/* Filter Controls */}
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-muted/30 rounded-lg">
@@ -359,8 +357,8 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                     </div>
                     
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {`Showing ${groupedSuggestions.length} ${activeTab === "match" ? "match" : "ATS"} action items`}
-                      {sectionFilter !== "all" && ` for ${sectionLabel(sectionFilter)}`}
+                      Showing {groupedSuggestions.length} action item{groupedSuggestions.length === 1 ? "" : "s"}
+                      {sectionFilter !== "all" && ` for ${sectionLabels[sectionFilter] || sectionFilter}`}
                     </div>
                   </div>
 
@@ -387,7 +385,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                         disabled={selectedSuggestions.size === 0}
                       >
                         <Copy className="h-4 w-4 mr-2" />
-                        {`Copy Selected (${selectedSuggestions.size})`}
+                        Copy Selected ({selectedSuggestions.size})
                       </Button>
                       <Button
                         size="sm"
@@ -396,12 +394,12 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                         disabled={groupedSuggestions.length === 0}
                       >
                         <Copy className="h-4 w-4 mr-2" />
-                        {`Copy All (${groupedSuggestions.length})`}
+                        Copy All ({groupedSuggestions.length})
                       </Button>
                     </div>
                   </div>
 
-                  {/* Suggestions List */}
+                  {/* Suggestions List (grouped by section) */}
                   {groupedSuggestions.length > 0 ? (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {groupedSuggestions.map((group) => (
@@ -426,9 +424,9 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                                 </Badge>
                               </div>
 
-                              <ul className="list-disc pl-5 space-y-1 text-sm text-foreground">
-                                {group.texts.map((t, idx) => (
-                                  <li key={idx}>{t}</li>
+                              <ul className="list-disc pl-5 text-sm text-foreground space-y-1">
+                                {group.texts.map((t, i) => (
+                                  <li key={i}>{t}</li>
                                 ))}
                               </ul>
                               
