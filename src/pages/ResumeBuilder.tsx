@@ -26,6 +26,11 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useRef } from "react";
+import { Download } from "lucide-react";
 
 type ResumePersonalInfo = {
   name: string;
@@ -73,9 +78,9 @@ const defaultResumeData: ResumeData = {
   skills: [],
 };
 
-function PreviewPanel({ resumeData }: { resumeData: ResumeData }) {
+function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement> }) {
   return (
-    <div className="bg-white text-black p-8 shadow-lg rounded-lg min-h-[800px] max-w-[8.5in] mx-auto">
+    <div ref={containerRef} className="bg-white text-black p-8 shadow-lg rounded-lg min-h-[800px] max-w-[8.5in] mx-auto">
       {/* Header */}
       <div className="text-center border-b-2 border-gray-300 pb-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -477,31 +482,70 @@ export default function ResumeBuilder() {
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showDefaultDialog, setShowDefaultDialog] = useState(false);
+  const [uploadedPdf, setUploadedPdf] = useState<{ id: string; name: string } | null>(null);
 
   const savedResume = useQuery(api.resumes.getUserResume);
   const saveResume = useMutation(api.resumes.saveResume);
+  const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
+  const updateProfile = useMutation(api.users.updateProfile);
 
-  // Load saved resume data
-  useEffect(() => {
-    if (savedResume) {
-      try {
-        const parsedData = JSON.parse(savedResume.content);
-        setResumeData(parsedData);
-      } catch (error) {
-        console.error("Failed to parse saved resume:", error);
-      }
-    } else if (user) {
-      // Pre-fill with user data
-      setResumeData(prev => ({
-        ...prev,
-        personalInfo: {
-          ...prev.personalInfo,
-          name: user.name || "",
-          email: user.email || "",
-        }
-      }));
+  const handleExportPDF = async () => {
+    if (!previewRef.current) {
+      toast.error("Preview not ready. Try again in a moment.");
+      return;
     }
-  }, [savedResume, user]);
+    setIsExporting(true);
+    try {
+      // Render preview to canvas
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+
+      // Create PDF and fit the page
+      const pdf = new jsPDF("p", "pt", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+      const finalWidth = canvas.width * ratio;
+      const finalHeight = canvas.height * ratio;
+      const x = (pageWidth - finalWidth) / 2;
+      const y = 0;
+
+      pdf.addImage(imgData, "PNG", x, y, finalWidth, finalHeight, undefined, "FAST");
+
+      const fileName = `${resumeData.personalInfo.name || "Resume"}-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      // Prompt user to download locally
+      pdf.save(fileName);
+
+      // Upload to Convex storage
+      const blob = pdf.output("blob");
+      const uploadUrl = await generateUploadUrl({});
+      const uploadRes = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/pdf",
+          "x-file-name": fileName,
+        },
+        body: blob,
+      });
+      const { storageId } = await uploadRes.json();
+
+      setUploadedPdf({ id: storageId, name: fileName });
+      setShowDefaultDialog(true);
+      toast.success("PDF exported! You can set it as your default resume.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export PDF.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -637,6 +681,24 @@ export default function ResumeBuilder() {
                 </>
               )}
             </Button>
+            <Button
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              variant="outline"
+              className="flex items-center"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export PDF
+                </>
+              )}
+            </Button>
           </div>
         </motion.div>
 
@@ -673,7 +735,7 @@ export default function ResumeBuilder() {
             </TabsContent>
             
             <TabsContent value="preview">
-              <PreviewPanel resumeData={resumeData} />
+              <PreviewPanel resumeData={resumeData} containerRef={previewRef} />
             </TabsContent>
           </Tabs>
         </div>
@@ -719,10 +781,43 @@ export default function ResumeBuilder() {
               </p>
             </div>
             <div className="border rounded-lg overflow-hidden bg-white">
-              <PreviewPanel resumeData={resumeData} />
+              <PreviewPanel resumeData={resumeData} containerRef={previewRef} />
             </div>
           </motion.div>
         </div>
+
+        <AlertDialog open={showDefaultDialog} onOpenChange={setShowDefaultDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Set this PDF as your default resume?</AlertDialogTitle>
+              <AlertDialogDescription>
+                We've exported your resume as a PDF. You can set this file as your default resume so it's used for uploads and quick access across the app.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Not now</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (!uploadedPdf) return;
+                  try {
+                    await updateProfile({
+                      savedResumeId: uploadedPdf.id as any,
+                      savedResumeName: uploadedPdf.name,
+                    });
+                    toast.success("Default resume updated!");
+                  } catch (e) {
+                    console.error(e);
+                    toast.error("Failed to set default resume.");
+                  } finally {
+                    setShowDefaultDialog(false);
+                  }
+                }}
+              >
+                Set as Default
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

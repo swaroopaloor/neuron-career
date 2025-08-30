@@ -89,10 +89,13 @@ export function GlobalHeader() {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <div className="flex flex-col h-full">
+              <SheetContent 
+                side="left" 
+                className="w-80 p-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+              >
+                <div className="flex flex-col h-full p-6 gap-6">
                   {/* User info */}
-                  <div className="flex items-center gap-3 pb-6 border-b">
+                  <div className="flex items-center gap-3 pb-4 border-b">
                     <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                       <Sparkles className="h-6 w-6 text-primary-foreground" />
                     </div>
@@ -103,14 +106,14 @@ export function GlobalHeader() {
                   </div>
 
                   {/* Navigation */}
-                  <nav className="flex flex-col gap-2 py-6 flex-1">
+                  <nav className="flex flex-col gap-1 py-2 flex-1">
                     {navItems.map((item) => (
                       <SheetClose key={item.path} asChild>
                         <Button
                           variant={isActivePath(item.path) ? "default" : "ghost"}
                           size="lg"
                           asChild
-                          className="justify-start"
+                          className="w-full justify-start h-11 rounded-md text-foreground"
                         >
                           <Link to={item.path} className="flex items-center gap-3">
                             <item.icon className="h-5 w-5" />
@@ -124,7 +127,7 @@ export function GlobalHeader() {
                       variant="ghost"
                       size="lg"
                       onClick={handleBack}
-                      className="justify-start text-muted-foreground"
+                      className="w-full justify-start h-11 rounded-md text-muted-foreground"
                     >
                       <ChevronLeft className="h-5 w-5 mr-2" />
                       Back
@@ -135,7 +138,7 @@ export function GlobalHeader() {
                       variant="ghost"
                       size="lg"
                       onClick={toggleTheme}
-                      className="justify-start text-muted-foreground"
+                      className="w-full justify-start h-11 rounded-md text-muted-foreground"
                     >
                       {theme === "light" ? (
                         <Moon className="h-5 w-5 mr-2" />
@@ -147,13 +150,13 @@ export function GlobalHeader() {
                   </nav>
 
                   {/* Sign out */}
-                  <div className="border-t pt-4">
+                  <div className="border-t pt-4 mt-auto">
                     <Button
                       variant="ghost"
                       size="lg"
                       onClick={handleSignOut}
                       disabled={isSigningOut}
-                      className="w-full justify-start text-destructive hover:text-destructive"
+                      className="w-full justify-start h-11 rounded-md text-destructive hover:text-destructive"
                     >
                       {isSigningOut ? (
                         <Loader2 className="h-5 w-5 mr-3 animate-spin" />

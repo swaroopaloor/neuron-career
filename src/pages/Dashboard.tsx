@@ -12,7 +12,6 @@ import UploadDialog from "@/components/UploadDialog";
 import AnalysisReport from "@/components/AnalysisReport";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
-import { GlobalHeader } from "@/components/GlobalHeader";
 import { useState } from "react";
 import {
   FileText,
@@ -130,8 +129,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <GlobalHeader />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isNewUser ? (
           <motion.div
