@@ -12,7 +12,8 @@ import {
   Sparkles,
   FileText,
   LayoutDashboard,
-  Settings
+  Settings,
+  ChevronLeft
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -36,6 +37,14 @@ export function GlobalHeader() {
       toast.error("Failed to sign out. Please try again.");
     } finally {
       setIsSigningOut(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/dashboard");
     }
   };
 
@@ -109,6 +118,17 @@ export function GlobalHeader() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-2">
+            {/* Back button (desktop) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="text-muted-foreground hover:text-foreground px-2"
+            >
+              <ChevronLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline text-xs">Back</span>
+            </Button>
+
             <Button
               variant="ghost"
               size="icon"
@@ -142,6 +162,16 @@ export function GlobalHeader() {
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-2">
+            {/* Back button (mobile) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBack}
+              aria-label="Back"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+
             <Button
               variant="ghost"
               size="icon"

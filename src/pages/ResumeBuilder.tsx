@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { GlobalHeader } from "@/components/GlobalHeader";
 
 interface ResumeData {
   personalInfo: {
@@ -274,6 +275,9 @@ export default function ResumeBuilder() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Global Header for consistent navigation */}
+      <GlobalHeader />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <motion.div
