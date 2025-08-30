@@ -299,64 +299,72 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             className="mb-8"
           >
             <Card className="elevation-2 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
-                  <Zap className="h-5 w-5" />
-                  Priority Changes
-                  <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                    High Impact
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="text-orange-700 dark:text-orange-300">
-                  The most critical changes that will dramatically improve your resume's effectiveness
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {analysis.priorityImprovements.map((improvement, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="flex items-start gap-3 p-4 bg-white dark:bg-gray-900/50 rounded-lg border border-orange-200 dark:border-orange-800"
-                    >
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
-                        {index + 1}
+              <Accordion type="single" collapsible>
+                <AccordionItem value="priority">
+                  <AccordionTrigger className="px-6 py-4">
+                    <div className="text-left w-full">
+                      <div className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
+                        <Zap className="h-5 w-5" />
+                        <span className="font-semibold">Priority Changes</span>
+                        <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                          High Impact
+                        </Badge>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-foreground font-medium leading-relaxed">
-                          {improvement}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCopy(improvement)}
-                        className="flex-shrink-0 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-950/20"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </motion.div>
-                  ))}
-                  
-                  <div className="flex items-center justify-between pt-4 border-t border-orange-200 dark:border-orange-800">
-                    <div className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
-                      <Star className="h-4 w-4" />
-                      <span>Focus on these changes first for maximum impact</span>
+                      <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                        The most critical changes that will dramatically improve your resume's effectiveness
+                      </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleCopy(analysis.priorityImprovements?.join('\n\n') || '')}
-                      className="bg-orange-100 hover:bg-orange-200 text-orange-800 dark:bg-orange-900 dark:hover:bg-orange-800 dark:text-orange-200"
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy All Priority Changes
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="px-6 pb-6">
+                      <div className="space-y-4">
+                        {analysis.priorityImprovements.map((improvement, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.1 * index }}
+                            className="flex items-start gap-3 p-4 bg-white dark:bg-gray-900/50 rounded-lg border border-orange-200 dark:border-orange-800"
+                          >
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-foreground font-medium leading-relaxed">
+                                {improvement}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCopy(improvement)}
+                              className="flex-shrink-0 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-950/20"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                        ))}
+
+                        <div className="flex items-center justify-between pt-4 border-t border-orange-200 dark:border-orange-800">
+                          <div className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
+                            <Star className="h-4 w-4" />
+                            <span>Focus on these changes first for maximum impact</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleCopy(analysis.priorityImprovements?.join('\n\n') || '')}
+                            className="bg-orange-100 hover:bg-orange-200 text-orange-800 dark:bg-orange-900 dark:hover:bg-orange-800 dark:text-orange-200"
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy All Priority Changes
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </Card>
           </motion.div>
         )}
@@ -369,179 +377,187 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
           className="mb-8"
         >
           <Card className="elevation-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Improve Your Resume
-              </CardTitle>
-              <CardDescription>
-                Targeted suggestions to enhance your resume's effectiveness
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Tab Toggle */}
-              <div className="flex items-center justify-center mb-6">
-                <div className="inline-flex items-center rounded-lg bg-muted p-1">
-                  <button
-                    onClick={() => handleTabChange("match")}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                      activeTab === "match"
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Target className="h-4 w-4 mr-2 inline" />
-                    Match Score Improvements
-                  </button>
-                  <button
-                    onClick={() => handleTabChange("ats")}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                      activeTab === "ats"
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <TrendingUp className="h-4 w-4 mr-2 inline" />
-                    ATS Score Improvements
-                  </button>
-                </div>
-              </div>
-
-              {currentSuggestions.length > 0 ? (
-                <div className="space-y-6">
-                  {/* Filter Controls */}
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium">Filter by section:</label>
-                      <Select value={sectionFilter} onValueChange={handleSectionFilterChange}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Sections</SelectItem>
-                          <SelectItem value="summary">Summary</SelectItem>
-                          <SelectItem value="skills">Skills</SelectItem>
-                          <SelectItem value="experience">Experience</SelectItem>
-                          <SelectItem value="projects">Projects</SelectItem>
-                          <SelectItem value="education">Education</SelectItem>
-                          <SelectItem value="certifications">Certifications</SelectItem>
-                        </SelectContent>
-                      </Select>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="improve">
+                <AccordionTrigger className="px-6 py-4">
+                  <div className="text-left w-full">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">Improve Your Resume</span>
                     </div>
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      Showing {groupedSuggestions.length} action item{groupedSuggestions.length === 1 ? "" : "s"}
-                      {sectionFilter !== "all" && ` for ${sectionLabels[sectionFilter] || sectionFilter}`}
-                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Targeted suggestions to enhance your resume's effectiveness
+                    </p>
                   </div>
-
-                  {/* Action Controls */}
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleSelectAll}
-                      >
-                        {selectedSuggestions.size === groupedSuggestions.length ? "Deselect All" : "Select All"}
-                      </Button>
-                      <span className="text-sm text-muted-foreground">
-                        {selectedSuggestions.size} of {groupedSuggestions.length} selected
-                      </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="px-6 pb-6">
+                    {/* Tab Toggle */}
+                    <div className="flex items-center justify-center mb-6">
+                      <div className="inline-flex items-center rounded-lg bg-muted p-1">
+                        <button
+                          onClick={() => handleTabChange("match")}
+                          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                            activeTab === "match"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <Target className="h-4 w-4 mr-2 inline" />
+                          Match Score Improvements
+                        </button>
+                        <button
+                          onClick={() => handleTabChange("ats")}
+                          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                            activeTab === "ats"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <TrendingUp className="h-4 w-4 mr-2 inline" />
+                          ATS Score Improvements
+                        </button>
+                      </div>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleCopySelected}
-                        disabled={selectedSuggestions.size === 0}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy Selected ({selectedSuggestions.size})
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleCopyAll}
-                        disabled={groupedSuggestions.length === 0}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy All ({groupedSuggestions.length})
-                      </Button>
-                    </div>
-                  </div>
 
-                  {/* Suggestions List (grouped by section) */}
-                  {groupedSuggestions.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {groupedSuggestions.map((group) => (
-                        <div key={group.id} className="p-4 bg-muted/50 rounded-lg border">
-                          <div className="flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedSuggestions.has(group.id)}
-                              onChange={() => handleToggleSuggestion(group.id)}
-                              className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                            />
-                            <div className="flex-1 space-y-3">
-                              <div className="flex items-start gap-2">
-                                <Badge 
-                                  variant={activeTab === "match" ? "default" : "secondary"} 
-                                  className="text-xs"
-                                >
-                                  {activeTab === "match" ? "Match" : "ATS"}
-                                </Badge>
-                                <Badge variant="outline" className="text-xs capitalize">
-                                  {group.section}
-                                </Badge>
-                              </div>
+                    {currentSuggestions.length > 0 ? (
+                      <div className="space-y-6">
+                        {/* Filter Controls */}
+                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <label className="text-sm font-medium">Filter by section:</label>
+                            <Select value={sectionFilter} onValueChange={handleSectionFilterChange}>
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Sections</SelectItem>
+                                <SelectItem value="summary">Summary</SelectItem>
+                                <SelectItem value="skills">Skills</SelectItem>
+                                <SelectItem value="experience">Experience</SelectItem>
+                                <SelectItem value="projects">Projects</SelectItem>
+                                <SelectItem value="education">Education</SelectItem>
+                                <SelectItem value="certifications">Certifications</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                              <ul className="list-disc pl-5 text-sm text-foreground space-y-1">
-                                {group.texts.map((t, i) => (
-                                  <li key={i}>{t}</li>
-                                ))}
-                              </ul>
-                              
-                              <div className="flex items-center justify-end">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() =>
-                                    handleCopy(
-                                      formatSectionGroup(
-                                        group.section,
-                                        group.texts,
-                                        activeTab === "match" ? "Match" : "ATS"
-                                      )
-                                    )
-                                  }
-                                >
-                                  <Copy className="h-4 w-4 mr-1" />
-                                  Copy
-                                </Button>
-                              </div>
-                            </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            Showing {groupedSuggestions.length} action item{groupedSuggestions.length === 1 ? "" : "s"}
+                            {sectionFilter !== "all" && ` for ${sectionLabels[sectionFilter] || sectionFilter}`}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">
-                        No {activeTab === "match" ? "match" : "ATS"} suggestions found for the selected section.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No {activeTab === "match" ? "match" : "ATS"} improvement suggestions available.
-                  </p>
-                </div>
-              )}
-            </CardContent>
+
+                        {/* Action Controls */}
+                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleSelectAll}
+                            >
+                              {selectedSuggestions.size === groupedSuggestions.length ? "Deselect All" : "Select All"}
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                              {selectedSuggestions.size} of {groupedSuggestions.length} selected
+                            </span>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={handleCopySelected}
+                              disabled={selectedSuggestions.size === 0}
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Selected ({selectedSuggestions.size})
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={handleCopyAll}
+                              disabled={groupedSuggestions.length === 0}
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy All ({groupedSuggestions.length})
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Suggestions List (grouped by section) */}
+                        {groupedSuggestions.length > 0 ? (
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {groupedSuggestions.map((group) => (
+                              <div key={group.id} className="p-4 bg-muted/50 rounded-lg border">
+                                <div className="flex items-start gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedSuggestions.has(group.id)}
+                                    onChange={() => handleToggleSuggestion(group.id)}
+                                    className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                  />
+                                  <div className="flex-1 space-y-3">
+                                    <div className="flex items-start gap-2">
+                                      <Badge
+                                        variant={activeTab === "match" ? "default" : "secondary"}
+                                        className="text-xs"
+                                      >
+                                        {activeTab === "match" ? "Match" : "ATS"}
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs capitalize">
+                                        {group.section}
+                                      </Badge>
+                                    </div>
+
+                                    <ul className="list-disc pl-5 text-sm text-foreground space-y-1">
+                                      {group.texts.map((t, i) => (
+                                        <li key={i}>{t}</li>
+                                      ))}
+                                    </ul>
+
+                                    <div className="flex items-center justify-end">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          handleCopy(
+                                            formatSectionGroup(
+                                              group.section,
+                                              group.texts,
+                                              activeTab === "match" ? "Match" : "ATS"
+                                            )
+                                          )
+                                        }
+                                      >
+                                        <Copy className="h-4 w-4 mr-1" />
+                                        Copy
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <p className="text-muted-foreground">
+                              No {activeTab === "match" ? "match" : "ATS"} suggestions found for the selected section.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">
+                          No {activeTab === "match" ? "match" : "ATS"} improvement suggestions available.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </Card>
         </motion.div>
 
@@ -580,8 +596,8 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                           animate={{ x: 0, opacity: 1 }}
                           transition={{ delay: 0.1 * index }}
                         >
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className="text-sm py-2 px-3 bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-200"
                           >
                             {keyword}
@@ -631,7 +647,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                       ))}
                     </Accordion>
                   ) : (
-                     <div className="text-center py-8">
+                    <div className="text-center py-8">
                       <p className="text-muted-foreground">
                         No specific topics were identified for this role.
                       </p>
