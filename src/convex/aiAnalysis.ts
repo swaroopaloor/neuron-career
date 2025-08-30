@@ -37,17 +37,37 @@ export const analyzeResume = internalAction({
         throw new Error(errorMessage);
       }
 
-      const systemPrompt = `You are a world-class career assistant and a harsh critic. Your task is to analyze a resume against a job description with extreme scrutiny. You must provide a brutally honest, detailed assessment. Your response must be a single, valid JSON object.
+      const systemPrompt = `You are a world-class career assistant and a harsh critic. Analyze a resume against a job description with extreme scrutiny and return a single, valid JSON object only.
 
-      **CRITICAL SCORING INSTRUCTIONS:**
-      - **Do NOT give high scores easily.** A score of 80 should be rare and reserved for near-perfect matches. An average resume for a role should score between 40-60.
-      - **Justify every score.** Base your scores on a direct, line-by-line comparison of the resume against the job description's requirements.
-      - **Identify Gaps:** The 'missingKeywords' and 'topicsToMaster' are the most important part of your analysis. Be specific and actionable.
-      
-      **JSON STRUCTURE:**
-      Your response must be a single, valid JSON object with the following structure: { "matchScore": number (0-100, be critical), "atsScore": number (0-100, based on keyword alignment), "missingKeywords": string[] (top 10 specific, essential keywords missing from the resume), "topicsToMaster": { "topic": string, "description": string }[] (top 5-7 specific skills or technologies the candidate should learn for this job), "coverLetter": string (a professional, tailored cover letter draft as a single string with markdown for formatting), "interviewQuestions": { "question": string, "category": string }[] (5-7 likely interview questions, categorized as "Behavioral" or "Technical"), "interviewTalkingPoints": { "point": string, "example": string }[] (3-5 key talking points for the candidate to highlight, with a brief STAR method example for each) }.
-      
-      Do not include any other text, explanations, or markdown formatting outside of the JSON object.`;
+      CRITICAL SCORING INSTRUCTIONS:
+      - Be conservative. Typical average resumes should score 40–60 unless highly aligned.
+      - The matchScore reflects how well the resume aligns with the job description requirements and responsibilities.
+      - The atsScore reflects keyword/skills alignment, clarity, structure, and ATS-parsable language (section headers, bullet clarity, quantification).
+      - Always justify the scores implicitly via the improvements and missing keywords you surface.
+
+      REQUIRED BEHAVIOR:
+      - ALWAYS include atsImprovements and matchingImprovements arrays with explicit, actionable edits that the user can copy into their resume.
+      - If matchScore < 70 OR atsScore < 70, include AT LEAST 5 improvement items for the corresponding category.
+      - Even if both scores >= 70, still include at least 3 concise improvement items per category.
+      - Each improvement item MUST specify:
+        - Where to change (Summary, Skills, Experience, Projects, Education, Certifications, Keywords)
+        - What to change (be specific)
+        - A concrete example phrase or bullet the user can paste.
+
+      JSON STRUCTURE:
+      {
+        "matchScore": number (0-100, be critical),
+        "atsScore": number (0-100, be critical),
+        "missingKeywords": string[] (top 10 essential missing keywords/skills),
+        "topicsToMaster": { "topic": string, "description": string }[] (5-7 targeted upskilling areas),
+        "coverLetter": string (professional, tailored draft with markdown),
+        "interviewQuestions": { "question": string, "category": "Behavioral" | "Technical" }[] (5-7),
+        "interviewTalkingPoints": { "point": string, "example": string }[] (3-5),
+        "atsImprovements": string[] (explicit edits focused on ATS, each item should read like: "Section: Skills — Action: Add keyword 'GraphQL'. Example: 'Skills: GraphQL, REST, TypeScript, Node.js'"),
+        "matchingImprovements": string[] (explicit edits focused on better alignment with responsibilities/requirements, each item should read like: "Section: Experience — Action: Add quantified impact for AWS migrations. Example: 'Migrated 12 microservices to AWS EKS, reducing infra costs by 18%'")
+      }
+
+      Do not include any other text, explanations, or markdown outside of the JSON object.`;
 
       const userPrompt = `Analyze this resume against the job description and provide a detailed assessment.
 
@@ -57,7 +77,7 @@ export const analyzeResume = internalAction({
       JOB DESCRIPTION:
       ${args.jobDescription}
 
-      Respond with a valid JSON object containing the analysis.`;
+      Respond with a valid JSON object containing the analysis, ensuring atsImprovements and matchingImprovements follow the required format and minimum counts when scores are below 70.`;
 
       const completion = await groq.chat.completions.create({
         model: "llama3-8b-8192",
@@ -79,15 +99,95 @@ export const analyzeResume = internalAction({
 
       const analysis = JSON.parse(content);
 
+      const missingKeywords: string[] = Array.isArray(analysis.missingKeywords) ? analysis.missingKeywords : [];
+      const topicsToMaster: Array<any> = Array.isArray(analysis.topicsToMaster) ? analysis.topicsToMaster : [];
+
+      const aiAtsImprovements: string[] = Array.isArray(analysis.atsImprovements) ? analysis.atsImprovements : [];
+      const aiMatchingImprovements: string[] = Array.isArray(analysis.matchingImprovements) ? analysis.matchingImprovements : [];
+
+      const ensureImprovementCount = (items: string[], min: number) => {
+        const unique = Array.from(new Set(items.map((s) => (typeof s === "string" ? s.trim() : "")))).filter(Boolean);
+        if (unique.length >= min) return unique.slice(0, Math.max(min, unique.length));
+        return unique;
+      };
+
+      const synthesizeFromKeywords = (keywords: string[], sectionLabel: string): string[] => {
+        const suggestions: string[] = [];
+        for (const kw of keywords.slice(0, 8)) {
+          suggestions.push(
+            `Section: Skills — Action: Add keyword '${kw}'. Example: 'Skills: ${kw}, <add 3-4 related skills>'`
+          );
+          suggestions.push(
+            `Section: Experience — Action: Add a bullet incorporating '${kw}'. Example: 'Implemented ${kw} to improve <system/feature>, resulting in <metric/% improvement>.'`
+          );
+        }
+        // add generic ATS-friendly structure items
+        suggestions.push(
+          `Section: Summary — Action: Include top 3-5 relevant skills with role fit. Example: 'Senior Backend Engineer with 5+ years in Node.js, ${keywords[0] || "AWS"}, and system design.'`
+        );
+        suggestions.push(
+          `Section: Projects — Action: Add a project bullet highlighting '${keywords[0] || "a key job requirement"}'. Example: 'Built <project> using ${keywords[0] || "required tech"}, serving <N> users with <X%> improvement.'`
+        );
+        return suggestions;
+      };
+
+      const synthesizeFromTopics = (topics: Array<any>): string[] => {
+        const suggestions: string[] = [];
+        for (const t of topics.slice(0, 5)) {
+          const topic = typeof t === "object" && t?.topic ? String(t.topic) : String(t ?? "");
+          suggestions.push(
+            `Section: Education/Certifications — Action: Include learning/certification for '${topic}'. Example: 'Certification: ${topic} — In Progress (Target: <Month YYYY>)'`
+          );
+          suggestions.push(
+            `Section: Experience — Action: Add quantified bullet demonstrating '${topic}'. Example: 'Delivered ${topic}-backed solution reducing latency by 35% across 4 services.'`
+          );
+        }
+        return suggestions;
+      };
+
+      let atsImprovements = aiAtsImprovements;
+      let matchingImprovements = aiMatchingImprovements;
+
+      const atsMin = analysis.atsScore < 70 ? 5 : 3;
+      const matchMin = analysis.matchScore < 70 ? 5 : 3;
+
+      if (atsImprovements.length < atsMin) {
+        atsImprovements = ensureImprovementCount(
+          [
+            ...atsImprovements,
+            ...synthesizeFromKeywords(missingKeywords, "ATS"),
+            ...synthesizeFromTopics(topicsToMaster),
+            "Section: Structure — Action: Use ATS-friendly headings (Summary, Skills, Experience, Projects, Education). Example: 'Experience' with role, company, dates, location, bullets with strong verbs and metrics.",
+            "Section: Keywords — Action: Mirror exact phrasing from the JD for must-have tools/tech. Example: If JD says 'Kubernetes', prefer 'Kubernetes' over only 'K8s'.",
+          ],
+          atsMin
+        );
+      }
+
+      if (matchingImprovements.length < matchMin) {
+        matchingImprovements = ensureImprovementCount(
+          [
+            ...matchingImprovements,
+            "Section: Summary — Action: Tailor 1–2 lines to the role and domain. Example: 'Backend Engineer focused on fintech microservices, event-driven systems, and AWS reliability.'",
+            "Section: Experience — Action: Align bullets to JD responsibilities with metrics. Example: 'Designed and shipped <JD responsibility> resulting in <quantified impact>'.",
+            ...synthesizeFromKeywords(missingKeywords, "Matching"),
+            ...synthesizeFromTopics(topicsToMaster),
+          ],
+          matchMin
+        );
+      }
+
       await ctx.runMutation(internal.analyses.updateAnalysisResults, {
         id: args.analysisId,
         matchScore: analysis.matchScore,
         atsScore: analysis.atsScore,
-        missingKeywords: analysis.missingKeywords,
-        topicsToMaster: analysis.topicsToMaster,
+        missingKeywords: missingKeywords,
+        topicsToMaster: topicsToMaster,
         coverLetter: analysis.coverLetter,
         interviewQuestions: analysis.interviewQuestions,
         interviewTalkingPoints: analysis.interviewTalkingPoints,
+        atsImprovements,
+        matchingImprovements,
         status: "completed"
       });
 
@@ -104,6 +204,8 @@ export const analyzeResume = internalAction({
         atsScore: 0,
         missingKeywords: [],
         topicsToMaster: [],
+        atsImprovements: [],
+        matchingImprovements: [],
         status: "failed",
         errorMessage: error.message || errorMessage
       });

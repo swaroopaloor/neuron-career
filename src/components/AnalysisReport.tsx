@@ -34,6 +34,9 @@ interface AnalysisReportProps {
 export default function AnalysisReport({ analysisId, onBack }: AnalysisReportProps) {
   const analysis = useQuery(api.analyses.getAnalysis, { id: analysisId });
 
+  const [matchSections, setMatchSections] = useState<Record<number, string>>({});
+  const [atsSections, setAtsSections] = useState<Record<number, string>>({});
+
   if (!analysis) {
     return <AnalysisLoading />;
   }
@@ -49,9 +52,6 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     if (score >= 60) return "bg-yellow-100 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800";
     return "bg-destructive/10 border-destructive/20";
   };
-
-  const [matchSections, setMatchSections] = useState<Record<number, string>>({});
-  const [atsSections, setAtsSections] = useState<Record<number, string>>({});
 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text);
