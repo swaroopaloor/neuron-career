@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,13 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { 
   FileText, 
-  Save, 
   Plus, 
   Trash2, 
   Eye, 
   Edit3,
   Loader2,
-  CheckCircle,
   User,
   Briefcase,
   GraduationCap,
@@ -506,15 +504,11 @@ function EditorPanel({
 export default function ResumeBuilder() {
   const { isLoading, isAuthenticated, user } = useAuth();
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showDefaultDialog, setShowDefaultDialog] = useState(false);
   const [uploadedPdf, setUploadedPdf] = useState<{ id: string; name: string } | null>(null);
 
-  const savedResume = useQuery(api.resumes.getUserResume);
-  const saveResume = useMutation(api.resumes.saveResume);
   const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
   const updateProfile = useMutation(api.users.updateProfile);
 
@@ -570,23 +564,6 @@ export default function ResumeBuilder() {
       toast.error("Failed to export PDF.");
     } finally {
       setIsExporting(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await saveResume({
-        title: `${resumeData.personalInfo.name || "My"} Resume`,
-        content: JSON.stringify(resumeData),
-      });
-      setLastSaved(new Date());
-      toast.success("Resume saved successfully!");
-    } catch (error) {
-      console.error("Save failed:", error);
-      toast.error("Failed to save resume. Please try again.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -684,29 +661,6 @@ export default function ResumeBuilder() {
           </div>
           
           <div className="flex items-center gap-3">
-            {lastSaved && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Saved {lastSaved.toLocaleTimeString()}
-              </div>
-            )}
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Resume
-                </>
-              )}
-            </Button>
             <Button
               onClick={handleExportPDF}
               disabled={isExporting}
