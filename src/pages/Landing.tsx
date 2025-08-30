@@ -1,4 +1,4 @@
-import { motion, useInView, animate } from "framer-motion";
+import { motion, useInView, animate, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,13 +74,16 @@ function AnimatedCounter({ value }: { value: string }) {
 
 // Subtle particle field background for hero
 function ParticleField({
-  count = 35,
+  count = 16,
 }: {
   count?: number;
 }) {
+  const reduceMotion = useReducedMotion();
+  if (reduceMotion) return null;
+
   return (
     <div className="pointer-events-none absolute inset-0 -z-10">
-      {Array.from({ length: count }).map((_, i) => (
+      {Array.from({ length: Math.min(count, 24) }).map((_, i) => (
         <motion.span
           key={i}
           className="absolute block rounded-full bg-primary/15"
@@ -91,18 +94,18 @@ function ParticleField({
             top: `${(i * 53) % 100}%`,
             filter: "blur(0.5px)",
           }}
-          initial={{ opacity: 0, y: 10, scale: 0.7 }}
+          initial={{ opacity: 0, y: 10, scale: 0.9 }}
           animate={{
-            opacity: [0.2, 0.6, 0.2],
-            y: [0, -8 - (i % 6), 0],
-            x: [0, (i % 2 === 0 ? 6 : -6), 0],
-            scale: [0.8, 1.1, 0.8],
+            opacity: [0.25, 0.5, 0.25],
+            y: [0, -6 - (i % 5), 0],
+            x: [0, (i % 2 === 0 ? 4 : -4), 0],
+            scale: [0.95, 1.05, 0.95],
           }}
           transition={{
-            duration: 6 + (i % 5),
+            duration: 7 + (i % 4),
             repeat: Infinity,
             ease: "easeInOut",
-            delay: i * 0.08,
+            delay: i * 0.1,
           }}
         />
       ))}
@@ -113,6 +116,7 @@ function ParticleField({
 export default function Landing() {
   const { isLoading, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const reduceMotion = useReducedMotion();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (isLoading) {
@@ -259,28 +263,30 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative pt-20 pb-12 sm:pt-24 sm:pb-14 md:pt-28 md:pb-16 overflow-hidden">
         <div className="absolute inset-0 gradient-bg-subtle"></div>
-        <ParticleField />
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full blur-3xl opacity-30"
-              style={{
-                width: `${120 + (i % 3) * 40}px`,
-                height: `${120 + (i % 3) * 40}px`,
-                left: `${(i * 12) % 100}%`,
-                top: `${(i * 9 + 10) % 90}%`,
-                background:
-                  i % 2 === 0
-                    ? "radial-gradient(circle at 30% 30%, rgba(99,102,241,0.6), transparent 60%)"
-                    : "radial-gradient(circle at 70% 70%, rgba(236,72,153,0.6), transparent 60%)",
-              }}
-              initial={{ y: 0, scale: 0.95 }}
-              animate={{ y: [0, -18, 0], scale: [0.95, 1.02, 0.95], rotate: [0, 6, 0] }}
-              transition={{ duration: 6 + i * 0.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
-            />
-          ))}
-        </div>
+        {!reduceMotion && <ParticleField count={16} />}
+        {!reduceMotion && (
+          <div className="pointer-events-none absolute inset-0 -z-10">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full blur-3xl opacity-30"
+                style={{
+                  width: `${120 + (i % 3) * 40}px`,
+                  height: `${120 + (i % 3) * 40}px`,
+                  left: `${(i * 12) % 100}%`,
+                  top: `${(i * 9 + 10) % 90}%`,
+                  background:
+                    i % 2 === 0
+                      ? "radial-gradient(circle at 30% 30%, rgba(99,102,241,0.6), transparent 60%)"
+                      : "radial-gradient(circle at 70% 70%, rgba(236,72,153,0.6), transparent 60%)",
+                }}
+                initial={{ y: 0, scale: 0.98 }}
+                animate={{ y: [0, -12, 0], scale: [0.98, 1.02, 0.98] }}
+                transition={{ duration: 7 + i * 0.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.25 }}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="container-responsive relative px-6">
           <div className="text-center max-w-5xl mx-auto">
@@ -432,12 +438,7 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1, duration: 0.8 }}
-                whileHover={{
-                  y: -10,
-                  rotate: -0.6,
-                  scale: 1.03,
-                  transition: { type: "spring", stiffness: 240, damping: 16 },
-                }}
+                whileHover={{ y: -4, scale: 1.01 }}
               >
                 <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
                   <CardHeader className="pb-3 sm:pb-4">
@@ -484,12 +485,7 @@ export default function Landing() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2, duration: 0.8 }}
-                whileHover={{
-                  y: -12,
-                  rotate: 0.8,
-                  scale: 1.04,
-                  transition: { type: "spring", stiffness: 250, damping: 16 },
-                }}
+                whileHover={{ y: -6, scale: 1.02 }}
                 className="text-center group"
               >
                 <div className="relative mb-6 sm:mb-8">
