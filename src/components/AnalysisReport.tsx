@@ -17,10 +17,14 @@ import {
   Share,
   FileText,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Copy
 } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import AnalysisLoading from "@/components/AnalysisLoading";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface AnalysisReportProps {
   analysisId: Id<"analyses">;
@@ -44,6 +48,32 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     if (score >= 80) return "bg-primary/10 border-primary/20";
     if (score >= 60) return "bg-yellow-100 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800";
     return "bg-destructive/10 border-destructive/20";
+  };
+
+  const [matchSections, setMatchSections] = useState<Record<number, string>>({});
+  const [atsSections, setAtsSections] = useState<Record<number, string>>({});
+
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+    toast("Copied to clipboard");
+  };
+
+  const formatSuggestion = (sectionKey: string, suggestion: string) => {
+    const sectionMap: Record<string, string> = {
+      summary: "Summary",
+      skills: "Skills", 
+      experience: "Experience",
+      projects: "Projects",
+      education: "Education",
+      certifications: "Certifications",
+    };
+    const label = sectionMap[sectionKey] || "General";
+    return `Section: ${label}
+Change:
+- ${suggestion}
+
+Instructions:
+Update the ${label} section of your resume to incorporate the above change in clear, concise bullet points.`;
   };
 
   return (
@@ -166,13 +196,61 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             </CardHeader>
             <CardContent>
               {analysis.matchingImprovements && analysis.matchingImprovements.length > 0 ? (
-                <ul className="space-y-3 list-disc pl-5">
-                  {analysis.matchingImprovements.map((tip, i) => (
-                    <li key={i} className="text-sm text-foreground">
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-2">
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleCopy(
+                          analysis.matchingImprovements
+                            .map((tip, i) => formatSuggestion(matchSections[i] ?? "summary", tip))
+                            .join("\n\n")
+                        )
+                      }
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy All
+                    </Button>
+                  </div>
+                  <ul className="space-y-3">
+                    {analysis.matchingImprovements.map((tip, i) => (
+                      <li key={i} className="text-sm text-foreground p-3 bg-muted/50 rounded-lg">
+                        <div className="flex flex-col gap-2">
+                          <span>{tip}</span>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={matchSections[i] ?? "summary"}
+                              onValueChange={(val) => setMatchSections((prev) => ({ ...prev, [i]: val }))}
+                            >
+                              <SelectTrigger className="h-8 w-[160px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="summary">Summary</SelectItem>
+                                <SelectItem value="skills">Skills</SelectItem>
+                                <SelectItem value="experience">Experience</SelectItem>
+                                <SelectItem value="projects">Projects</SelectItem>
+                                <SelectItem value="education">Education</SelectItem>
+                                <SelectItem value="certifications">Certifications</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                handleCopy(formatSuggestion(matchSections[i] ?? "summary", tip))
+                              }
+                            >
+                              <Copy className="h-4 w-4 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground text-sm">
@@ -196,13 +274,61 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             </CardHeader>
             <CardContent>
               {analysis.atsImprovements && analysis.atsImprovements.length > 0 ? (
-                <ul className="space-y-3 list-disc pl-5">
-                  {analysis.atsImprovements.map((tip, i) => (
-                    <li key={i} className="text-sm text-foreground">
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-2">
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleCopy(
+                          analysis.atsImprovements
+                            .map((tip, i) => formatSuggestion(atsSections[i] ?? "summary", tip))
+                            .join("\n\n")
+                        )
+                      }
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy All
+                    </Button>
+                  </div>
+                  <ul className="space-y-3">
+                    {analysis.atsImprovements.map((tip, i) => (
+                      <li key={i} className="text-sm text-foreground p-3 bg-muted/50 rounded-lg">
+                        <div className="flex flex-col gap-2">
+                          <span>{tip}</span>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={atsSections[i] ?? "summary"}
+                              onValueChange={(val) => setAtsSections((prev) => ({ ...prev, [i]: val }))}
+                            >
+                              <SelectTrigger className="h-8 w-[160px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="summary">Summary</SelectItem>
+                                <SelectItem value="skills">Skills</SelectItem>
+                                <SelectItem value="experience">Experience</SelectItem>
+                                <SelectItem value="projects">Projects</SelectItem>
+                                <SelectItem value="education">Education</SelectItem>
+                                <SelectItem value="certifications">Certifications</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                handleCopy(formatSuggestion(atsSections[i] ?? "summary", tip))
+                              }
+                            >
+                              <Copy className="h-4 w-4 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground text-sm">
