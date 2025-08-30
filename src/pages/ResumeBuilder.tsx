@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Navigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -238,6 +238,14 @@ function EditorPanel({
     refineSummary,
     refineExperience,
   } = handlers;
+
+  // Add local state for skills input to avoid normalizing while typing
+  const [skillsInput, setSkillsInput] = useState(resumeData.skills.join(", "));
+
+  // Keep the textbox in sync when resumeData.skills changes elsewhere
+  useEffect(() => {
+    setSkillsInput(resumeData.skills.join(", "));
+  }, [resumeData.skills.join(", ")]);
 
   return (
     <div className="space-y-6">
@@ -533,8 +541,11 @@ function EditorPanel({
             <Label>Skills (comma-separated)</Label>
             <Textarea
               className="min-h-[80px] resize-none"
-              value={resumeData.skills.join(", ")}
-              onChange={(e) => updateSkills(e.target.value)}
+              value={skillsInput}
+              onChange={(e) => {
+                setSkillsInput(e.target.value);
+                updateSkills(e.target.value);
+              }}
               placeholder="JavaScript, React, Node.js, Python, SQL, Git, Agile, Problem Solving"
             />
             <p className="text-xs text-muted-foreground">
@@ -556,6 +567,13 @@ export default function ResumeBuilder() {
   const [uploadedPdf, setUploadedPdf] = useState<{ id: string; name: string } | null>(null);
   const [isRefiningSummary, setIsRefiningSummary] = useState(false);
   const [refiningExpIndex, setRefiningExpIndex] = useState<number | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/auth", { replace: true });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
 
   const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
   const updateProfile = useMutation(api.users.updateProfile);
@@ -744,7 +762,8 @@ export default function ResumeBuilder() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    // Programmatic redirect handled via useNavigate in a useEffect.
+    return null;
   }
 
   return (
