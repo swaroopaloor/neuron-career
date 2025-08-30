@@ -36,6 +36,8 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
 
   const [matchSections, setMatchSections] = useState<Record<number, string>>({});
   const [atsSections, setAtsSections] = useState<Record<number, string>>({});
+  const [selectedMatchSuggestions, setSelectedMatchSuggestions] = useState<Set<number>>(new Set());
+  const [selectedAtsSuggestions, setSelectedAtsSuggestions] = useState<Set<number>>(new Set());
 
   if (!analysis) {
     return <AnalysisLoading />;
@@ -68,12 +70,81 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
       certifications: "Certifications",
     };
     const label = sectionMap[sectionKey] || "General";
-    return `Section: ${label}
-Change:
-- ${suggestion}
+    return `Section: ${label}\nChange:\n- ${suggestion}\n\nInstructions:\nUpdate the ${label} section of your resume to incorporate the above change in clear, concise bullet points.`;
+  };
 
-Instructions:
-Update the ${label} section of your resume to incorporate the above change in clear, concise bullet points.`;
+  const handleToggleMatchSuggestion = (index: number) => {
+    setSelectedMatchSuggestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleAtsSuggestion = (index: number) => {
+    setSelectedAtsSuggestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const handleCopySelectedMatch = async () => {
+    if (selectedMatchSuggestions.size === 0) {
+      toast("No suggestions selected");
+      return;
+    }
+    
+    const selectedText = Array.from(selectedMatchSuggestions)
+      .map(index => {
+        const suggestion = analysis.matchingImprovements[index];
+        const section = matchSections[index] ?? "summary";
+        return formatSuggestion(section, suggestion);
+      })
+      .join("\n\n");
+    
+    await handleCopy(selectedText);
+  };
+
+  const handleCopySelectedAts = async () => {
+    if (selectedAtsSuggestions.size === 0) {
+      toast("No suggestions selected");
+      return;
+    }
+    
+    const selectedText = Array.from(selectedAtsSuggestions)
+      .map(index => {
+        const suggestion = analysis.atsImprovements[index];
+        const section = atsSections[index] ?? "summary";
+        return formatSuggestion(section, suggestion);
+      })
+      .join("\n\n");
+    
+    await handleCopy(selectedText);
+  };
+
+  const handleSelectAllMatch = () => {
+    if (selectedMatchSuggestions.size === analysis.matchingImprovements.length) {
+      setSelectedMatchSuggestions(new Set());
+    } else {
+      setSelectedMatchSuggestions(new Set(analysis.matchingImprovements.map((_, i) => i)));
+    }
+  };
+
+  const handleSelectAllAts = () => {
+    if (selectedAtsSuggestions.size === analysis.atsImprovements.length) {
+      setSelectedAtsSuggestions(new Set());
+    } else {
+      setSelectedAtsSuggestions(new Set(analysis.atsImprovements.map((_, i) => i)));
+    }
   };
 
   return (
@@ -196,55 +267,86 @@ Update the ${label} section of your resume to incorporate the above change in cl
             </CardHeader>
             <CardContent>
               {analysis.matchingImprovements && analysis.matchingImprovements.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        handleCopy(
-                          analysis.matchingImprovements
-                            .map((tip, i) => formatSuggestion(matchSections[i] ?? "summary", tip))
-                            .join("\n\n")
-                        )
-                      }
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy All
-                    </Button>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSelectAllMatch}
+                      >
+                        {selectedMatchSuggestions.size === analysis.matchingImprovements.length ? "Deselect All" : "Select All"}
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        {selectedMatchSuggestions.size} of {analysis.matchingImprovements.length} selected
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleCopySelectedMatch}
+                        disabled={selectedMatchSuggestions.size === 0}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Selected ({selectedMatchSuggestions.size})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          handleCopy(
+                            analysis.matchingImprovements
+                              .map((tip, i) => formatSuggestion(matchSections[i] ?? "summary", tip))
+                              .join("\n\n")
+                          )
+                        }
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy All
+                      </Button>
+                    </div>
                   </div>
                   <ul className="space-y-3">
                     {analysis.matchingImprovements.map((tip, i) => (
                       <li key={i} className="text-sm text-foreground p-3 bg-muted/50 rounded-lg">
-                        <div className="flex flex-col gap-2">
-                          <span>{tip}</span>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={matchSections[i] ?? "summary"}
-                              onValueChange={(val) => setMatchSections((prev) => ({ ...prev, [i]: val }))}
-                            >
-                              <SelectTrigger className="h-8 w-[160px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="summary">Summary</SelectItem>
-                                <SelectItem value="skills">Skills</SelectItem>
-                                <SelectItem value="experience">Experience</SelectItem>
-                                <SelectItem value="projects">Projects</SelectItem>
-                                <SelectItem value="education">Education</SelectItem>
-                                <SelectItem value="certifications">Certifications</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                handleCopy(formatSuggestion(matchSections[i] ?? "summary", tip))
-                              }
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copy
-                            </Button>
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedMatchSuggestions.has(i)}
+                            onChange={() => handleToggleMatchSuggestion(i)}
+                            className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                          />
+                          <div className="flex-1 flex flex-col gap-2">
+                            <span>{tip}</span>
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={matchSections[i] ?? "summary"}
+                                onValueChange={(val) => setMatchSections((prev) => ({ ...prev, [i]: val }))}
+                              >
+                                <SelectTrigger className="h-8 w-[160px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="summary">Summary</SelectItem>
+                                  <SelectItem value="skills">Skills</SelectItem>
+                                  <SelectItem value="experience">Experience</SelectItem>
+                                  <SelectItem value="projects">Projects</SelectItem>
+                                  <SelectItem value="education">Education</SelectItem>
+                                  <SelectItem value="certifications">Certifications</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  handleCopy(formatSuggestion(matchSections[i] ?? "summary", tip))
+                                }
+                              >
+                                <Copy className="h-4 w-4 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </li>
