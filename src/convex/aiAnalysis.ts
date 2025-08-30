@@ -5,6 +5,7 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { extractText } from "unpdf";
 import Groq from "groq-sdk";
+import { action } from "./_generated/server";
 
 export const analyzeResume = internalAction({
   args: {
@@ -215,5 +216,47 @@ export const analyzeResume = internalAction({
         errorMessage: error.message || errorMessage
       });
     }
+  },
+});
+
+export const refineText = action({
+  args: { text: v.string() },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error("The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.");
+    }
+
+    const groq = new Groq({ apiKey });
+
+    const systemPrompt = `You are a resume writing expert. Rewrite the user's text to be:
+- Grammatically correct and concise
+- Professional and suitable for a resume
+- Using strong action verbs and ATS-friendly phrasing
+- Avoiding first-person pronouns (no "I", "my")
+- Preserving all factual content
+If the input is a list or bullets, return refined bullets (one per line, starting with a bullet symbol • or hyphen -). Return ONLY the refined text, no extra commentary.`;
+
+    const userPrompt = `Refine the following text for a professional resume:\n\n${args.text}`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama3-8b-8192",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 800,
+    });
+
+    let content = completion.choices[0]?.message?.content ?? "";
+    content = content.trim();
+
+    // Remove wrapping quotes or markdown fences if present
+    if ((content.startsWith('"') && content.endsWith('"')) || (content.startsWith("'") && content.endsWith("'"))) {
+      content = content.slice(1, -1).trim();
+    }
+
+    return content;
   },
 });

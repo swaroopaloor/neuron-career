@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,14 +206,18 @@ type EditorHandlers = {
   removeEducation: (index: number) => void;
   updateSkills: (skillsText: string) => void;
   setSummary: (value: string) => void;
+  refineSummary: () => void;
+  refineExperience: (index: number) => void;
 };
 
 function EditorPanel({
   resumeData,
   handlers,
+  refineStates,
 }: {
   resumeData: ResumeData;
   handlers: EditorHandlers;
+  refineStates?: { isRefiningSummary: boolean; refiningExpIndex: number | null };
 }) {
   const {
     updatePersonalInfo,
@@ -225,6 +229,8 @@ function EditorPanel({
     removeEducation,
     updateSkills,
     setSummary,
+    refineSummary,
+    refineExperience,
   } = handlers;
 
   return (
@@ -300,8 +306,24 @@ function EditorPanel({
 
       {/* Professional Summary */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Professional Summary</CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handlers.refineSummary()}
+            disabled={refineStates?.isRefiningSummary}
+            className="gap-2"
+          >
+            {refineStates?.isRefiningSummary ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Refining
+              </>
+            ) : (
+              "Refine"
+            )}
+          </Button>
         </CardHeader>
         <CardContent>
           <Textarea
@@ -374,7 +396,25 @@ function EditorPanel({
               </div>
 
               <div>
-                <Label>Description</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Description</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlers.refineExperience(index)}
+                    disabled={refineStates?.refiningExpIndex === index}
+                    className="gap-2"
+                  >
+                    {refineStates?.refiningExpIndex === index ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Refining
+                      </>
+                    ) : (
+                      "Refine"
+                    )}
+                  </Button>
+                </div>
                 <Textarea
                   className="min-h-[100px] resize-none"
                   value={exp.description}
@@ -508,9 +548,12 @@ export default function ResumeBuilder() {
   const [isExporting, setIsExporting] = useState(false);
   const [showDefaultDialog, setShowDefaultDialog] = useState(false);
   const [uploadedPdf, setUploadedPdf] = useState<{ id: string; name: string } | null>(null);
+  const [isRefiningSummary, setIsRefiningSummary] = useState(false);
+  const [refiningExpIndex, setRefiningExpIndex] = useState<number | null>(null);
 
   const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
   const updateProfile = useMutation(api.users.updateProfile);
+  const refineText = useAction(api.aiAnalysis.refineText);
 
   const handleExportPDF = async () => {
     if (!previewRef.current) {
@@ -625,6 +668,49 @@ export default function ResumeBuilder() {
     setResumeData(prev => ({ ...prev, skills }));
   };
 
+  const handleRefineSummary = async () => {
+    const text = resumeData.summary?.trim() || "";
+    if (!text) {
+      toast.error("Please write your summary before refining.");
+      return;
+    }
+    try {
+      setIsRefiningSummary(true);
+      const refined = await refineText({ text });
+      setResumeData((prev) => ({ ...prev, summary: refined || text }));
+      toast.success("Summary refined!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to refine summary. Please try again.");
+    } finally {
+      setIsRefiningSummary(false);
+    }
+  };
+
+  const handleRefineExperience = async (index: number) => {
+    const current = resumeData.experience[index]?.description?.trim() || "";
+    if (!current) {
+      toast.error("Please add a description before refining.");
+      return;
+    }
+    try {
+      setRefiningExpIndex(index);
+      const refined = await refineText({ text: current });
+      setResumeData((prev) => ({
+        ...prev,
+        experience: prev.experience.map((exp, i) =>
+          i === index ? { ...exp, description: refined || current } : exp
+        ),
+      }));
+      toast.success("Description refined!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to refine description. Please try again.");
+    } finally {
+      setRefiningExpIndex(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -710,6 +796,12 @@ export default function ResumeBuilder() {
                   updateSkills,
                   setSummary: (value: string) =>
                     setResumeData((prev) => ({ ...prev, summary: value })),
+                  refineSummary: handleRefineSummary,
+                  refineExperience: handleRefineExperience,
+                }}
+                refineStates={{
+                  isRefiningSummary,
+                  refiningExpIndex,
                 }}
               />
             </TabsContent>
@@ -741,6 +833,12 @@ export default function ResumeBuilder() {
                 updateSkills,
                 setSummary: (value: string) =>
                   setResumeData((prev) => ({ ...prev, summary: value })),
+                refineSummary: handleRefineSummary,
+                refineExperience: handleRefineExperience,
+              }}
+              refineStates={{
+                isRefiningSummary,
+                refiningExpIndex,
               }}
             />
           </motion.div>
