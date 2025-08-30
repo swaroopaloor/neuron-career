@@ -34,14 +34,34 @@ interface AnalysisReportProps {
 export default function AnalysisReport({ analysisId, onBack }: AnalysisReportProps) {
   const analysis = useQuery(api.analyses.getAnalysis, { id: analysisId });
 
-  const [matchSections, setMatchSections] = useState<Record<number, string>>({});
-  const [atsSections, setAtsSections] = useState<Record<number, string>>({});
-  const [selectedMatchSuggestions, setSelectedMatchSuggestions] = useState<Set<number>>(new Set());
-  const [selectedAtsSuggestions, setSelectedAtsSuggestions] = useState<Set<number>>(new Set());
+  // Combined state for all suggestions
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
+  const [sectionFilter, setSectionFilter] = useState<string>("all");
 
   if (!analysis) {
     return <AnalysisLoading />;
   }
+
+  // Combine all suggestions into a single array with metadata
+  const allSuggestions = [
+    ...(analysis.matchingImprovements || []).map((suggestion, index) => ({
+      id: `match-${index}`,
+      text: suggestion,
+      type: "Match" as const,
+      section: "summary" // Default section, can be changed by user
+    })),
+    ...(analysis.atsImprovements || []).map((suggestion, index) => ({
+      id: `ats-${index}`,
+      text: suggestion,
+      type: "ATS" as const,
+      section: "summary" // Default section, can be changed by user
+    }))
+  ];
+
+  // Filter suggestions based on selected section
+  const filteredSuggestions = sectionFilter === "all" 
+    ? allSuggestions 
+    : allSuggestions.filter(s => s.section === sectionFilter);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-primary";
@@ -60,7 +80,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     toast("Copied to clipboard");
   };
 
-  const formatSuggestion = (sectionKey: string, suggestion: string) => {
+  const formatSuggestion = (sectionKey: string, suggestion: string, type: string) => {
     const sectionMap: Record<string, string> = {
       summary: "Summary",
       skills: "Skills", 
@@ -70,80 +90,56 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
       certifications: "Certifications",
     };
     const label = sectionMap[sectionKey] || "General";
-    return `Section: ${label}\nChange:\n- ${suggestion}\n\nInstructions:\nUpdate the ${label} section of your resume to incorporate the above change in clear, concise bullet points.`;
+    return `[${type} Improvement]\nSection: ${label}\nChange: ${suggestion}\n\nInstructions:\nUpdate the ${label} section of your resume to incorporate the above change in clear, concise bullet points.`;
   };
 
-  const handleToggleMatchSuggestion = (index: number) => {
-    setSelectedMatchSuggestions(prev => {
+  const handleToggleSuggestion = (suggestionId: string) => {
+    setSelectedSuggestions(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
+      if (newSet.has(suggestionId)) {
+        newSet.delete(suggestionId);
       } else {
-        newSet.add(index);
+        newSet.add(suggestionId);
       }
       return newSet;
     });
   };
 
-  const handleToggleAtsSuggestion = (index: number) => {
-    setSelectedAtsSuggestions(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
-        newSet.add(index);
-      }
-      return newSet;
-    });
+  const handleSelectAll = () => {
+    if (selectedSuggestions.size === filteredSuggestions.length) {
+      setSelectedSuggestions(new Set());
+    } else {
+      setSelectedSuggestions(new Set(filteredSuggestions.map(s => s.id)));
+    }
   };
 
-  const handleCopySelectedMatch = async () => {
-    if (selectedMatchSuggestions.size === 0) {
+  const handleCopySelected = async () => {
+    if (selectedSuggestions.size === 0) {
       toast("No suggestions selected");
       return;
     }
     
-    const selectedText = Array.from(selectedMatchSuggestions)
-      .map(index => {
-        const suggestion = analysis.matchingImprovements[index];
-        const section = matchSections[index] ?? "summary";
-        return formatSuggestion(section, suggestion);
-      })
+    const selectedText = filteredSuggestions
+      .filter(s => selectedSuggestions.has(s.id))
+      .map(s => formatSuggestion(s.section, s.text, s.type))
       .join("\n\n");
     
     await handleCopy(selectedText);
   };
 
-  const handleCopySelectedAts = async () => {
-    if (selectedAtsSuggestions.size === 0) {
-      toast("No suggestions selected");
-      return;
-    }
-    
-    const selectedText = Array.from(selectedAtsSuggestions)
-      .map(index => {
-        const suggestion = analysis.atsImprovements[index];
-        const section = atsSections[index] ?? "summary";
-        return formatSuggestion(section, suggestion);
-      })
+  const handleCopyAll = async () => {
+    const allText = filteredSuggestions
+      .map(s => formatSuggestion(s.section, s.text, s.type))
       .join("\n\n");
     
-    await handleCopy(selectedText);
+    await handleCopy(allText);
   };
 
-  const handleSelectAllMatch = () => {
-    if (selectedMatchSuggestions.size === analysis.matchingImprovements.length) {
-      setSelectedMatchSuggestions(new Set());
-    } else {
-      setSelectedMatchSuggestions(new Set(analysis.matchingImprovements.map((_, i) => i)));
-    }
-  };
-
-  const handleSelectAllAts = () => {
-    if (selectedAtsSuggestions.size === analysis.atsImprovements.length) {
-      setSelectedAtsSuggestions(new Set());
-    } else {
-      setSelectedAtsSuggestions(new Set(analysis.atsImprovements.map((_, i) => i)));
+  const updateSuggestionSection = (suggestionId: string, section: string) => {
+    // Update the section for the suggestion
+    const suggestionIndex = allSuggestions.findIndex(s => s.id === suggestionId);
+    if (suggestionIndex !== -1) {
+      allSuggestions[suggestionIndex].section = section;
     }
   };
 
@@ -247,194 +243,156 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
           </Card>
         </motion.div>
 
-        {/* Improvement Suggestions - side by side columns */}
+        {/* Unified Improvement Suggestions */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
+          className="mb-8"
         >
-          {/* Improve Match Score */}
-          <Card className="elevation-2 h-fit">
+          <Card className="elevation-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                Improve Match Score
+                <Sparkles className="h-5 w-5 text-primary" />
+                Improve Your Resume
               </CardTitle>
               <CardDescription>
-                Concrete updates to better align your resume with the job
+                Targeted suggestions to enhance your resume's effectiveness
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {analysis.matchingImprovements && analysis.matchingImprovements.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
+              {allSuggestions.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Filter Controls */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium">Filter by section:</label>
+                      <Select value={sectionFilter} onValueChange={setSectionFilter}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sections</SelectItem>
+                          <SelectItem value="summary">Summary</SelectItem>
+                          <SelectItem value="skills">Skills</SelectItem>
+                          <SelectItem value="experience">Experience</SelectItem>
+                          <SelectItem value="projects">Projects</SelectItem>
+                          <SelectItem value="education">Education</SelectItem>
+                          <SelectItem value="certifications">Certifications</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      Showing {filteredSuggestions.length} suggestions
+                    </div>
+                  </div>
+
+                  {/* Action Controls */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <div className="flex items-center gap-3">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleSelectAllMatch}
+                        onClick={handleSelectAll}
                       >
-                        {selectedMatchSuggestions.size === analysis.matchingImprovements.length ? "Deselect All" : "Select All"}
+                        {selectedSuggestions.size === filteredSuggestions.length ? "Deselect All" : "Select All"}
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        {selectedMatchSuggestions.size} of {analysis.matchingImprovements.length} selected
+                        {selectedSuggestions.size} of {filteredSuggestions.length} selected
                       </span>
                     </div>
+                    
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={handleCopySelectedMatch}
-                        disabled={selectedMatchSuggestions.size === 0}
+                        onClick={handleCopySelected}
+                        disabled={selectedSuggestions.size === 0}
                       >
                         <Copy className="h-4 w-4 mr-2" />
-                        Copy Selected ({selectedMatchSuggestions.size})
+                        Copy Selected ({selectedSuggestions.size})
                       </Button>
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() =>
-                          handleCopy(
-                            analysis.matchingImprovements
-                              .map((tip, i) => formatSuggestion(matchSections[i] ?? "summary", tip))
-                              .join("\n\n")
-                          )
-                        }
+                        onClick={handleCopyAll}
+                        disabled={filteredSuggestions.length === 0}
                       >
                         <Copy className="h-4 w-4 mr-2" />
-                        Copy All
+                        Copy All ({filteredSuggestions.length})
                       </Button>
                     </div>
                   </div>
-                  <ul className="space-y-3">
-                    {analysis.matchingImprovements.map((tip, i) => (
-                      <li key={i} className="text-sm text-foreground p-3 bg-muted/50 rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedMatchSuggestions.has(i)}
-                            onChange={() => handleToggleMatchSuggestion(i)}
-                            className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                          />
-                          <div className="flex-1 flex flex-col gap-2">
-                            <span>{tip}</span>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={matchSections[i] ?? "summary"}
-                                onValueChange={(val) => setMatchSections((prev) => ({ ...prev, [i]: val }))}
-                              >
-                                <SelectTrigger className="h-8 w-[160px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="summary">Summary</SelectItem>
-                                  <SelectItem value="skills">Skills</SelectItem>
-                                  <SelectItem value="experience">Experience</SelectItem>
-                                  <SelectItem value="projects">Projects</SelectItem>
-                                  <SelectItem value="education">Education</SelectItem>
-                                  <SelectItem value="certifications">Certifications</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  handleCopy(formatSuggestion(matchSections[i] ?? "summary", tip))
-                                }
-                              >
-                                <Copy className="h-4 w-4 mr-1" />
-                                Copy
-                              </Button>
+
+                  {/* Suggestions List */}
+                  {filteredSuggestions.length > 0 ? (
+                    <div className="space-y-3">
+                      {filteredSuggestions.map((suggestion) => (
+                        <div key={suggestion.id} className="p-4 bg-muted/50 rounded-lg border">
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedSuggestions.has(suggestion.id)}
+                              onChange={() => handleToggleSuggestion(suggestion.id)}
+                              className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                            />
+                            <div className="flex-1 space-y-3">
+                              <div className="flex items-start gap-2">
+                                <Badge 
+                                  variant={suggestion.type === "Match" ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {suggestion.type}
+                                </Badge>
+                                <span className="text-sm text-foreground flex-1">{suggestion.text}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={suggestion.section}
+                                  onValueChange={(val) => updateSuggestionSection(suggestion.id, val)}
+                                >
+                                  <SelectTrigger className="h-8 w-[160px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="summary">Summary</SelectItem>
+                                    <SelectItem value="skills">Skills</SelectItem>
+                                    <SelectItem value="experience">Experience</SelectItem>
+                                    <SelectItem value="projects">Projects</SelectItem>
+                                    <SelectItem value="education">Education</SelectItem>
+                                    <SelectItem value="certifications">Certifications</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleCopy(formatSuggestion(suggestion.section, suggestion.text, suggestion.type))
+                                  }
+                                >
+                                  <Copy className="h-4 w-4 mr-1" />
+                                  Copy
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        No suggestions found for the selected section.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground text-sm">
-                    No specific improvements identified for matching score.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Improve ATS Score */}
-          <Card className="elevation-2 h-fit">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Improve ATS Score
-              </CardTitle>
-              <CardDescription>
-                Practical steps to increase ATS compatibility
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {analysis.atsImprovements && analysis.atsImprovements.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        handleCopy(
-                          analysis.atsImprovements
-                            .map((tip, i) => formatSuggestion(atsSections[i] ?? "summary", tip))
-                            .join("\n\n")
-                        )
-                      }
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy All
-                    </Button>
-                  </div>
-                  <ul className="space-y-3">
-                    {analysis.atsImprovements.map((tip, i) => (
-                      <li key={i} className="text-sm text-foreground p-3 bg-muted/50 rounded-lg">
-                        <div className="flex flex-col gap-2">
-                          <span>{tip}</span>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={atsSections[i] ?? "summary"}
-                              onValueChange={(val) => setAtsSections((prev) => ({ ...prev, [i]: val }))}
-                            >
-                              <SelectTrigger className="h-8 w-[160px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="summary">Summary</SelectItem>
-                                <SelectItem value="skills">Skills</SelectItem>
-                                <SelectItem value="experience">Experience</SelectItem>
-                                <SelectItem value="projects">Projects</SelectItem>
-                                <SelectItem value="education">Education</SelectItem>
-                                <SelectItem value="certifications">Certifications</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                handleCopy(formatSuggestion(atsSections[i] ?? "summary", tip))
-                              }
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copy
-                            </Button>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground text-sm">
-                    No specific improvements identified for ATS score.
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    No improvement suggestions available for this analysis.
                   </p>
                 </div>
               )}
