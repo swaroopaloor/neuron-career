@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -103,6 +103,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -189,26 +190,27 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       <div className="absolute inset-0 gradient-bg-subtle">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" />
         {/* Floating Elements */}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-primary/20 rounded-full"
-            animate={{
-              x: [0, 100, 0],
-              y: [0, -100, 0],
-              opacity: [0.2, 0.8, 0.2],
-            }}
-            transition={{
-              duration: 8 + i * 2,
-              repeat: Infinity,
-              delay: i * 1.5,
-            }}
-            style={{
-              left: `${10 + i * 15}%`,
-              top: `${20 + i * 10}%`,
-            }}
-          />
-        ))}
+        {!reduceMotion &&
+          Array.from({ length: 4 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-primary/20 rounded-full hidden sm:block"
+              animate={{
+                x: [0, 90, 0],
+                y: [0, -90, 0],
+                opacity: [0.2, 0.7, 0.2],
+              }}
+              transition={{
+                duration: 14 + i * 3,
+                repeat: Infinity,
+                delay: i * 1.2,
+              }}
+              style={{
+                left: `${12 + i * 18}%`,
+                top: `${22 + i * 12}%`,
+              }}
+            />
+          ))}
       </div>
 
       {/* New Fixed Back Button - prevents overlap and stays consistent */}
@@ -246,6 +248,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 alt="Logo"
                 width={84}
                 height={84}
+                loading="lazy"
+                decoding="async"
                 className="mx-auto mb-2 w-10 h-10 sm:w-12 sm:h-12"
               />
               <h1 className="text-sm sm:text-base lg:text-lg font-bold text-gradient mb-2">
@@ -257,7 +261,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </motion.div>
 
             {/* Feature Carousel */}
-            <div className="relative w-full max-w-md mb-3 h-40 sm:h-44 md:h-48">
+            <div className="relative w-full max-w-md mb-3 h-40 sm:h-44 md:h-48 overflow-hidden">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={featureIndex}
@@ -308,7 +312,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   transition={{ duration: 0.5 }}
                   className="absolute inset-0 text-center"
                 >
-                  <div className="text-center text-sm font-medium text-foreground px-4 py-3 bg-background/70 rounded-lg border border-primary/10">
+                  <div className="text-center text-sm font-medium text-foreground px-4 py-3 bg-white/90 dark:bg-gray-900/90 rounded-xl border border-primary/20 shadow-sm max-w-md w-full mx-auto break-words">
                     "{resumeFacts[testimonialIndex]}"
                   </div>
                 </motion.div>
@@ -378,14 +382,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                           </Button>
                         </div>
 
-                        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
-                          <div className="grid grid-cols-[auto,1fr] items-start gap-3">
+                        <div className="rounded-xl border border-primary/20 bg-card/80 p-4 shadow-sm">
+                          <div className="flex items-start gap-3">
                             <Checkbox
                               id="accept-terms"
                               checked={acceptedTerms}
                               onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
                               disabled={isLoading}
-                              className="mt-0.5"
+                              className="mt-0.5 h-5 w-5"
                               aria-describedby="terms-help"
                             />
                             <div className="space-y-1">
@@ -412,7 +416,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                                 .
                               </Label>
                               <p id="terms-help" className="text-xs text-muted-foreground">
-                                Required to continue. Your information is protected and used only to provide the service.
+                                Required to continue. We only use your email for authentication and you can delete your data anytime in Profile.
                               </p>
                             </div>
                           </div>
