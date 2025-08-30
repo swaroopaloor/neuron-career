@@ -78,13 +78,16 @@ const defaultResumeData: ResumeData = {
 
 function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement> }) {
   return (
-    <div ref={containerRef} className="bg-white text-black p-8 shadow-lg rounded-lg min-h-[800px] max-w-[8.5in] mx-auto">
+    <div
+      ref={containerRef}
+      className="bg-white text-black p-10 shadow-lg rounded-lg min-h-[1000px] max-w-[8.5in] mx-auto antialiased"
+    >
       {/* Header */}
       <div className="text-center border-b-2 border-gray-300 pb-4 mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <h1 className="text-[28px] font-bold text-gray-900 leading-[1.1] tracking-tight mb-1">
           {resumeData.personalInfo.name || "Your Name"}
         </h1>
-        <div className="text-sm text-gray-600 space-y-1">
+        <div className="text-[12px] text-gray-700 space-y-1">
           {/* Line 1: email • phone • location */}
           <div className="flex items-center justify-center">
             {(() => {
@@ -122,31 +125,31 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
       {/* Summary */}
       {resumeData.summary && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
             Professional Summary
           </h2>
-          <p className="text-sm text-gray-700 leading-relaxed">{resumeData.summary}</p>
+          <p className="text-[13px] text-gray-800 leading-[1.6]">{resumeData.summary}</p>
         </div>
       )}
 
       {/* Experience */}
       {resumeData.experience.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
             Work Experience
           </h2>
           <div className="space-y-4">
             {resumeData.experience.map((exp, index) => (
               <div key={index}>
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-semibold text-gray-800">{exp.title || "Job Title"}</h3>
-                  <span className="text-sm text-gray-600">{exp.duration}</span>
+                  <h3 className="text-[14px] font-semibold text-gray-900">{exp.title || "Job Title"}</h3>
+                  <span className="text-[12px] text-gray-600">{exp.duration}</span>
                 </div>
-                <p className="text-sm font-medium text-gray-700 mb-2">
+                <p className="text-[13px] font-medium text-gray-800 mb-1">
                   {exp.company || "Company Name"}
                 </p>
                 {exp.description && (
-                  <p className="text-sm text-gray-700 leading-relaxed">{exp.description}</p>
+                  <p className="text-[13px] text-gray-800 leading-[1.6] whitespace-pre-line">{exp.description}</p>
                 )}
               </div>
             ))}
@@ -157,7 +160,7 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
       {/* Education */}
       {resumeData.education.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
             Education
           </h2>
           <div className="space-y-3">
@@ -165,11 +168,11 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
               <div key={index}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-gray-800">{edu.degree || "Degree"}</h3>
-                    <p className="text-sm text-gray-700">{edu.school || "School Name"}</p>
-                    {edu.gpa && <p className="text-sm text-gray-600">GPA: {edu.gpa}</p>}
+                    <h3 className="text-[14px] font-semibold text-gray-900">{edu.degree || "Degree"}</h3>
+                    <p className="text-[13px] text-gray-800">{edu.school || "School Name"}</p>
+                    {edu.gpa && <p className="text-[12px] text-gray-600">GPA: {edu.gpa}</p>}
                   </div>
-                  <span className="text-sm text-gray-600">{edu.year}</span>
+                  <span className="text-[12px] text-gray-600">{edu.year}</span>
                 </div>
               </div>
             ))}
@@ -180,12 +183,15 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
       {/* Skills */}
       {resumeData.skills.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
             Skills
           </h2>
           <div className="flex flex-wrap gap-2">
             {resumeData.skills.map((skill, index) => (
-              <span key={index} className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm">
+              <span
+                key={index}
+                className="bg-gray-200 text-gray-800 px-2.5 py-1 rounded-full text-[12px]"
+              >
                 {skill}
               </span>
             ))}
@@ -563,8 +569,9 @@ export default function ResumeBuilder() {
     setIsExporting(true);
     try {
       // Render preview to canvas
+      const scale = Math.min(3, (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 2);
       const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
+        scale,
         backgroundColor: "#ffffff",
       });
       const imgData = canvas.toDataURL("image/png");
