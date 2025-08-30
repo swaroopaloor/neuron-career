@@ -190,6 +190,135 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     setSelectedSuggestions(new Set());
   };
 
+  // Add: helpers for Share and Export functionality
+  const groupTexts = (arr: Array<string>): Record<string, Array<string>> => {
+    const out: Record<string, Array<string>> = {};
+    for (const s of arr) {
+      const sec = categorizeBySection(s);
+      if (!out[sec]) out[sec] = [];
+      out[sec].push(s);
+    }
+    return out;
+  };
+
+  const buildExportText = (): string => {
+    const lines: Array<string> = [];
+    lines.push("Resume Analysis Report");
+    lines.push(`Generated: ${new Date().toLocaleString()}`);
+    lines.push("");
+    lines.push(`Match Score: ${analysis.matchScore}%`);
+    lines.push(`ATS Score: ${analysis.atsScore}%`);
+    lines.push("");
+
+    if (analysis.priorityImprovements && analysis.priorityImprovements.length) {
+      lines.push("Priority Changes:");
+      analysis.priorityImprovements.forEach((p, i) => lines.push(`${i + 1}. ${p}`));
+      lines.push("");
+    }
+
+    if (analysis.missingKeywords && analysis.missingKeywords.length) {
+      lines.push("Missing Keywords:");
+      lines.push(analysis.missingKeywords.map((k) => `- ${k}`).join("\n"));
+      lines.push("");
+    }
+
+    const matchGrouped = groupTexts(analysis.matchingImprovements || []);
+    const atsGrouped = groupTexts(analysis.atsImprovements || []);
+
+    lines.push("Match Suggestions:");
+    for (const sec of Object.keys(matchGrouped)) {
+      lines.push(`- ${sectionLabels[sec] || sec}:`);
+      for (const t of matchGrouped[sec]) lines.push(`  • ${t}`);
+    }
+    lines.push("");
+
+    lines.push("ATS Suggestions:");
+    for (const sec of Object.keys(atsGrouped)) {
+      lines.push(`- ${sectionLabels[sec] || sec}:`);
+      for (const t of atsGrouped[sec]) lines.push(`  • ${t}`);
+    }
+    lines.push("");
+
+    if (analysis.topicsToMaster && analysis.topicsToMaster.length) {
+      lines.push("Topics to Master:");
+      analysis.topicsToMaster.forEach((t, i) => {
+        lines.push(`${i + 1}. ${t.topic}`);
+        if (t.description) lines.push(`   - ${t.description}`);
+      });
+      lines.push("");
+    }
+
+    if (analysis.interviewQuestions && analysis.interviewQuestions.length) {
+      lines.push("Interview Questions:");
+      analysis.interviewQuestions.forEach((q, i) => {
+        lines.push(`${i + 1}. [${q.category}] ${q.question}`);
+      });
+      lines.push("");
+    }
+
+    if (analysis.interviewTalkingPoints && analysis.interviewTalkingPoints.length) {
+      lines.push("Interview Talking Points:");
+      analysis.interviewTalkingPoints.forEach((tp, i) => {
+        lines.push(`${i + 1}. ${tp.point}`);
+        if (tp.example) lines.push(`   e.g., ${tp.example}`);
+      });
+      lines.push("");
+    }
+
+    if (analysis.coverLetter) {
+      lines.push("AI-Generated Cover Letter:");
+      lines.push(analysis.coverLetter);
+      lines.push("");
+    }
+
+    if (analysis.jobDescription) {
+      lines.push("Original Job Description:");
+      lines.push(analysis.jobDescription);
+      lines.push("");
+    }
+
+    return lines.join("\n");
+  };
+
+  const handleShare = async () => {
+    const priorities = (analysis.priorityImprovements || []).slice(0, 3);
+    const shareText =
+      `Resume Analysis\nMatch: ${analysis.matchScore}% | ATS: ${analysis.atsScore}%\n` +
+      (priorities.length
+        ? `Top priorities:\n${priorities.map((p, i) => `${i + 1}. ${p}`).join("\n")}`
+        : "Top priorities: None");
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Resume Analysis", text: shareText });
+        toast("Share dialog opened");
+      } catch (err) {
+        // Fallback to clipboard when sharing fails (except user abort)
+        // @ts-expect-error name may not exist
+        if (!err || err.name !== "AbortError") {
+          await navigator.clipboard.writeText(shareText);
+          toast("Copied summary to clipboard");
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      toast("Copied summary to clipboard");
+    }
+  };
+
+  const handleExport = () => {
+    const content = buildExportText();
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `analysis-${String(analysisId)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast("Exported analysis as text file");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -214,11 +343,11 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             <h1 className="text-lg font-medium text-foreground">Analysis Report</h1>
             
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" className="px-2 sm:px-3">
+              <Button variant="outline" size="sm" className="px-2 sm:px-3" onClick={handleShare}>
                 <Share className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Share</span>
               </Button>
-              <Button variant="outline" size="sm" className="px-2 sm:px-3">
+              <Button variant="outline" size="sm" className="px-2 sm:px-3" onClick={handleExport}>
                 <Download className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
