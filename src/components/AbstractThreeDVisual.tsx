@@ -54,7 +54,8 @@ export default function AbstractThreeDVisual() {
     renderer.domElement.style.height = "100%";
     renderer.domElement.style.pointerEvents = "none";
     // Subtle global smoothing to make it less distracting
-    renderer.domElement.style.filter = "saturate(0.9) blur(0.4px)";
+    // Increase vibrancy and remove blur so visuals pop through overlays
+    renderer.domElement.style.filter = "saturate(1.05)";
     container.appendChild(renderer.domElement);
 
     // Store refs
@@ -67,22 +68,22 @@ export default function AbstractThreeDVisual() {
     camera.lookAt(0, 0, 0);
 
     // Create nodes
-    const nodeCount = 32;
+    const nodeCount = 44;
     const nodes: Node[] = [];
     
     // Node geometry and materials (more subtle/professional)
-    const nodeGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+    const nodeGeometry = new THREE.SphereGeometry(0.09, 16, 16);
     const primaryMaterial = new THREE.MeshBasicMaterial({ 
       color: 0x6366f1,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const secondaryMaterial = new THREE.MeshBasicMaterial({ 
       color: 0xec4899,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.7,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -109,9 +110,9 @@ export default function AbstractThreeDVisual() {
       const node: Node = {
         position: position.clone(),
         velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.015,
-          (Math.random() - 0.5) * 0.015,
-          (Math.random() - 0.5) * 0.015
+          (Math.random() - 0.5) * 0.02,
+          (Math.random() - 0.5) * 0.02,
+          (Math.random() - 0.5) * 0.02
         ),
         mesh,
         targetPosition: position.clone(),
@@ -128,7 +129,7 @@ export default function AbstractThreeDVisual() {
     const lineMaterial = new THREE.LineBasicMaterial({ 
       color: 0x6366f1,
       transparent: true,
-      opacity: 0.12,
+      opacity: 0.22,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -136,7 +137,7 @@ export default function AbstractThreeDVisual() {
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const distance = nodes[i].position.distanceTo(nodes[j].position);
-        if (distance < 4 && Math.random() > 0.7) {
+        if (distance < 5 && Math.random() > 0.65) {
           const geometry = new THREE.BufferGeometry().setFromPoints([
             nodes[i].position,
             nodes[j].position
@@ -178,7 +179,7 @@ export default function AbstractThreeDVisual() {
         // Animate nodes (gentle)
         nodes.forEach((node) => {
           node.pulsePhase += 0.02;
-          const pulseScale = 1 + Math.sin(node.pulsePhase) * 0.06;
+          const pulseScale = 1 + Math.sin(node.pulsePhase) * 0.08;
           node.mesh.scale.setScalar(pulseScale);
 
           // Subtle position drift with soft bounds
@@ -203,12 +204,12 @@ export default function AbstractThreeDVisual() {
 
           // Subtle pulsing opacity for flow effect
           const pulse = Math.sin(time * 1.6 + connection.pulseOffset) * 0.5 + 0.5;
-          (connection.line.material as THREE.LineBasicMaterial).opacity = 0.12 + pulse * 0.15;
+          (connection.line.material as THREE.LineBasicMaterial).opacity = 0.22 + pulse * 0.25;
         });
 
         // Subtle parallax only (no orbiting)
-        const parallaxX = pointerX * 0.6;
-        const parallaxY = pointerY * 0.3;
+        const parallaxX = pointerX * 0.35;
+        const parallaxY = pointerY * 0.18;
         camera.position.x += (parallaxX - camera.position.x * 0.05) * 0.05;
         camera.position.y += (parallaxY - camera.position.y * 0.05) * 0.05;
         camera.lookAt(0, 0, 0);

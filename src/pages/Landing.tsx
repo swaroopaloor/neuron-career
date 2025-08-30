@@ -293,7 +293,7 @@ export default function Landing() {
           </div>
         )}
         {/* Readability overlay to ensure professional contrast over WebGL */}
-        <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-background/70 via-background/45 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-background/25 via-background/10 to-transparent backdrop-blur-[1px]" />
 
         <div className="container-responsive relative px-6 z-10">
           <div className="text-center max-w-5xl mx-auto">
@@ -336,17 +336,14 @@ export default function Landing() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-16"
             >
-              <motion.div
-                animate={{ y: [0, -2, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              >
+              <div>
                 <Button size="lg" asChild className="shadow-xl hover:shadow-2xl h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg">
                   <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
                     <Rocket className="mr-3 h-6 w-6" />
                     {isAuthenticated ? "Go to Dashboard" : "Start Free Analysis"}
                   </Link>
                 </Button>
-              </motion.div>
+              </div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   variant="outline"
