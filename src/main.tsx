@@ -15,6 +15,7 @@ import Landing from "./pages/Landing.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import "./types/global.d.ts";
 import JobTracker from "./pages/JobTracker.tsx";
+import ResumeBuilder from "@/pages/ResumeBuilder.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -55,6 +56,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/job-tracker" element={<JobTracker />} />
+              <Route path="/resume-builder" element={<ResumeBuilder />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

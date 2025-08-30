@@ -49,6 +49,15 @@ const schema = defineSchema(
       theme: v.optional(v.union(v.literal("light"), v.literal("dark"))), // user theme preference
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
+    // Resume builder table
+    resumes: defineTable({
+      userId: v.id("users"),
+      title: v.string(),
+      content: v.string(), // JSON string format from rich text editor
+      templateId: v.optional(v.string()), // placeholder for future templates
+      lastModified: v.number(),
+    }).index("by_user", ["userId"]),
+
     // Resume analysis table
     analyses: defineTable({
       userId: v.id("users"),

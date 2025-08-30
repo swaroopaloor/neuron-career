@@ -14,12 +14,15 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as aiAnalysis from "../aiAnalysis.js";
+import type * as aiResumeProcessor from "../aiResumeProcessor.js";
 import type * as analyses from "../analyses.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as auth from "../auth.js";
 import type * as fileUpload from "../fileUpload.js";
 import type * as http from "../http.js";
 import type * as jobApplications from "../jobApplications.js";
+import type * as resumes from "../resumes.js";
+import type * as seedResumeData from "../seedResumeData.js";
 import type * as users from "../users.js";
 
 /**
@@ -32,12 +35,15 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   aiAnalysis: typeof aiAnalysis;
+  aiResumeProcessor: typeof aiResumeProcessor;
   analyses: typeof analyses;
   "auth/emailOtp": typeof auth_emailOtp;
   auth: typeof auth;
   fileUpload: typeof fileUpload;
   http: typeof http;
   jobApplications: typeof jobApplications;
+  resumes: typeof resumes;
+  seedResumeData: typeof seedResumeData;
   users: typeof users;
 }>;
 export declare const api: FilterApi<
