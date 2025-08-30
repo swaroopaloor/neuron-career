@@ -1,0 +1,48 @@
+// Fix text overflow and create professional terms section
+fileStringCodeReplaceTool({
+  file_path: "src/pages/Auth.tsx",
+  search_string: `<div className="text-center text-sm font-medium text-foreground px-4 py-3 bg-background/70 rounded-lg border border-primary/10 max-w-md mx-auto">`,
+  replace_string: `<div className="text-center text-sm font-medium text-foreground px-4 py-3 bg-card rounded-xl border border-primary/20 shadow-sm backdrop-blur-sm max-w-xs mx-auto break-words leading-relaxed">`
+})
+
+// Redesign terms section with professional styling
+fileStringCodeReplaceTool({
+  file_path: "src/pages/Auth.tsx",
+  search_string: `<div className="flex items-start gap-3 rounded-xl bg-background/80 p-4 border border-primary/20 shadow-sm">`,
+  replace_string: `<Card className="bg-background/90 border-primary/20 shadow-lg">
+            <CardContent className="p-5">
+              <div className="flex items-start space-x-4">`
+})
+
+// Update checkbox and terms styling
+fileStringCodeReplaceTool({
+  file_path: "src/pages/Auth.tsx",
+  search_string: `<Checkbox
+                          id="accept-terms"
+                          checked={acceptedTerms}
+                          onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
+                          disabled={isLoading}
+                        />`,
+  replace_string: `<Checkbox
+                          id="accept-terms"
+                          checked={acceptedTerms}
+                          onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
+                          disabled={isLoading}
+                          className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"`}>`
+})
+
+// Improve checkbox and label spacing
+fileStringCodeReplaceTool({
+  file_path: "src/pages/Auth.tsx",
+  search_string: `<Label htmlFor="accept-terms" className="text-sm font-medium">`,
+  replace_string: `<Label className="text-sm font-medium cursor-pointer hover:text-primary transition-colors">`
+})
+
+// Add professional closing for the card
+fileStringCodeReplaceTool({
+  file_path: "src/pages/Auth.tsx",
+  search_string: `</div>`,
+  replace_string: `</div>
+            </CardContent>
+          </Card>`
+})
