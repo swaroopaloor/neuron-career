@@ -115,3 +115,49 @@ export const deleteResume = mutation({
     return true;
   },
 });
+
+export const getUserResume = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    return await ctx.db
+      .query("resumes")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .first();
+  },
+});
+
+export const saveResume = mutation({
+  args: {
+    title: v.string(),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const existingResume = await ctx.db
+      .query("resumes")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existingResume) {
+      await ctx.db.patch(existingResume._id, {
+        title: args.title,
+        content: args.content,
+        lastModified: Date.now(),
+      });
+      return existingResume._id;
+    } else {
+      return await ctx.db.insert("resumes", {
+        userId,
+        title: args.title,
+        content: args.content,
+        lastModified: Date.now(),
+      });
+    }
+  },
+});

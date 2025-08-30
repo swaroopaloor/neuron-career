@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound.tsx";
 import "./types/global.d.ts";
 import JobTracker from "./pages/JobTracker.tsx";
 import ResumeBuilder from "@/pages/ResumeBuilder.tsx";
+import { GlobalHeader } from "@/components/GlobalHeader";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
