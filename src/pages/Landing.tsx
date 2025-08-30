@@ -263,7 +263,7 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="relative pt-20 pb-12 sm:pt-24 sm:pb-14 md:pt-28 md:pb-16 overflow-hidden">
-        <div className="absolute inset-0 gradient-bg-subtle"></div>
+        <div className="absolute inset-0 -z-20 gradient-bg-subtle"></div>
         
         {/* 3D WebGL Visual */}
         <AbstractThreeDVisual />

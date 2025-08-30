@@ -33,18 +33,27 @@ export default function AbstractThreeDVisual() {
     if (!mountRef.current) return;
 
     // Scene setup
+    const container = mountRef.current;
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
       alpha: true,
       powerPreference: "high-performance"
     });
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    // Ensure canvas fills container and sits correctly in stacking context
+    renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
-    mountRef.current.appendChild(renderer.domElement);
+    renderer.domElement.style.position = "absolute";
+    renderer.domElement.style.inset = "0";
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.pointerEvents = "none";
+    container.appendChild(renderer.domElement);
 
     // Store refs
     sceneRef.current = scene;
@@ -62,14 +71,18 @@ export default function AbstractThreeDVisual() {
     // Node geometry and materials
     const nodeGeometry = new THREE.SphereGeometry(0.08, 16, 16);
     const primaryMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x6366f1, // Primary color
+      color: 0x6366f1,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
     const secondaryMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xec4899, // Secondary color
+      color: 0xec4899,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
 
     // Create nodes in a distributed pattern
@@ -113,7 +126,9 @@ export default function AbstractThreeDVisual() {
     const lineMaterial = new THREE.LineBasicMaterial({ 
       color: 0x6366f1,
       transparent: true,
-      opacity: 0.3
+      opacity: 0.5,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
 
     for (let i = 0; i < nodes.length; i++) {
@@ -194,11 +209,11 @@ export default function AbstractThreeDVisual() {
 
     // Handle resize
     const handleResize = () => {
-      if (!camera || !renderer) return;
-      
-      camera.aspect = window.innerWidth / window.innerHeight;
+      if (!camera || !renderer || !mountRef.current) return;
+      const { clientWidth, clientHeight } = mountRef.current;
+      camera.aspect = clientWidth / clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(clientWidth, clientHeight);
     };
 
     window.addEventListener('resize', handleResize);
@@ -238,7 +253,7 @@ export default function AbstractThreeDVisual() {
   return (
     <div 
       ref={mountRef} 
-      className={`absolute inset-0 -z-10 transition-opacity duration-1000 ${
+      className={`absolute inset-0 z-0 transition-opacity duration-1000 ${
         isLoaded ? 'opacity-100' : 'opacity-0'
       }`}
       style={{ 
