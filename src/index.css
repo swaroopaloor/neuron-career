@@ -94,8 +94,9 @@
 }
 
 .dark {
-  /* Minimalist dark theme: Deep, comfortable grays with warm blue accents */
-  --background: oklch(0.1 0.05 255);
+  /* Soften dark blue background, keep text white for strong contrast */
+  --background: oklch(0.22 0.04 255);
+  /* Keep foreground as white as requested */
   --foreground: oklch(0.98 0 0);
 
   --card: oklch(0.1 0.01 240);
@@ -128,7 +129,9 @@
   --chart-4: oklch(0.6 0.1 120);
   --chart-5: oklch(0.55 0.08 80);
 
-  --sidebar: oklch(0.1 0.01 240);
+  /* Optional: align sidebar to the same pleasant blue background */
+  --sidebar: oklch(0.22 0.04 255);
+
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: oklch(0.7 0.15 240);
   --sidebar-primary-foreground: oklch(0.08 0.01 240);
