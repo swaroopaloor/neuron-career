@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as aiAnalysis from "../aiAnalysis.js";
 import type * as aiCareerGrowth from "../aiCareerGrowth.js";
+import type * as aiCareerGrowthData from "../aiCareerGrowthData.js";
 import type * as aiResumeProcessor from "../aiResumeProcessor.js";
 import type * as analyses from "../analyses.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
@@ -37,6 +38,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   aiAnalysis: typeof aiAnalysis;
   aiCareerGrowth: typeof aiCareerGrowth;
+  aiCareerGrowthData: typeof aiCareerGrowthData;
   aiResumeProcessor: typeof aiResumeProcessor;
   analyses: typeof analyses;
   "auth/emailOtp": typeof auth_emailOtp;

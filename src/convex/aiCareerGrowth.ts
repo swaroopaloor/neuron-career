@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { action, internalMutation } from "./_generated/server";
+import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import Groq from "groq-sdk";
 
@@ -98,7 +98,7 @@ Return only the JSON object, no additional text.
       }
 
       // Update the analysis with the insights
-      await ctx.runMutation(internal.aiCareerGrowth.updateAnalysisWithInsights, {
+      await ctx.runMutation(internal.aiCareerGrowthData.updateAnalysisWithInsights, {
         analysisId: args.analysisId,
         lackingSkills: insights.lackingSkills,
         lackingEducation: insights.lackingEducation,
@@ -111,24 +111,6 @@ Return only the JSON object, no additional text.
       console.error("Error generating growth insights:", error);
       throw new Error("Failed to generate growth insights. Please try again.");
     }
-  },
-});
-
-export const updateAnalysisWithInsights = internalMutation({
-  args: {
-    analysisId: v.id("analyses"),
-    lackingSkills: v.array(v.string()),
-    lackingEducation: v.array(v.string()),
-    lackingExperience: v.array(v.string()),
-    growthPlan: v.array(v.object({
-      milestone: v.string(),
-      details: v.string(),
-      timeline: v.string(),
-    })),
-  },
-  handler: async (ctx, args) => {
-    const { analysisId, ...updates } = args;
-    await ctx.db.patch(analysisId, updates);
   },
 });
 
