@@ -83,7 +83,7 @@ export const analyzeResume = internalAction({
       Respond with a valid JSON object containing the analysis, ensuring atsImprovements and matchingImprovements follow the required format and minimum counts when scores are below 70.`;
 
       const completion = await groq.chat.completions.create({
-        model: "llama3-8b-8192",
+        model: "llama-3.1-8b-instant",
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -240,7 +240,7 @@ If the input is a list or bullets, return refined bullets (one per line, startin
     const userPrompt = `Refine the following text for a professional resume:\n\n${args.text}`;
 
     const completion = await groq.chat.completions.create({
-      model: "llama3-8b-8192",
+      model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
