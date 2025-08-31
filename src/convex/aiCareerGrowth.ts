@@ -3,6 +3,105 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 
+// Add: Strong entity extraction helpers to drive company- and role-specific plans
+type Entities = {
+  roleTitle: string | null;
+  company: string | null;
+  domain: string | null;
+  subDomain: string | null;
+  seniorityLevel: string | null;
+  location: string | null;
+  industry: string | null;
+};
+
+// Compact Groq chat helper
+async function groqChat(
+  apiKey: string,
+  messages: Array<{ role: "system" | "user"; content: string }>,
+  opts: { max_tokens?: number; temperature?: number } = {}
+): Promise<string> {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-70b-versatile",
+      messages,
+      max_tokens: opts.max_tokens ?? 600,
+      temperature: opts.temperature ?? 0.05,
+      top_p: 0.8,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Groq API error: ${response.status}`);
+  }
+  const data = await response.json();
+  const contentRaw = data?.choices?.[0]?.message?.content;
+  if (!contentRaw || typeof contentRaw !== "string") {
+    throw new Error("No content received from Groq");
+  }
+  return contentRaw;
+}
+
+// Entity extractor using Groq (strict JSON only)
+async function extractEntities(
+  apiKey: string,
+  dreamRole: string,
+  about: string
+): Promise<Entities | null> {
+  const system = `You are an entity extraction engine.
+Return STRICT JSON with keys: roleTitle, company, domain, subDomain, seniorityLevel, location, industry.
+- roleTitle: clean job title without company
+- company: organization/employer name if present
+- domain: broad field (e.g., software engineering, culinary, aviation, healthcare)
+- subDomain: specialty (e.g., frontend, pastry, commercial airline)
+- seniorityLevel: standardized (intern, junior, mid, senior, staff, principal, lead, manager) when inferable
+- location: city/region/country if present
+- industry: sector (e.g., hospitality, tech, finance, education, logistics)
+Rules:
+- Output JSON ONLY, no markdown, no prose
+- Use null for unknowns
+- Trim whitespace in all string fields`;
+  const user = `Text: "${dreamRole}"
+Background: "${about}"
+Return ONLY JSON: {"roleTitle": "...", "company": "...", "domain": "...", "subDomain": "...", "seniorityLevel": "...", "location": "...", "industry": "..."}`;
+
+  try {
+    let content = await groqChat(apiKey, [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ]);
+
+    // Robust JSON slice if LLM added stray text
+    content = content.trim();
+    if (!content.startsWith("{")) {
+      const s = content.indexOf("{");
+      const e = content.lastIndexOf("}");
+      if (s !== -1 && e !== -1 && e > s) content = content.slice(s, e + 1);
+    }
+
+    const parsed = JSON.parse(content) as Entities;
+    const clean = (val: unknown) =>
+      typeof val === "string" ? val.trim() : val === undefined ? null : (val as any);
+
+    return {
+      roleTitle: clean(parsed.roleTitle),
+      company: clean(parsed.company),
+      domain: clean(parsed.domain),
+      subDomain: clean(parsed.subDomain),
+      seniorityLevel: clean(parsed.seniorityLevel),
+      location: clean(parsed.location),
+      industry: clean(parsed.industry),
+    };
+  } catch (err) {
+    console.warn("Entity extraction failed, falling back to regex/heuristics:", err);
+    return null;
+  }
+}
+
 export const generateCareerPlan = action({
   args: {
     about: v.string(),
@@ -22,11 +121,24 @@ export const generateCareerPlan = action({
     // Normalize level for consistent logic
     const level = (args.currentLevel || "").toLowerCase();
 
+    // Replace: basic regex extraction with AI-powered entity extraction + regex fallback
     // Extract role title and optional company from dreamRole (e.g., "SDE1 at Google", "pilot for British Airways")
     const originalDreamRole = (args.dreamRole || "").trim();
     const companyMatch = originalDreamRole.match(/\b(?:at|for|in|@)\b\s+(.+)$/i);
-    const targetCompany = companyMatch ? companyMatch[1].trim() : "";
-    const roleTitle = companyMatch ? originalDreamRole.slice(0, companyMatch.index).trim() : originalDreamRole;
+    let targetCompany = companyMatch ? companyMatch[1].trim() : "";
+    let roleTitle = companyMatch ? originalDreamRole.slice(0, companyMatch.index).trim() : originalDreamRole;
+
+    // AI entity extraction (company, title, domain, etc.)
+    let entities: Entities | null = await extractEntities(apiKey, originalDreamRole, args.about);
+    if (entities?.company) targetCompany = entities.company.trim();
+    if (entities?.roleTitle) roleTitle = entities.roleTitle.trim();
+    const inferred = {
+      domain: entities?.domain ?? null,
+      subDomain: entities?.subDomain ?? null,
+      seniorityLevel: entities?.seniorityLevel ?? level,
+      location: entities?.location ?? null,
+      industry: entities?.industry ?? null,
+    };
 
     // Generalized, domain-agnostic instructions (system) to ensure accuracy for ANY role + optional company targeting
     const systemPrompt = `You are an expert career architect and curriculum designer.
@@ -39,7 +151,7 @@ Objectives:
 - Respect the user's weekly time budget and produce exactly the requested number of weeks.
 - Output strictly valid JSON matching the required schema with no extra text or markdown.`;
 
-    // User-specific context and strict schema - works for any role and optional company
+    // User-specific context and strict schema - enriched with extracted entities for better grounding
     const prompt = `You are a principal career mentor and curriculum designer. Generate a highly accurate, realistic, and actionable career plan calibrated to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE, and optional TARGET COMPANY — in ANY FIELD.
 
 User Background (verbatim): ${args.about}
@@ -49,6 +161,13 @@ Current Level: ${level}
 Years of Experience: ${args.yearsExperience}
 Available Time: ${args.hoursPerWeek} hours/week
 Timeline: ${args.weeks} weeks
+
+Inferred Entities:
+- Domain: ${inferred.domain ?? "N/A"}
+- SubDomain: ${inferred.subDomain ?? "N/A"}
+- Seniority (standardized): ${inferred.seniorityLevel ?? "N/A"}
+- Location: ${inferred.location ?? "N/A"}
+- Industry: ${inferred.industry ?? "N/A"}
 
 Requirements:
 - The plan MUST be deeply tailored to the exact role and domain inferred from the input above (could be healthcare, hospitality/culinary, trades, arts, education, logistics, finance, legal, public sector, customer support, sales, operations, etc.).
@@ -508,5 +627,36 @@ Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
         summary: `Personalized ${args.weeks}-week plan aligned to ${roleTitle}${targetCompany ? " @ " + targetCompany : ""} (~${args.hoursPerWeek}h/week). Calibrated to ${level} with concrete weekly outputs and links.`,
       };
     }
+  },
+});
+
+// New: simple action to run entity extraction tests across diverse examples
+export const runEntityExtractionTests = action({
+  args: {},
+  handler: async (ctx) => {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error("GROQ_API_KEY is not configured");
+    }
+
+    const examples: Array<{ dreamRole: string; about?: string }> = [
+      { dreamRole: "SDE1 at Google" },
+      { dreamRole: "head chef in Taj Hotels" },
+      { dreamRole: "pilot for British Airways" },
+      { dreamRole: "ICU nurse at Mayo Clinic" },
+      { dreamRole: "Financial analyst at Goldman Sachs" },
+      { dreamRole: "High school math teacher in NYC DOE" },
+      { dreamRole: "Warehouse manager at Amazon fulfillment" },
+      { dreamRole: "UX designer @ Airbnb" },
+      { dreamRole: "Customer support representative at Shopify" },
+      { dreamRole: "Electrician apprentice at Local 3 IBEW" },
+    ];
+
+    const results: Array<{ input: string; entities: Entities | null }> = [];
+    for (const ex of examples) {
+      const entities = await extractEntities(apiKey, ex.dreamRole, ex.about ?? "");
+      results.push({ input: ex.dreamRole, entities });
+    }
+    return results;
   },
 });
