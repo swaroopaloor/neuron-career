@@ -230,16 +230,24 @@ export default function CareerGrowth() {
               {plan ? (
                 <>
                   <p className="text-sm text-muted-foreground">{plan.summary}</p>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {plan.timeline.map((t) => (
-                      <div key={t.week} className="flex items-start gap-3">
-                        <div className="mt-1 w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">Week {t.week}</p>
-                          <p className="text-sm text-muted-foreground">{t.focus}</p>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {plan.timeline.map((t) => {
+                      const lines = (t.focus || "").split(/\r?\n/).filter(Boolean);
+                      return (
+                        <div key={t.week} className="rounded-lg border p-3 bg-card">
+                          <p className="text-sm font-semibold mb-1">Week {t.week}</p>
+                          {lines.length > 1 ? (
+                            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                              {lines.map((line, i) => (
+                                <li key={i}>{line.replace(/^[-•]\s*/, "")}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">{t.focus}</p>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               ) : (
