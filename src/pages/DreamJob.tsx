@@ -4,18 +4,28 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+
 import { 
   Star, 
-  Target, 
-  TrendingUp, 
   BookOpen, 
   Briefcase, 
   Zap,
   Clock,
-  CheckCircle,
-  ArrowRight,
   Sparkles,
   GraduationCap,
   Code,
@@ -23,14 +33,31 @@ import {
   Loader2,
   AlertCircle
 } from "lucide-react";
-import { toast } from "sonner";
-import { useState } from "react";
-import { Link } from "react-router-dom";
 
 export default function DreamJob() {
   const dreamJobAnalysis = useQuery(api.analyses.getDreamJobAnalysis);
   const generateInsights = useAction(api.aiCareerGrowth.generateGrowthInsights);
+  const generateCareerPlan = useAction(api.aiCareerGrowth.generateCareerPlan);
+
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+
+  // Roadmap generator form state
+  const [about, setAbout] = useState("");
+  const [dreamRole, setDreamRole] = useState("");
+  const [weeks, setWeeks] = useState<number>(12);
+  const [currentLevel, setCurrentLevel] = useState("Mid");
+  const [yearsExperience, setYearsExperience] = useState<number>(3);
+  const [hoursPerWeek, setHoursPerWeek] = useState<number>(8);
+
+  // Generated plan state
+  const [plan, setPlan] = useState<{
+    topics: string[];
+    courses: Array<{ title: string; provider: string; url: string }>;
+    certifications: string[];
+    timeline: Array<{ week: number; focus: string }>;
+    summary: string;
+  } | null>(null);
 
   const handleGenerateInsights = async () => {
     if (!dreamJobAnalysis) return;
@@ -53,6 +80,31 @@ export default function DreamJob() {
       toast.error("Failed to generate insights. Please try again.");
     } finally {
       setIsGeneratingInsights(false);
+    }
+  };
+
+  const handleGeneratePlan = async () => {
+    if (!dreamJobAnalysis) return;
+    setIsGeneratingPlan(true);
+    try {
+      const roleGuess =
+        dreamRole.trim() ||
+        (dreamJobAnalysis.jobDescription.split("\n")[0]?.slice(0, 80) ?? "Dream Role");
+      const result = await generateCareerPlan({
+        about,
+        dreamRole: roleGuess,
+        weeks: Math.max(1, Math.min(52, Number(weeks) || 1)),
+        currentLevel,
+        yearsExperience: Math.max(0, Number(yearsExperience) || 0),
+        hoursPerWeek: Math.max(1, Math.min(80, Number(hoursPerWeek) || 1)),
+      });
+      setPlan(result);
+      toast("Career roadmap generated!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate career roadmap.");
+    } finally {
+      setIsGeneratingPlan(false);
     }
   };
 
@@ -104,6 +156,17 @@ export default function DreamJob() {
     );
   }
 
+  // Chart data based on timeline length and hours/week
+  const computedWeeks = plan?.timeline?.length || weeks;
+  const chartData =
+    Array.from({ length: computedWeeks }, (_, i) => {
+      const w = i + 1;
+      return {
+        week: `W${w}`,
+        cumulativeHours: w * (Number(hoursPerWeek) || 0),
+      };
+    });
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -148,11 +211,11 @@ export default function DreamJob() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dream Job Overview */}
+        {/* Dream Job Header */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.05 }}
           className="mb-8"
         >
           <Card className="elevation-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
@@ -171,29 +234,153 @@ export default function DreamJob() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-purple-600" />
-                    <span className="font-semibold text-purple-900 dark:text-purple-100">Match Score</span>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Generator form */}
+                <div className="lg:col-span-2 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Dream Role</Label>
+                      <Input
+                        placeholder="e.g., Senior Backend Engineer"
+                        value={dreamRole}
+                        onChange={(e) => setDreamRole(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Current Level</Label>
+                      <Select value={currentLevel} onValueChange={setCurrentLevel}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Junior">Junior</SelectItem>
+                          <SelectItem value="Mid">Mid</SelectItem>
+                          <SelectItem value="Senior">Senior</SelectItem>
+                          <SelectItem value="Lead">Lead</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Years of Experience</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={yearsExperience}
+                        onChange={(e) => setYearsExperience(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Hours per Week</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={80}
+                        value={hoursPerWeek}
+                        onChange={(e) => setHoursPerWeek(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Duration (weeks)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={weeks}
+                        onChange={(e) => setWeeks(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>About you (optional)</Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Briefly describe your background, stack, and target domain."
+                        value={about}
+                        onChange={(e) => setAbout(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                    {dreamJobAnalysis.matchScore}%
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      onClick={handleGeneratePlan}
+                      disabled={isGeneratingPlan}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    >
+                      {isGeneratingPlan ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating Career Roadmap...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Generate Career Roadmap
+                        </>
+                      )}
+                    </Button>
+
+                    {!hasInsights && (
+                      <Button
+                        variant="secondary"
+                        onClick={handleGenerateInsights}
+                        disabled={isGeneratingInsights}
+                      >
+                        {isGeneratingInsights ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating Growth Insights...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-4 w-4 mr-2" />
+                            Generate Gap Insights
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
-                  <Progress value={dreamJobAnalysis.matchScore} className="h-2" />
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-purple-600" />
-                    <span className="font-semibold text-purple-900 dark:text-purple-100">ATS Score</span>
+
+                {/* Progress chart */}
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground">
+                    Estimated weekly investment and cumulative progress
                   </div>
-                  <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                    {dreamJobAnalysis.atsScore}%
+                  <ChartContainer
+                    className="rounded-lg border bg-card p-2"
+                    config={{
+                      progress: { label: "Cumulative Hours", color: "hsl(var(--primary))" },
+                    }}
+                  >
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Line
+                        type="monotone"
+                        dataKey="cumulativeHours"
+                        name="Cumulative Hours"
+                        stroke="var(--color-progress)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                  <div className="text-xs text-muted-foreground">
+                    Target: {computedWeeks} weeks • {hoursPerWeek} hrs/week • Total ~{" "}
+                    {computedWeeks * (Number(hoursPerWeek) || 0)} hrs
                   </div>
-                  <Progress value={dreamJobAnalysis.atsScore} className="h-2" />
                 </div>
               </div>
+
+              {plan?.summary && (
+                <div className="mt-6 p-4 rounded-md bg-muted/40 text-sm leading-relaxed">
+                  {plan.summary}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -327,7 +514,7 @@ export default function DreamJob() {
                 transition={{ delay: 0.3 }}
               >
                 <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                  <TrendingUp className="h-6 w-6 text-green-500" />
+                  <Zap className="h-6 w-6 text-green-500" />
                   Your Growth Roadmap
                 </h2>
                 
@@ -367,6 +554,110 @@ export default function DreamJob() {
                     </motion.div>
                   ))}
                 </div>
+              </motion.div>
+            )}
+
+            {plan && (
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.15 }}
+                className="space-y-8"
+              >
+                {/* Topics to focus */}
+                {plan.topics.length > 0 && (
+                  <Card className="elevation-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Users className="h-5 w-5 text-primary" />
+                        Key Topics to Master
+                      </CardTitle>
+                      <CardDescription>High-impact topics aligned to your goal</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {plan.topics.map((t, i) => (
+                          <Badge key={i} variant="secondary" className="py-1 px-2">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Curated courses */}
+                {plan.courses.length > 0 && (
+                  <Card className="elevation-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <GraduationCap className="h-5 w-5 text-green-500" />
+                        Curated Courses
+                      </CardTitle>
+                      <CardDescription>Top learning resources with direct links</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {plan.courses.map((c, i) => (
+                          <div key={i} className="flex items-center justify-between gap-4 border rounded-md p-3">
+                            <div className="space-y-1">
+                              <div className="font-medium">{c.title}</div>
+                              <div className="text-xs text-muted-foreground">{c.provider}</div>
+                            </div>
+                            <Button asChild size="sm" variant="outline">
+                              <a href={c.url} target="_blank" rel="noreferrer">Open</a>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Certifications */}
+                {plan.certifications.length > 0 && (
+                  <Card className="elevation-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Badge className="bg-primary text-primary-foreground">Certs</Badge>
+                        Recommended Certifications
+                      </CardTitle>
+                      <CardDescription>Credentials that add credibility</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {plan.certifications.map((c, i) => (
+                          <Badge key={i} variant="outline" className="py-1 px-2">
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Weekly Timeline as rich cards */}
+                {plan.timeline.length > 0 && (
+                  <Card className="elevation-2">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Weekly Action Plan</CardTitle>
+                      <CardDescription>Exactly what to focus on each week</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {plan.timeline.map((w, i) => (
+                          <div key={i} className="rounded-lg border p-4 bg-card/60">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-semibold">Week {w.week}</div>
+                              <Badge variant="secondary">{(w.week * (Number(hoursPerWeek) || 0))}h total</Badge>
+                            </div>
+                            <pre className="whitespace-pre-wrap text-sm text-muted-foreground">{w.focus}</pre>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </motion.div>
             )}
           </div>
