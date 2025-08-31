@@ -366,6 +366,7 @@ export default function Dashboard() {
                     <CardContent className="space-y-2">
                       {[
                         { icon: Briefcase, label: "Job Tracker", action: () => navigate("/job-tracker") },
+                        { icon: FileText, label: "Resume Creator", action: () => navigate("/resume-builder") },
                         { icon: Settings, label: "Profile Settings", action: () => navigate("/profile") },
                         { icon: Star, label: "View Favorites", action: () => setFilter("favorites") },
                         { icon: BarChart3, label: "Analytics", action: () => {} }
