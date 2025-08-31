@@ -233,6 +233,11 @@ export const generateCareerPlan = action({
     currentLevel: v.string(),
     yearsExperience: v.number(),
     hoursPerWeek: v.number(),
+    // Optional structured inputs
+    field: v.optional(v.string()),
+    subcategory: v.optional(v.string()),
+    specificRole: v.optional(v.string()),
+    targetCompany: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const apiKey = process.env.GROQ_API_KEY;
@@ -243,36 +248,52 @@ export const generateCareerPlan = action({
     // Normalize level for consistent logic
     const level = (args.currentLevel || "").toLowerCase();
 
-    // Replace: basic regex extraction with AI-powered entity extraction + regex fallback
-    // Extract role title and optional company from dreamRole (e.g., "SDE1 at Google", "pilot for British Airways")
-    const originalDreamRole = (args.dreamRole || "").trim();
-    const companyMatch = originalDreamRole.match(/\b(?:at|for|in|@)\b\s+(.+)$/i);
-    let targetCompany = companyMatch ? companyMatch[1].trim() : "";
-    let roleTitle = companyMatch ? originalDreamRole.slice(0, companyMatch.index).trim() : originalDreamRole;
+    // Use structured inputs if provided, otherwise fall back to dreamRole parsing
+    let roleTitle: string;
+    let targetCompany: string;
+    
+    if (args.specificRole) {
+      // Structured input mode
+      roleTitle = args.specificRole.trim();
+      targetCompany = args.targetCompany?.trim() || "";
+    } else {
+      // Freeform input mode - parse dreamRole
+      const originalDreamRole = (args.dreamRole || "").trim();
+      const companyMatch = originalDreamRole.match(/\b(?:at|for|in|@)\b\s+(.+)$/i);
+      targetCompany = companyMatch ? companyMatch[1].trim() : "";
+      roleTitle = companyMatch ? originalDreamRole.slice(0, companyMatch.index).trim() : originalDreamRole;
+    }
 
-    // AI entity extraction (company, title, domain, etc.)
-    let entities: Entities | null = await extractEntities(apiKey, originalDreamRole, args.about);
-    if (entities?.company) targetCompany = entities.company.trim();
-    if (entities?.roleTitle) roleTitle = entities.roleTitle.trim();
+    // AI entity extraction (company, title, domain, etc.) - enhanced for structured inputs
+    let entities: Entities | null = await extractEntities(apiKey, args.dreamRole || roleTitle, args.about);
+    if (entities?.company && !targetCompany) targetCompany = entities.company.trim();
+    if (entities?.roleTitle && !roleTitle) roleTitle = entities.roleTitle.trim();
+    
     const inferred = {
-      domain: entities?.domain ?? null,
-      subDomain: entities?.subDomain ?? null,
+      domain: entities?.domain ?? args.field ?? null,
+      subDomain: entities?.subDomain ?? args.subcategory ?? null,
       seniorityLevel: entities?.seniorityLevel ?? level,
       location: entities?.location ?? null,
       industry: entities?.industry ?? null,
     };
 
-    // Updated: System prompt to forbid generalization and require mirroring the exact role/company
+    // Enhanced system prompt with structured input awareness
     const systemPrompt = `You are a specialized domain expert and curriculum architect for ANY profession (white‑collar, blue‑collar, regulated, licensed, union, trades, public sector, etc.). You build rigorous, company-aware, role-accurate learning roadmaps.
 
-Hard requirements:
+CRITICAL REQUIREMENTS FOR ACCURACY:
 - Mirror the user's EXACT role text verbatim in outputs where appropriate; DO NOT substitute a different but "similar" role. Do NOT generalize to a role family.
+- When structured inputs are provided (field, subcategory, specific role), use these as the PRIMARY source of truth for role specificity.
 - Ground every recommendation in the realities of the role, domain, and industry. Be specific about workflows, tools, standards, regulations, certifications, and safety/quality practices used on the job.
 - When a target company is specified, adapt content to that company's typical stack, standards, processes, customer experience, and hiring bar for the specified role level.
 - Favor OFFICIAL, PUBLIC, AUTHORITATIVE sources: regulators (.gov), standards bodies (e.g., ISO, OSHA, FAA, FDA, IEC, NIST, NICE, WHO), accredited training/boards, universities (.edu), company engineering/careers/brand/ops blogs, manufacturer manuals, or well-known industry orgs.
 - Never invent or link to placeholder/fake URLs. Avoid generic directories or content farms. Choose the most authoritative link for each bullet.
 - Deliverables must be concrete and role-ready: SOPs, checklists, protocols, lesson plans, design specs, HLDs, reports, dashboards, repo features, demos, scripts, maintenance schedules, safety audits, tasting menus, cost sheets, etc.
 - Ensure weekly workload fits the user's time budget (~hours/week) and uses at least ~70% of it, never exceeding 100%.
+
+STRUCTURED INPUT HANDLING:
+- When field/subcategory/role are provided via structured selection, treat these as highly accurate and specific inputs.
+- Use the structured context to inform industry-specific terminology, tools, and career progression paths.
+- Leverage the structured hierarchy (field → subcategory → role) to provide more targeted recommendations.
 
 Output standards:
 - JSON ONLY. No markdown, no prose outside JSON, no code fences.
@@ -293,11 +314,21 @@ Edge cases to handle:
 If info is ambiguous, make the safest, most typical industry assumption and provide role-accurate deliverables and credible links.
 Absolutely do NOT generalize to a different role or a role family; always reflect the exact role string provided.`;
 
-    // Updated: User prompt with explicit role echo and non-generalization instruction
+    // Enhanced user prompt with structured input context
+    const structuredContext = args.field && args.subcategory && args.specificRole 
+      ? `\n\nSTRUCTURED INPUT CONTEXT (HIGH PRIORITY):
+- Field: ${args.field}
+- Subcategory: ${args.subcategory}
+- Specific Role: ${args.specificRole}
+- Target Company: ${args.targetCompany || "N/A"}
+
+This structured input should be treated as the PRIMARY source of role specificity.`
+      : "";
+
     const prompt = `Use the inputs below to produce a highly accurate and actionable career plan tailored to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE (exact), and optional TARGET COMPANY.
 
 Exact Role (echo verbatim): ${roleTitle}
-Target Company (if any): ${targetCompany || "N/A"}
+Target Company (if any): ${targetCompany || "N/A"}${structuredContext}
 
 Inputs (verbatim):
 - User Background: ${args.about}
@@ -331,10 +362,7 @@ Strict output format: Return ONLY a JSON object with EXACTLY these keys and stru
   "timeline": [
     {
       "week": 1,
-      "focus": "- deliverable tied to ${roleTitle} (xh): https://authoritative-link
-- deliverable tied to ${roleTitle} (xh): https://authoritative-link
-- deliverable tied to ${roleTitle} (xh)
-- deliverable tied to ${roleTitle} (xh)"
+      "focus": "- deliverable tied to ${roleTitle} (xh): https://authoritative-link\n- deliverable tied to ${roleTitle} (xh): https://authoritative-link\n- deliverable tied to ${roleTitle} (xh)\n- deliverable tied to ${roleTitle} (xh)"
     }
   ],
   "summary": "2–3 motivating sentences summarizing outcomes for ${roleTitle}${targetCompany ? " at " + targetCompany : ""}, calibrated to ${level} with ~${args.hoursPerWeek}h/week."
@@ -378,15 +406,26 @@ Output JSON ONLY with no extra text.`;
     } catch (error) {
       console.error("Error generating career plan (Groq):", error);
 
-      // Domain detection from role/background
-      const text = `${args.dreamRole} ${args.about}`.toLowerCase();
-      const isSWE = /(software|swe|frontend|back[- ]?end|full[- ]?stack|mobile|devops|cloud|qa|test|engineering)/i.test(args.dreamRole || "");
-      const isDS  = /(data scientist|machine learning|ml|ai(?!.*product)|deep learning|analytics)/i.test(text);
-      const isPM  = /(product manager|product management|pm|product owner)/i.test(text);
-      const isSEC = /(cyber|security|infosec|soc|pentest|penetration|blue team|red team)/i.test(text);
-      const isUX  = /(ux|ui|designer|product design|interaction design|visual design)/i.test(text);
-      const isMKT = /(marketing|growth|seo|sem|ppc|content|ads|campaign)/i.test(text);
-      const isCUL = /(chef|culinary|cook|kitchen|pastry|line cook|sous chef|restaurant|hospitality|food(?!\s*science)|beverage)/i.test(text);
+      // Enhanced fallback with structured input awareness
+      const text = `${args.dreamRole || roleTitle} ${args.about}`.toLowerCase();
+      const fieldContext = args.field ? args.field.toLowerCase() : "";
+      const subcategoryContext = args.subcategory ? args.subcategory.toLowerCase() : "";
+      
+      // Domain detection logic (enhanced with structured inputs)
+      const isSWE = /(software|swe|frontend|back[- ]?end|full[- ]?stack|mobile|devops|cloud|qa|test|engineering)/i.test(args.dreamRole || "") || 
+                   fieldContext.includes("technology") && subcategoryContext.includes("software");
+      const isDS  = /(data scientist|machine learning|ml|ai(?!.*product)|deep learning|analytics)/i.test(text) ||
+                   fieldContext.includes("technology") && subcategoryContext.includes("data");
+      const isPM  = /(product manager|product management|pm|product owner)/i.test(text) ||
+                   fieldContext.includes("technology") && subcategoryContext.includes("product");
+      const isSEC = /(cyber|security|infosec|soc|pentest|penetration|blue team|red team)/i.test(text) ||
+                   fieldContext.includes("technology") && subcategoryContext.includes("cyber");
+      const isUX  = /(ux|ui|designer|product design|interaction design|visual design)/i.test(text) ||
+                   fieldContext.includes("technology") && subcategoryContext.includes("design");
+      const isMKT = /(marketing|growth|seo|sem|ppc|content|ads|campaign)/i.test(text) ||
+                   fieldContext.includes("marketing");
+      const isCUL = /(chef|culinary|cook|kitchen|pastry|line cook|sous chef|restaurant|hospitality|food(?!\s*science)|beverage)/i.test(text) ||
+                   fieldContext.includes("culinary");
 
       // Fallback topics/courses/certs per domain
       let topics: string[] = [];

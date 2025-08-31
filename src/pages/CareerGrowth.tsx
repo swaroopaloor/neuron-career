@@ -30,7 +30,9 @@ import {
   Calendar,
   ExternalLink,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  Briefcase
 } from "lucide-react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -44,6 +46,159 @@ type Plan = {
   summary: string;
 };
 
+// Comprehensive career data structure
+const CAREER_DATA = {
+  "Technology": {
+    "Software Engineering": [
+      "Frontend Developer", "Backend Developer", "Full Stack Developer", "Mobile Developer (iOS)",
+      "Mobile Developer (Android)", "DevOps Engineer", "Site Reliability Engineer", "Software Architect",
+      "Technical Lead", "Engineering Manager", "QA Engineer", "Test Automation Engineer"
+    ],
+    "Data & Analytics": [
+      "Data Scientist", "Data Analyst", "Data Engineer", "Machine Learning Engineer",
+      "AI Research Scientist", "Business Intelligence Analyst", "Analytics Manager", "Chief Data Officer"
+    ],
+    "Product & Design": [
+      "Product Manager", "Senior Product Manager", "Product Owner", "UX Designer",
+      "UI Designer", "UX Researcher", "Product Designer", "Design Systems Lead"
+    ],
+    "Cybersecurity": [
+      "Security Analyst", "Penetration Tester", "Security Engineer", "CISO",
+      "Incident Response Specialist", "Security Architect", "Compliance Manager", "Ethical Hacker"
+    ],
+    "Cloud & Infrastructure": [
+      "Cloud Architect", "AWS Solutions Architect", "Azure Engineer", "GCP Engineer",
+      "Kubernetes Engineer", "Infrastructure Engineer", "Platform Engineer", "Cloud Security Engineer"
+    ]
+  },
+  "Healthcare": {
+    "Clinical Care": [
+      "Registered Nurse", "ICU Nurse", "Emergency Room Nurse", "Pediatric Nurse",
+      "Physician Assistant", "Nurse Practitioner", "Clinical Specialist", "Charge Nurse"
+    ],
+    "Medical Practice": [
+      "Family Medicine Physician", "Cardiologist", "Pediatrician", "Surgeon",
+      "Radiologist", "Anesthesiologist", "Emergency Medicine Physician", "Psychiatrist"
+    ],
+    "Healthcare Administration": [
+      "Healthcare Administrator", "Medical Office Manager", "Health Information Manager",
+      "Healthcare Quality Manager", "Patient Care Coordinator", "Healthcare Consultant"
+    ],
+    "Allied Health": [
+      "Physical Therapist", "Occupational Therapist", "Respiratory Therapist",
+      "Medical Technologist", "Pharmacy Technician", "Radiology Technician"
+    ]
+  },
+  "Finance": {
+    "Investment & Banking": [
+      "Investment Banker", "Financial Analyst", "Portfolio Manager", "Wealth Manager",
+      "Investment Advisor", "Risk Analyst", "Equity Research Analyst", "Trader"
+    ],
+    "Corporate Finance": [
+      "Financial Planning & Analysis Manager", "Corporate Development Manager", "Treasury Analyst",
+      "Controller", "CFO", "Financial Reporting Manager", "Budget Analyst"
+    ],
+    "Insurance": [
+      "Actuary", "Underwriter", "Claims Adjuster", "Insurance Agent",
+      "Risk Manager", "Insurance Broker", "Product Manager (Insurance)"
+    ],
+    "Fintech": [
+      "Fintech Product Manager", "Blockchain Developer", "Quantitative Analyst",
+      "Compliance Officer", "Fintech Sales Manager", "Payment Systems Engineer"
+    ]
+  },
+  "Marketing & Sales": {
+    "Digital Marketing": [
+      "Digital Marketing Manager", "SEO Specialist", "PPC Manager", "Social Media Manager",
+      "Content Marketing Manager", "Email Marketing Specialist", "Growth Hacker", "Marketing Analyst"
+    ],
+    "Sales": [
+      "Sales Representative", "Account Executive", "Sales Manager", "Business Development Manager",
+      "Inside Sales Representative", "Sales Engineer", "Customer Success Manager", "VP of Sales"
+    ],
+    "Brand & Creative": [
+      "Brand Manager", "Creative Director", "Graphic Designer", "Copywriter",
+      "Art Director", "Marketing Creative Manager", "Brand Strategist"
+    ],
+    "Marketing Operations": [
+      "Marketing Operations Manager", "CRM Manager", "Marketing Automation Specialist",
+      "Marketing Data Analyst", "Campaign Manager", "Marketing Technology Manager"
+    ]
+  },
+  "Education": {
+    "K-12 Teaching": [
+      "Elementary School Teacher", "Middle School Teacher", "High School Teacher",
+      "Special Education Teacher", "ESL Teacher", "Math Teacher", "Science Teacher", "English Teacher"
+    ],
+    "Higher Education": [
+      "Professor", "Associate Professor", "Adjunct Professor", "Research Scientist",
+      "Academic Advisor", "Dean", "University Administrator", "Librarian"
+    ],
+    "Educational Leadership": [
+      "Principal", "Assistant Principal", "Superintendent", "Curriculum Director",
+      "Instructional Coordinator", "Education Consultant", "School Counselor"
+    ],
+    "Educational Technology": [
+      "Instructional Designer", "Educational Technology Specialist", "E-Learning Developer",
+      "Learning Management System Administrator", "Educational Software Developer"
+    ]
+  },
+  "Culinary & Hospitality": {
+    "Kitchen Operations": [
+      "Line Cook", "Sous Chef", "Head Chef", "Executive Chef", "Pastry Chef",
+      "Prep Cook", "Kitchen Manager", "Culinary Director", "Private Chef"
+    ],
+    "Restaurant Management": [
+      "Restaurant Manager", "General Manager", "Assistant Manager", "Floor Manager",
+      "Food & Beverage Director", "Restaurant Owner", "Franchise Manager"
+    ],
+    "Hotel & Resort": [
+      "Hotel Manager", "Front Desk Manager", "Concierge", "Event Coordinator",
+      "Housekeeping Manager", "Resort Manager", "Guest Services Manager"
+    ],
+    "Food Service": [
+      "Catering Manager", "Banquet Manager", "Food Service Director",
+      "Cafeteria Manager", "Food Safety Inspector", "Menu Developer"
+    ]
+  },
+  "Manufacturing & Engineering": {
+    "Mechanical Engineering": [
+      "Mechanical Engineer", "Design Engineer", "Manufacturing Engineer", "Quality Engineer",
+      "Project Engineer", "R&D Engineer", "Process Engineer", "Plant Manager"
+    ],
+    "Electrical Engineering": [
+      "Electrical Engineer", "Electronics Engineer", "Power Systems Engineer",
+      "Control Systems Engineer", "Instrumentation Engineer", "Automation Engineer"
+    ],
+    "Civil Engineering": [
+      "Civil Engineer", "Structural Engineer", "Transportation Engineer", "Environmental Engineer",
+      "Construction Manager", "Project Manager", "Site Engineer"
+    ],
+    "Production & Operations": [
+      "Production Manager", "Operations Manager", "Quality Control Manager",
+      "Supply Chain Manager", "Logistics Coordinator", "Warehouse Manager"
+    ]
+  },
+  "Legal": {
+    "Corporate Law": [
+      "Corporate Lawyer", "Contract Attorney", "Compliance Officer", "Legal Counsel",
+      "Mergers & Acquisitions Attorney", "Securities Lawyer", "In-House Counsel"
+    ],
+    "Litigation": [
+      "Litigation Attorney", "Trial Lawyer", "Personal Injury Lawyer", "Criminal Defense Attorney",
+      "Civil Rights Attorney", "Employment Lawyer", "Family Law Attorney"
+    ],
+    "Specialized Practice": [
+      "Intellectual Property Attorney", "Tax Attorney", "Real Estate Attorney",
+      "Immigration Lawyer", "Environmental Lawyer", "Healthcare Attorney"
+    ],
+    "Legal Support": [
+      "Paralegal", "Legal Assistant", "Court Reporter", "Legal Secretary",
+      "Law Clerk", "Legal Research Assistant", "Compliance Specialist"
+    ]
+  }
+};
+
 export default function CareerGrowth() {
   const [about, setAbout] = useState("");
   const [dreamRole, setDreamRole] = useState("");
@@ -54,12 +209,64 @@ export default function CareerGrowth() {
   const [yearsExperience, setYearsExperience] = useState<number>(2);
   const [hoursPerWeek, setHoursPerWeek] = useState<number[]>([8]);
 
+  // New structured input states
+  const [selectedField, setSelectedField] = useState<string>("");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("");
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [targetCompany, setTargetCompany] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"structured" | "freeform">("structured");
+
   const generateCareerPlan = useAction(api.aiCareerGrowth.generateCareerPlan);
 
-  const disabled = useMemo(() => !dreamRole.trim() && !about.trim(), [about, dreamRole]);
+  // Get available subcategories based on selected field
+  const availableSubcategories = useMemo(() => {
+    if (!selectedField || !CAREER_DATA[selectedField as keyof typeof CAREER_DATA]) return [];
+    return Object.keys(CAREER_DATA[selectedField as keyof typeof CAREER_DATA]);
+  }, [selectedField]);
+
+  // Get available roles based on selected subcategory
+  const availableRoles = useMemo(() => {
+    if (!selectedField || !selectedSubcategory) return [];
+    const fieldData = CAREER_DATA[selectedField as keyof typeof CAREER_DATA];
+    if (!fieldData || !fieldData[selectedSubcategory as keyof typeof fieldData]) return [];
+    return fieldData[selectedSubcategory as keyof typeof fieldData];
+  }, [selectedField, selectedSubcategory]);
+
+  // Construct final dream role string
+  const finalDreamRole = useMemo(() => {
+    if (inputMode === "freeform") return dreamRole;
+    
+    let role = selectedRole;
+    if (targetCompany.trim()) {
+      role += ` at ${targetCompany.trim()}`;
+    }
+    return role;
+  }, [inputMode, dreamRole, selectedRole, targetCompany]);
+
+  const disabled = useMemo(() => {
+    if (inputMode === "structured") {
+      return !selectedRole.trim() && !about.trim();
+    }
+    return !dreamRole.trim() && !about.trim();
+  }, [inputMode, selectedRole, dreamRole, about]);
+
+  // Reset subcategory and role when field changes
+  const handleFieldChange = (field: string) => {
+    setSelectedField(field);
+    setSelectedSubcategory("");
+    setSelectedRole("");
+  };
+
+  // Reset role when subcategory changes
+  const handleSubcategoryChange = (subcategory: string) => {
+    setSelectedSubcategory(subcategory);
+    setSelectedRole("");
+  };
 
   async function generatePlan() {
-    if (!dreamRole.trim() && !about.trim()) {
+    const roleToUse = finalDreamRole;
+    
+    if (!roleToUse.trim() && !about.trim()) {
       toast.error("Please provide either your dream role or background information");
       return;
     }
@@ -68,7 +275,7 @@ export default function CareerGrowth() {
     try {
       const result = await generateCareerPlan({
         about: about.trim(),
-        dreamRole: dreamRole.trim(),
+        dreamRole: roleToUse,
         weeks,
         currentLevel,
         yearsExperience,
@@ -124,6 +331,32 @@ export default function CareerGrowth() {
                   <CardTitle className="text-2xl">Tell Us About Your Goals</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-8">
+                  {/* Input Mode Toggle */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Target className="w-4 h-4" />
+                      Choose Your Input Method
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={inputMode === "structured" ? "default" : "outline"}
+                        onClick={() => setInputMode("structured")}
+                        className="flex-1"
+                      >
+                        <Building2 className="w-4 h-4 mr-2" />
+                        Guided Selection
+                      </Button>
+                      <Button
+                        variant={inputMode === "freeform" ? "default" : "outline"}
+                        onClick={() => setInputMode("freeform")}
+                        className="flex-1"
+                      >
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        Free Form
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* Dream Role & Background */}
                   <div className="space-y-6">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -131,28 +364,115 @@ export default function CareerGrowth() {
                       Your Aspirations
                     </div>
                     
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="dream-role">Dream Role</Label>
-                        <Input
-                          id="dream-role"
-                          placeholder="e.g., Senior Data Scientist at Google, Head Chef, UX Designer"
-                          value={dreamRole}
-                          onChange={(e) => setDreamRole(e.target.value)}
-                          className="h-12"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="about">Your Background</Label>
-                        <Textarea
-                          id="about"
-                          placeholder="Tell us about your current skills, experience, and what excites you about this career path..."
-                          value={about}
-                          onChange={(e) => setAbout(e.target.value)}
-                          className="min-h-[120px] resize-none"
-                        />
-                      </div>
+                    <AnimatePresence mode="wait">
+                      {inputMode === "structured" ? (
+                        <motion.div
+                          key="structured"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="field">Field</Label>
+                              <Select value={selectedField} onValueChange={handleFieldChange}>
+                                <SelectTrigger className="h-12">
+                                  <SelectValue placeholder="Select a field" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.keys(CAREER_DATA).map((field) => (
+                                    <SelectItem key={field} value={field}>
+                                      {field}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="subcategory">Subcategory</Label>
+                              <Select 
+                                value={selectedSubcategory} 
+                                onValueChange={handleSubcategoryChange}
+                                disabled={!selectedField}
+                              >
+                                <SelectTrigger className="h-12">
+                                  <SelectValue placeholder="Select subcategory" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableSubcategories.map((subcategory) => (
+                                    <SelectItem key={subcategory} value={subcategory}>
+                                      {subcategory}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="role">Specific Role</Label>
+                            <Select 
+                              value={selectedRole} 
+                              onValueChange={setSelectedRole}
+                              disabled={!selectedSubcategory}
+                            >
+                              <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Select your target role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableRoles.map((role) => (
+                                  <SelectItem key={role} value={role}>
+                                    {role}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="target-company">Target Company (Optional)</Label>
+                            <Input
+                              id="target-company"
+                              placeholder="e.g., Google, Microsoft, Local Hospital..."
+                              value={targetCompany}
+                              onChange={(e) => setTargetCompany(e.target.value)}
+                              className="h-12"
+                            />
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="freeform"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="space-y-4"
+                        >
+                          <div className="space-y-2">
+                            <Label htmlFor="dream-role">Dream Role</Label>
+                            <Input
+                              id="dream-role"
+                              placeholder="e.g., Senior Data Scientist at Google, Head Chef, UX Designer"
+                              value={dreamRole}
+                              onChange={(e) => setDreamRole(e.target.value)}
+                              className="h-12"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="about">Your Background</Label>
+                      <Textarea
+                        id="about"
+                        placeholder="Tell us about your current skills, experience, and what excites you about this career path..."
+                        value={about}
+                        onChange={(e) => setAbout(e.target.value)}
+                        className="min-h-[120px] resize-none"
+                      />
                     </div>
                   </div>
 
