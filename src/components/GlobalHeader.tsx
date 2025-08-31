@@ -14,7 +14,7 @@ import {
   LayoutDashboard,
   Settings,
   ChevronLeft,
-  Bell
+  BarChart3
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -43,11 +43,7 @@ export function GlobalHeader() {
   };
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/dashboard");
-    }
+    navigate("/dashboard");
   };
 
   if (!isAuthenticated) {
@@ -59,6 +55,11 @@ export function GlobalHeader() {
       label: "Dashboard",
       path: "/dashboard",
       icon: LayoutDashboard
+    },
+    {
+      label: "Analytics",
+      path: "/analytics",
+      icon: BarChart3
     },
     {
       label: "Resume Builder",
@@ -124,15 +125,13 @@ export function GlobalHeader() {
                         </Button>
                       </SheetClose>
                     ))}
-                    {/* Back button in sidebar */}
                     <Button
                       variant="ghost"
                       size="lg"
                       onClick={handleBack}
                       className="w-full justify-start h-11 rounded-md text-muted-foreground"
                     >
-                      <ChevronLeft className="h-5 w-5 mr-2" />
-                      Back
+                      <ChevronLeft className="h-5 w-5" />
                     </Button>
 
                     {/* Theme toggle in sidebar */}
@@ -171,6 +170,10 @@ export function GlobalHeader() {
                 </div>
               </SheetContent>
             </Sheet>
+
+            <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Back to Dashboard">
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
 
             {/* Logo / Brand */}
             <Link to="/dashboard" className="flex items-center gap-3 group">
