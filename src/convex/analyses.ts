@@ -242,3 +242,75 @@ export const getDetailedAnalytics = query({
     };
   },
 });
+
+// Set an analysis as the user's dream job
+export const setDreamJobAnalysis = mutation({
+  args: { analysisId: v.id("analyses") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("User must be authenticated to set a dream job.");
+    }
+
+    // Verify the analysis belongs to the user
+    const analysis = await ctx.db.get(args.analysisId);
+    if (!analysis || analysis.userId !== user._id) {
+      throw new Error("Analysis not found or user does not have permission.");
+    }
+
+    // If user already has a dream job, unset it
+    if (user.dreamJobAnalysisId) {
+      const currentDreamJob = await ctx.db.get(user.dreamJobAnalysisId);
+      if (currentDreamJob) {
+        await ctx.db.patch(user.dreamJobAnalysisId, { isDreamJob: false });
+      }
+    }
+
+    // Set the new dream job
+    await ctx.db.patch(args.analysisId, { isDreamJob: true });
+    await ctx.db.patch(user._id, { dreamJobAnalysisId: args.analysisId });
+
+    return args.analysisId;
+  },
+});
+
+// Get the user's dream job analysis
+export const getDreamJobAnalysis = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      return null;
+    }
+
+    if (!user.dreamJobAnalysisId) {
+      return null;
+    }
+
+    const dreamJobAnalysis = await ctx.db.get(user.dreamJobAnalysisId);
+    if (!dreamJobAnalysis || dreamJobAnalysis.userId !== user._id) {
+      return null;
+    }
+
+    return dreamJobAnalysis;
+  },
+});
+
+// Remove dream job status
+export const removeDreamJob = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("User must be authenticated.");
+    }
+
+    if (user.dreamJobAnalysisId) {
+      const dreamJobAnalysis = await ctx.db.get(user.dreamJobAnalysisId);
+      if (dreamJobAnalysis) {
+        await ctx.db.patch(user.dreamJobAnalysisId, { isDreamJob: false });
+      }
+      await ctx.db.patch(user._id, { dreamJobAnalysisId: undefined });
+    }
+  },
+});

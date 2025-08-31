@@ -47,6 +47,7 @@ const schema = defineSchema(
       savedResumeId: v.optional(v.id("_storage")), // saved resume file
       savedResumeName: v.optional(v.string()), // name of saved resume
       theme: v.optional(v.union(v.literal("light"), v.literal("dark"))), // user theme preference
+      dreamJobAnalysisId: v.optional(v.id("analyses")), // reference to dream job analysis
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // Resume builder table
@@ -92,6 +93,17 @@ const schema = defineSchema(
         example: v.string(), // STAR method example
       }))),
 
+      // Feature: Dream Job Analysis
+      isDreamJob: v.optional(v.boolean()),
+      lackingSkills: v.optional(v.array(v.string())),
+      lackingEducation: v.optional(v.array(v.string())),
+      lackingExperience: v.optional(v.array(v.string())),
+      growthPlan: v.optional(v.array(v.object({
+        milestone: v.string(),
+        details: v.string(),
+        timeline: v.string(),
+      }))),
+
       status: v.union(
         v.literal("processing"),
         v.literal("completed"),
@@ -102,7 +114,8 @@ const schema = defineSchema(
       jobApplicationId: v.optional(v.id("jobApplications")),
     })
       .index("by_user", ["userId"])
-      .index("by_user_and_job", ["userId", "jobApplicationId"]),
+      .index("by_user_and_job", ["userId", "jobApplicationId"])
+      .index("by_user_and_dream_job", ["userId", "isDreamJob"]),
 
     // Feature: Job Application Tracker
     jobApplications: defineTable({

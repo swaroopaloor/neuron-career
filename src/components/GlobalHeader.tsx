@@ -13,7 +13,8 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
-  BarChart3
+  BarChart3,
+  Heart
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -55,6 +56,11 @@ export function GlobalHeader() {
       label: "Analytics",
       path: "/analytics",
       icon: BarChart3
+    },
+    {
+      label: "Dream Job",
+      path: "/dream-job",
+      icon: Heart
     },
     {
       label: "Resume Builder",

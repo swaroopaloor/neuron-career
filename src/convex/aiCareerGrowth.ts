@@ -1,809 +1,243 @@
 "use node";
 
 import { v } from "convex/values";
-import { action } from "./_generated/server";
+import { action, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import Groq from "groq-sdk";
 
-// Add: Strong entity extraction helpers to drive company- and role-specific plans
-type Entities = {
-  roleTitle: string | null;
-  company: string | null;
-  domain: string | null;
-  subDomain: string | null;
-  seniorityLevel: string | null;
-  location: string | null;
-  industry: string | null;
-};
+export const generateGrowthInsights = action({
+  args: {
+    resumeContent: v.string(),
+    jobDescription: v.string(),
+    analysisId: v.id("analyses"),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const prompt = `
+You are a career growth advisor. Analyze the following resume and job description to provide detailed career growth insights.
 
-// Compact Groq chat helper
-async function groqChat(
-  apiKey: string,
-  messages: Array<{ role: "system" | "user"; content: string }>,
-  opts: { max_tokens?: number; temperature?: number } = {}
-): Promise<string> {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+RESUME CONTENT:
+${args.resumeContent}
+
+JOB DESCRIPTION:
+${args.jobDescription}
+
+Please provide a comprehensive analysis in the following JSON format:
+{
+  "lackingSkills": ["skill1", "skill2", "skill3"],
+  "lackingEducation": ["education1", "education2"],
+  "lackingExperience": ["experience1", "experience2"],
+  "growthPlan": [
+    {
+      "milestone": "Short-term milestone (0-6 months)",
+      "details": "Specific actions to take",
+      "timeline": "0-6 months"
     },
-    body: JSON.stringify({
-      model: "llama-3.1-70b-versatile",
-      messages,
-      max_tokens: opts.max_tokens ?? 600,
-      temperature: opts.temperature ?? 0.05,
-      top_p: 0.8,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Groq API error: ${response.status}`);
-  }
-  const data = await response.json();
-  const contentRaw = data?.choices?.[0]?.message?.content;
-  if (!contentRaw || typeof contentRaw !== "string") {
-    throw new Error("No content received from Groq");
-  }
-  return contentRaw;
+    {
+      "milestone": "Medium-term milestone (6-12 months)",
+      "details": "Specific actions to take",
+      "timeline": "6-12 months"
+    },
+    {
+      "milestone": "Long-term milestone (1-2 years)",
+      "details": "Specific actions to take",
+      "timeline": "1-2 years"
+    }
+  ]
 }
 
-// Entity extractor using Groq (strict JSON only)
-async function extractEntities(
-  apiKey: string,
-  dreamRole: string,
-  about: string
-): Promise<Entities | null> {
-  const system = `You are an entity extraction engine.
-Return STRICT JSON with keys: roleTitle, company, domain, subDomain, seniorityLevel, location, industry.
-- roleTitle: clean job title without company
-- company: organization/employer name if present
-- domain: broad field (e.g., software engineering, culinary, aviation, healthcare)
-- subDomain: specialty (e.g., frontend, pastry, commercial airline)
-- seniorityLevel: standardized (intern, junior, mid, senior, staff, principal, lead, manager) when inferable
-- location: city/region/country if present
-- industry: sector (e.g., hospitality, tech, finance, education, logistics)
-Rules:
-- Output JSON ONLY, no markdown, no prose
-- Use null for unknowns
-- Trim whitespace in all string fields`;
-  const user = `Text: "${dreamRole}"
-Background: "${about}"
-Return ONLY JSON: {"roleTitle": "...", "company": "...", "domain": "...", "subDomain": "...", "seniorityLevel": "...", "location": "...", "industry": "..."}`;
+Guidelines:
+- Be specific and actionable in your recommendations
+- Focus on the most critical gaps between the resume and job requirements
+- Provide realistic timelines for skill development
+- Include both technical and soft skills where relevant
+- Consider certifications, courses, projects, and experience opportunities
+- Limit each array to the most important 3-5 items
+- Make sure the growth plan is progressive and builds upon previous milestones
 
-  try {
-    let content = await groqChat(apiKey, [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ]);
+Return only the JSON object, no additional text.
+`;
 
-    // Robust JSON slice if LLM added stray text
-    content = content.trim();
-    if (!content.startsWith("{")) {
-      const s = content.indexOf("{");
-      const e = content.lastIndexOf("}");
-      if (s !== -1 && e !== -1 && e > s) content = content.slice(s, e + 1);
-    }
-
-    const parsed = JSON.parse(content) as Entities;
-    const clean = (val: unknown) =>
-      typeof val === "string" ? val.trim() : val === undefined ? null : (val as any);
-
-    return {
-      roleTitle: clean(parsed.roleTitle),
-      company: clean(parsed.company),
-      domain: clean(parsed.domain),
-      subDomain: clean(parsed.subDomain),
-      seniorityLevel: clean(parsed.seniorityLevel),
-      location: clean(parsed.location),
-      industry: clean(parsed.industry),
-    };
-  } catch (err) {
-    console.warn("Entity extraction failed, falling back to regex/heuristics:", err);
-    return null;
-  }
-}
-
-// Add: plan validation and revision helpers to enforce exact role alignment
-function validatePlanAlignment(plan: any, roleTitle: string, targetCompany: string, weeks: number, hoursPerWeek: number) {
-  const reasons: string[] = [];
-  const role = (roleTitle || "").trim();
-  const company = (targetCompany || "").trim();
-
-  const hasSchema =
-    plan &&
-    Array.isArray(plan.topics) &&
-    Array.isArray(plan.courses) &&
-    Array.isArray(plan.certifications) &&
-    Array.isArray(plan.timeline) &&
-    typeof plan.summary === "string";
-  if (!hasSchema) reasons.push("Invalid or missing required top-level keys.");
-
-  if (Array.isArray(plan.timeline) && plan.timeline.length !== weeks) {
-    reasons.push(`Timeline length must be exactly ${weeks} weeks.`);
-  }
-
-  // Require 10+ topics to ensure specificity
-  if (!Array.isArray(plan.topics) || plan.topics.length < 10) {
-    reasons.push("Provide at least 10 topics tailored to the exact role.");
-  }
-
-  // Summary must echo the exact role; if company provided, include it
-  if (typeof plan.summary === "string") {
-    if (role && !plan.summary.toLowerCase().includes(role.toLowerCase())) {
-      reasons.push("Summary must explicitly reference the exact role string.");
-    }
-    if (company && !plan.summary.toLowerCase().includes(company.toLowerCase())) {
-      reasons.push("Summary must reference the specified company when provided.");
-    }
-  } else {
-    reasons.push("Summary must be a string.");
-  }
-
-  // Each week: 4–6 lines starting with "- " and include time annotations like "(2h)"
-  if (Array.isArray(plan.timeline)) {
-    for (const w of plan.timeline) {
-      const focus = (w?.focus ?? "") as string;
-      const lines = focus.split("\n").filter((l) => l.trim().startsWith("- "));
-      if (lines.length < 4 || lines.length > 6) {
-        reasons.push(`Week ${w?.week ?? "?"}: focus must have 4 to 6 bullet lines starting with "- ".`);
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        throw new Error("The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.");
       }
-      // Require at least one bullet per week to mention role or company explicitly
-      const mentionsRoleOrCompany = lines.some((l) => {
-        const ll = l.toLowerCase();
-        return (role && ll.includes(role.toLowerCase())) || (company && ll.includes(company.toLowerCase()));
+
+      const groq = new Groq({ apiKey });
+
+      const completion = await groq.chat.completions.create({
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 2000,
+        temperature: 0.2,
       });
-      if (!(mentionsRoleOrCompany || !role)) {
-        reasons.push(`Week ${w?.week ?? "?"}: at least one bullet must reference the exact role.`);
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("No response from AI");
       }
 
-      // Time annotation check: majority of lines should contain "(xh)"
-      const timeLines = lines.filter((l) => /\(\d+\.?\d*h\)/i.test(l));
-      if (timeLines.length < Math.ceil(lines.length * 0.6)) {
-        reasons.push(`Week ${w?.week ?? "?"}: most bullets should include time annotations like "(2h)".`);
+      // Parse the JSON response
+      let insights;
+      try {
+        insights = JSON.parse(content);
+      } catch (parseError) {
+        console.error("Failed to parse AI response:", content);
+        throw new Error("Invalid AI response format");
       }
+
+      // Validate the structure
+      if (!insights.lackingSkills || !insights.lackingEducation || !insights.lackingExperience || !insights.growthPlan) {
+        throw new Error("Incomplete AI response");
+      }
+
+      // Update the analysis with the insights
+      await ctx.runMutation(internal.aiCareerGrowth.updateAnalysisWithInsights, {
+        analysisId: args.analysisId,
+        lackingSkills: insights.lackingSkills,
+        lackingEducation: insights.lackingEducation,
+        lackingExperience: insights.lackingExperience,
+        growthPlan: insights.growthPlan,
+      });
+
+      return insights;
+    } catch (error) {
+      console.error("Error generating growth insights:", error);
+      throw new Error("Failed to generate growth insights. Please try again.");
     }
-  }
+  },
+});
 
-  return { valid: reasons.length === 0, reasons };
-}
-
-async function requestPlanFromGroq(apiKey: string, systemPrompt: string, userPrompt: string) {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: 3000,
-      temperature: 0.05,
-      top_p: 0.8,
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(`Groq API error: ${response.status}`);
-  }
-  const data = await response.json();
-  const contentRaw = data?.choices?.[0]?.message?.content;
-  if (!contentRaw || typeof contentRaw !== "string") {
-    throw new Error("No content received from AI");
-  }
-  let jsonText = contentRaw.trim();
-  if (!jsonText.startsWith("{")) {
-    const start = jsonText.indexOf("{");
-    const end = jsonText.lastIndexOf("}");
-    if (start !== -1 && end !== -1 && end > start) {
-      jsonText = jsonText.slice(start, end + 1);
-    }
-  }
-  return JSON.parse(jsonText);
-}
-
-async function revisePlanWithGroq(apiKey: string, systemPrompt: string, priorPlan: any, issues: string[], roleTitle: string, targetCompany: string, weeks: number, hoursPerWeek: number) {
-  const fixerSystem = `${systemPrompt}
-
-You must strictly correct the provided JSON to satisfy all constraints and preserve the exact role and company context. Return JSON ONLY with the same schema. Do NOT generalize.`;
-  const fixerUser = `The previous plan didn't meet the constraints.
-
-Exact role: ${roleTitle}
-Target company: ${targetCompany || "N/A"}
-Weeks: ${weeks}
-Hours/week: ${hoursPerWeek}
-
-Issues to fix:
-- ${issues.join("\n- ")}
-
-Here is the prior JSON plan. Transform it to fully comply with all constraints and align precisely to the exact role and company:
-
-${JSON.stringify(priorPlan)}`;
-
-  return await requestPlanFromGroq(apiKey, fixerSystem, fixerUser);
-}
+export const updateAnalysisWithInsights = internalMutation({
+  args: {
+    analysisId: v.id("analyses"),
+    lackingSkills: v.array(v.string()),
+    lackingEducation: v.array(v.string()),
+    lackingExperience: v.array(v.string()),
+    growthPlan: v.array(v.object({
+      milestone: v.string(),
+      details: v.string(),
+      timeline: v.string(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const { analysisId, ...updates } = args;
+    await ctx.db.patch(analysisId, updates);
+  },
+});
 
 export const generateCareerPlan = action({
   args: {
     about: v.string(),
     dreamRole: v.string(),
     weeks: v.number(),
-    // Add: user calibration inputs
     currentLevel: v.string(),
     yearsExperience: v.number(),
     hoursPerWeek: v.number(),
-    // Optional structured inputs
-    field: v.optional(v.string()),
-    subcategory: v.optional(v.string()),
-    specificRole: v.optional(v.string()),
-    targetCompany: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      throw new Error("GROQ_API_KEY is not configured");
+      throw new Error("The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.");
     }
 
-    // Normalize level for consistent logic
-    const level = (args.currentLevel || "").toLowerCase();
+    const groq = new Groq({ apiKey });
 
-    // Use structured inputs if provided, otherwise fall back to dreamRole parsing
-    let roleTitle: string;
-    let targetCompany: string;
-    
-    if (args.specificRole) {
-      // Structured input mode
-      roleTitle = args.specificRole.trim();
-      targetCompany = args.targetCompany?.trim() || "";
-    } else {
-      // Freeform input mode - parse dreamRole
-      const originalDreamRole = (args.dreamRole || "").trim();
-      const companyMatch = originalDreamRole.match(/\b(?:at|for|in|@)\b\s+(.+)$/i);
-      targetCompany = companyMatch ? companyMatch[1].trim() : "";
-      roleTitle = companyMatch ? originalDreamRole.slice(0, companyMatch.index).trim() : originalDreamRole;
-    }
+    const prompt = `
+You are a meticulous career coach. Create a concise, actionable learning roadmap tailored to the user's background and target role.
 
-    // AI entity extraction (company, title, domain, etc.) - enhanced for structured inputs
-    let entities: Entities | null = await extractEntities(apiKey, args.dreamRole || roleTitle, args.about);
-    if (entities?.company && !targetCompany) targetCompany = entities.company.trim();
-    if (entities?.roleTitle && !roleTitle) roleTitle = entities.roleTitle.trim();
-    
-    const inferred = {
-      domain: entities?.domain ?? args.field ?? null,
-      subDomain: entities?.subDomain ?? args.subcategory ?? null,
-      seniorityLevel: entities?.seniorityLevel ?? level,
-      location: entities?.location ?? null,
-      industry: entities?.industry ?? null,
-    };
+USER BACKGROUND:
+${args.about}
 
-    // Enhanced system prompt with structured input awareness
-    const systemPrompt = `You are a specialized domain expert and curriculum architect for ANY profession (white‑collar, blue‑collar, regulated, licensed, union, trades, public sector, etc.). You build rigorous, company-aware, role-accurate learning roadmaps.
+TARGET ROLE:
+${args.dreamRole || "Not specified"}
 
-CRITICAL REQUIREMENTS FOR ACCURACY:
-- Mirror the user's EXACT role text verbatim in outputs where appropriate; DO NOT substitute a different but "similar" role. Do NOT generalize to a role family.
-- When structured inputs are provided (field, subcategory, specific role), use these as the PRIMARY source of truth for role specificity.
-- Ground every recommendation in the realities of the role, domain, and industry. Be specific about workflows, tools, standards, regulations, certifications, and safety/quality practices used on the job.
-- When a target company is specified, adapt content to that company's typical stack, standards, processes, customer experience, and hiring bar for the specified role level.
-- Favor OFFICIAL, PUBLIC, AUTHORITATIVE sources: regulators (.gov), standards bodies (e.g., ISO, OSHA, FAA, FDA, IEC, NIST, NICE, WHO), accredited training/boards, universities (.edu), company engineering/careers/brand/ops blogs, manufacturer manuals, or well-known industry orgs.
-- Never invent or link to placeholder/fake URLs. Avoid generic directories or content farms. Choose the most authoritative link for each bullet.
-- Deliverables must be concrete and role-ready: SOPs, checklists, protocols, lesson plans, design specs, HLDs, reports, dashboards, repo features, demos, scripts, maintenance schedules, safety audits, tasting menus, cost sheets, etc.
-- Ensure weekly workload fits the user's time budget (~hours/week) and uses at least ~70% of it, never exceeding 100%.
+CONSTRAINTS:
+- Experience level: ${args.currentLevel} (${args.yearsExperience} years)
+- Weekly availability: ${args.hoursPerWeek} hours
+- Duration: ${args.weeks} weeks
 
-STRUCTURED INPUT HANDLING:
-- When field/subcategory/role are provided via structured selection, treat these as highly accurate and specific inputs.
-- Use the structured context to inform industry-specific terminology, tools, and career progression paths.
-- Leverage the structured hierarchy (field → subcategory → role) to provide more targeted recommendations.
-
-Output standards:
-- JSON ONLY. No markdown, no prose outside JSON, no code fences.
-- Timeline has exactly the requested number of weeks.
-- Each weekly "focus" must contain 4–6 lines, each line:
-  - Starts with "- "
-  - Includes a concrete deliverable tied to the EXACT role (and company if provided)
-  - Includes ONE authoritative resource link where possible
-  - Ends with a time estimate in parentheses like "(2h)".
-
-Edge cases to handle:
-- Non-tech roles (culinary, aviation, nursing, education, logistics, construction, hospitality, retail, manufacturing, legal, finance ops, call centers, etc.)
-- Licensed/regulated professions requiring compliance or certifications
-- Apprenticeships and union roles (IBEW, UA, IATSE, etc.)
-- Roles with customer experience or brand standards (e.g., airlines, hotels, retail)
-- Geographic differences in certifications/standards — link to widely recognized sources.
-
-If info is ambiguous, make the safest, most typical industry assumption and provide role-accurate deliverables and credible links.
-Absolutely do NOT generalize to a different role or a role family; always reflect the exact role string provided.`;
-
-    // Enhanced user prompt with structured input context
-    const structuredContext = args.field && args.subcategory && args.specificRole 
-      ? `\n\nSTRUCTURED INPUT CONTEXT (HIGH PRIORITY):
-- Field: ${args.field}
-- Subcategory: ${args.subcategory}
-- Specific Role: ${args.specificRole}
-- Target Company: ${args.targetCompany || "N/A"}
-
-This structured input should be treated as the PRIMARY source of role specificity.`
-      : "";
-
-    const prompt = `Use the inputs below to produce a highly accurate and actionable career plan tailored to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE (exact), and optional TARGET COMPANY.
-
-Exact Role (echo verbatim): ${roleTitle}
-Target Company (if any): ${targetCompany || "N/A"}${structuredContext}
-
-Inputs (verbatim):
-- User Background: ${args.about}
-- Current Level (normalized): ${level}
-- Years of Experience: ${args.yearsExperience}
-- Available Time: ${args.hoursPerWeek} hours/week
-- Timeline (weeks): ${args.weeks}
-
-Inferred Entities (from extraction):
-- Domain: ${inferred.domain ?? "N/A"}
-- SubDomain: ${inferred.subDomain ?? "N/A"}
-- Seniority (standardized): ${inferred.seniorityLevel ?? "N/A"}
-- Location: ${inferred.location ?? "N/A"}
-- Industry: ${inferred.industry ?? "N/A"}
-
-You must:
-1) Align all topics, deliverables, and resources to the EXACT role "${roleTitle}" (and company "${targetCompany || "N/A"}" if provided). Do NOT generalize to a different role or category.
-2) Calibrate depth and complexity to the user's level (${level}) and experience (${args.yearsExperience}). Avoid junior overload or senior triviality.
-3) Fit weekly work within ~${args.hoursPerWeek}h. Use at least ~70% of the budget but never exceed it across the listed bullet estimates for that week.
-4) Include 2–3 company-specific links (if a target company is provided) from public sources (engineering/ops/brand/UX/careers/safety/compliance pages).
-5) Replace generic phrases with specific subskills, tools, standards, and measurable outcomes tied to "${roleTitle}". Every weekly bullet must have a concrete output and a single authoritative link when available.
-
-Strict output format: Return ONLY a JSON object with EXACTLY these keys and structure:
-
+REQUIREMENTS:
+Return ONLY a valid JSON object with this exact shape:
 {
-  "topics": ["12–14 specific, role/company-aligned topics (no vague categories)"],
+  "topics": string[],                      // 5-10 concise topic statements
   "courses": [
-    { "title": "Official Course or Training", "provider": "Provider/Company/Regulator", "url": "https://authoritative-url" }
-  ],
-  "certifications": ["cert1", "cert2", "... (if applicable)"],
+    { "title": string, "provider": string, "url": string }
+  ],                                       // 5-8 curated, reputable courses with valid URLs
+  "certifications": string[],              // 3-6 relevant certs (omit if none are genuinely relevant)
   "timeline": [
-    {
-      "week": 1,
-      "focus": "- deliverable tied to ${roleTitle} (xh): https://authoritative-link\n- deliverable tied to ${roleTitle} (xh): https://authoritative-link\n- deliverable tied to ${roleTitle} (xh)\n- deliverable tied to ${roleTitle} (xh)"
-    }
+    { "week": number, "focus": string }    // exactly ${args.weeks} entries; focus should be multiple lines separated by "\\n", each line a short bullet starting with "-" or "•"
   ],
-  "summary": "2–3 motivating sentences summarizing outcomes for ${roleTitle}${targetCompany ? " at " + targetCompany : ""}, calibrated to ${level} with ~${args.hoursPerWeek}h/week."
+  "summary": string                        // 1-2 sentence overview tailored to the role and level
 }
 
-Output JSON ONLY with no extra text.`;
+INSTRUCTIONS:
+- Ensure timeline has exactly ${args.weeks} entries from week 1 to week ${args.weeks}.
+- Make bullets specific and measurable where possible.
+- Prefer free / widely accessible resources when appropriate (Coursera, edX, YouTube, vendor docs).
+- Keep text concise, ATS-friendly, and focused on outcomes.
+`;
 
+    const completion = await groq.chat.completions.create({
+      model: "llama3-8b-8192",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.2,
+      max_tokens: 3000,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("No response from AI while generating career plan.");
+    }
+
+    let plan: any;
     try {
-      // Primary request
-      let plan: any = await requestPlanFromGroq(apiKey, systemPrompt, prompt);
-
-      // Validation and auto-revision if needed
-      let { valid, reasons } = validatePlanAlignment(plan, roleTitle, targetCompany, args.weeks, args.hoursPerWeek);
-      if (!valid) {
-        plan = await revisePlanWithGroq(apiKey, systemPrompt, plan, reasons, roleTitle, targetCompany, args.weeks, args.hoursPerWeek);
-        ({ valid, reasons } = validatePlanAlignment(plan, roleTitle, targetCompany, args.weeks, args.hoursPerWeek));
-        if (!valid) {
-          throw new Error(`AI plan failed validation after revision: ${reasons.join("; ")}`);
-        }
-      }
-
-      // Ensure exactly args.weeks in timeline; fill gaps with role-aligned generic items if any (should not happen post-validation)
-      if (Array.isArray(plan.timeline)) {
-        if (plan.timeline.length > args.weeks) {
-          plan.timeline = plan.timeline.slice(0, args.weeks);
-        } else if (plan.timeline.length < args.weeks) {
-          const start = plan.timeline.length;
-          const genericFocus = [
-            `- Close skill gaps toward ${roleTitle} with 2–3 targeted lessons (${Math.max(2, Math.round(args.hoursPerWeek * 0.4))}h)`,
-            `- Produce a ${roleTitle}-specific artifact (repo/case study/doc) (${Math.max(1, Math.round(args.hoursPerWeek * 0.3))}h)`,
-            `- Apply learning using ${roleTitle}-specific tools/methods (${Math.max(1, Math.round(args.hoursPerWeek * 0.2))}h)`,
-            `- Reflect, track outcomes, and plan next steps (${Math.max(1, Math.round(args.hoursPerWeek * 0.1))}h)`,
-          ].join("\n");
-          for (let w = start; w < args.weeks; w++) {
-            plan.timeline.push({ week: w + 1, focus: genericFocus });
-          }
-        }
-      }
-
-      return plan;
-    } catch (error) {
-      console.error("Error generating career plan (Groq):", error);
-
-      // Enhanced fallback with structured input awareness
-      const text = `${args.dreamRole || roleTitle} ${args.about}`.toLowerCase();
-      const fieldContext = args.field ? args.field.toLowerCase() : "";
-      const subcategoryContext = args.subcategory ? args.subcategory.toLowerCase() : "";
-      
-      // Domain detection logic (enhanced with structured inputs)
-      const isSWE = /(software|swe|frontend|back[- ]?end|full[- ]?stack|mobile|devops|cloud|qa|test|engineering)/i.test(args.dreamRole || "") || 
-                   fieldContext.includes("technology") && subcategoryContext.includes("software");
-      const isDS  = /(data scientist|machine learning|ml|ai(?!.*product)|deep learning|analytics)/i.test(text) ||
-                   fieldContext.includes("technology") && subcategoryContext.includes("data");
-      const isPM  = /(product manager|product management|pm|product owner)/i.test(text) ||
-                   fieldContext.includes("technology") && subcategoryContext.includes("product");
-      const isSEC = /(cyber|security|infosec|soc|pentest|penetration|blue team|red team)/i.test(text) ||
-                   fieldContext.includes("technology") && subcategoryContext.includes("cyber");
-      const isUX  = /(ux|ui|designer|product design|interaction design|visual design)/i.test(text) ||
-                   fieldContext.includes("technology") && subcategoryContext.includes("design");
-      const isMKT = /(marketing|growth|seo|sem|ppc|content|ads|campaign)/i.test(text) ||
-                   fieldContext.includes("marketing");
-      const isCUL = /(chef|culinary|cook|kitchen|pastry|line cook|sous chef|restaurant|hospitality|food(?!\s*science)|beverage)/i.test(text) ||
-                   fieldContext.includes("culinary");
-
-      // Fallback topics/courses/certs per domain
-      let topics: string[] = [];
-      let courses: Array<{ title: string; provider: string; url: string }> = [];
-      let certifications: string[] = [];
-
-      if (isSWE) {
-        topics = [
-          "Algorithms & Data Structures: Arrays, Hashing, Two Pointers, Stack/Queue, Trees, Graphs",
-          "Language Mastery: TypeScript/JavaScript (syntax, types, async, patterns)",
-          "System Design: Caching, Queues, Load Balancing, Databases, CAP tradeoffs",
-          "APIs & Backend: REST, Auth, Pagination, Rate Limiting, Error Handling",
-          "Databases: SQL vs NoSQL, indexing, query optimization, transactions",
-          "Testing: Unit, Integration, E2E; Jest/Vitest + Testing Library",
-          "DevOps Basics: Git, CI/CD, Docker; Env config & secrets",
-          "Performance & Observability: profiling, logs, metrics, tracing",
-          "Security Essentials: OWASP Top 10, input validation, auth flows",
-          "Portfolio Projects: real-world apps with clear READMEs and demos"
-        ];
-        courses = [
-          { title: "Algorithms Specialization", provider: "Coursera", url: "https://www.coursera.org/specializations/algorithms" },
-          { title: "Grokking Modern System Design Interview", provider: "Educative", url: "https://www.educative.io/courses/grokking-modern-system-design-interview-for-engineers-managers" },
-          { title: "TypeScript: The Complete Developer's Guide", provider: "Udemy", url: "https://www.udemy.com/course/typescript-the-complete-developers-guide/" }
-        ];
-        certifications = ["AWS Certified Cloud Practitioner (optional)", "Language/framework cert if relevant"];
-      } else if (isDS) {
-        topics = [
-          "Python for Data: NumPy, Pandas, data cleaning",
-          "Exploratory Data Analysis & Visualization: Matplotlib, Seaborn/Plotly",
-          "Statistics & Probability for ML",
-          "ML Algorithms: Linear/Logistic Regression, Trees, Ensembles, SVMs, Clustering",
-          "Model Evaluation & Validation: cross-validation, metrics",
-          "Feature Engineering & Pipelines: scikit-learn",
-          "Intro to Deep Learning: PyTorch or TensorFlow",
-          "SQL for Analytics and Warehousing",
-          "MLOps Basics: reproducibility, experiment tracking",
-          "Portfolio: notebooks, reports, dashboards"
-        ];
-        courses = [
-          { title: "Applied Data Science with Python", provider: "Coursera (UMich)", url: "https://www.coursera.org/specializations/data-science-python" },
-          { title: "Machine Learning Specialization", provider: "Coursera (Andrew Ng)", url: "https://www.coursera.org/specializations/machine-learning-introduction" },
-          { title: "Deep Learning with PyTorch", provider: "Udacity", url: "https://www.udacity.com/course/deep-learning-pytorch--ud188" }
-        ];
-        certifications = ["Google Professional Data Engineer (optional)"];
-      } else if (isPM) {
-        topics = [
-          "Product Discovery & User Research",
-          "Problem Framing, Hypotheses, and JTBD",
-          "PRD Writing & Specs",
-          "Roadmapping & Prioritization (RICE, MoSCoW)",
-          "Product Metrics & Analytics (AARRR, North Star)",
-          "Experimentation & A/B Testing",
-          "Stakeholder Communication & Alignment",
-          "Go-To-Market & Launch Planning",
-          "Competitive Analysis & Positioning",
-          "Case Studies & Portfolio Artifacts"
-        ];
-        courses = [
-          { title: "Software Product Management Specialization", provider: "Coursera", url: "https://www.coursera.org/specializations/product-management" },
-          { title: "Product Strategy", provider: "Northwestern | Coursera", url: "https://www.coursera.org/learn/product-strategy" },
-          { title: "A/B Testing", provider: "Udacity", url: "https://www.udacity.com/course/ab-testing--ud257" }
-        ];
-        certifications = ["AIPMM or Pragmatic Institute PM certifications (optional)"];
-      } else if (isSEC) {
-        topics = [
-          "Networking & OS Fundamentals",
-          "Threat Modeling and Risk Assessment",
-          "Web Security & OWASP Top 10",
-          "SIEM & Log Analysis",
-          "Vulnerability Scanning & Pen Testing Basics",
-          "Incident Response & Playbooks",
-          "Cloud Security Fundamentals",
-          "Secure Coding & DevSecOps",
-          "Identity & Access Management",
-          "Security Lab Projects & Reports"
-        ];
-        courses = [
-          { title: "Introduction to Cyber Security", provider: "Coursera (NYU)", url: "https://www.coursera.org/learn/intro-cyber-security" },
-          { title: "Practical Ethical Hacking", provider: "Udemy", url: "https://www.udemy.com/course/practical-ethical-hacking/" },
-          { title: "OWASP Top 10", provider: "PortSwigger Web Security Academy", url: "https://portswigger.net/web-security" }
-        ];
-        certifications = ["CompTIA Security+ (entry)", "eJPT (optional)"];
-      } else if (isUX) {
-        topics = [
-          "User Research & Interviews",
-          "Information Architecture",
-          "Wireframing & Prototyping",
-          "Visual Design & Typography",
-          "Interaction Design & Microinteractions",
-          "Design Systems & Components",
-          "Accessibility (WCAG)",
-          "Usability Testing",
-          "Figma Essentials & Collaboration",
-          "Portfolio Case Studies"
-        ];
-        courses = [
-          { title: "Google UX Design Professional Certificate", provider: "Coursera", url: "https://www.coursera.org/professional-certificates/google-ux-design" },
-          { title: "UX Research", provider: "Coursera", url: "https://www.coursera.org/learn/ux-research-at-scale" },
-          { title: "Design Systems", provider: "Udemy", url: "https://www.udemy.com/topic/design-systems/" }
-        ];
-        certifications = ["None required; strong portfolio is key"];
-      } else if (isMKT) {
-        topics = [
-          "Positioning, ICP & Messaging",
-          "SEO Fundamentals & Content Strategy",
-          "Paid Ads: Google Ads, Meta Ads",
-          "Email Marketing & Automation",
-          "Analytics: GA4, Attribution",
-          "Experimentation: A/B Testing",
-          "Landing Page Optimization & CRO",
-          "Social & Influencer Strategy",
-          "Campaign Planning & Reporting",
-          "Growth Loops & Retention"
-        ];
-        courses = [
-          { title: "Digital Marketing Specialization", provider: "Coursera (Illinois)", url: "https://www.coursera.org/specializations/digital-marketing" },
-          { title: "Google Analytics 4", provider: "Google Skillshop", url: "https://skillshop.exceedlms.com/student/path/29344-google-analytics" },
-          { title: "SEO Fundamentals", provider: "Semrush Academy", url: "https://www.semrush.com/academy/" }
-        ];
-        certifications = ["Google Ads Certifications", "HubSpot Inbound (optional)"];
-      } else if (isCUL) {
-        topics = [
-          "Kitchen leadership & brigade management",
-          "Food safety: HACCP, ServSafe, allergen controls",
-          "Menu engineering, recipe costing, and yield tests",
-          "Mise en place systems, prep lists, SOPs",
-          "Line checks, pass management, and ticket timing",
-          "Vendor selection, purchasing, and inventory (par levels)",
-          "Quality control: plating standards and consistency",
-          "Waste reduction and cost control (food cost %, labor)",
-          "Dietary protocols: vegan/gluten-free/allergen matrix",
-          "Equipment, maintenance, and kitchen safety",
-          "Training plans and shift scheduling",
-          "Seasonal menu development and tastings"
-        ];
-        courses = [
-          { title: "ServSafe Food Protection Manager Certification", provider: "ServSafe", url: "https://www.servsafe.com/ss/Food-Protection-Manager" },
-          { title: "HACCP Training Resources", provider: "U.S. FDA", url: "https://www.fda.gov/food/hazard-analysis-critical-control-point-haccp/haccp-training" },
-          { title: "Food & Beverage Management", provider: "Coursera (Bocconi)", url: "https://www.coursera.org/learn/food-beverage-management" },
-          { title: "The Science of Gastronomy", provider: "Coursera (HKUST)", url: "https://www.coursera.org/learn/science-of-gastronomy" }
-        ];
-        certifications = [
-          "ServSafe Food Protection Manager",
-          "HACCP Certification",
-          "Allergen Awareness (jurisdiction-specific)",
-          "Food Handler Card (jurisdiction-specific)"
-        ];
-      } else {
-        // Generic but still structured fallback
-        topics = [
-          "Role-specific fundamentals",
-          "Intermediate skill-building",
-          "Practical projects",
-          "Tooling & workflows",
-          "Metrics & evaluation",
-          "Portfolio/case studies",
-          "Networking & industry knowledge",
-          "Interview preparation",
-          "Continuous learning"
-        ];
-        courses = [
-          { title: "Career Development Fundamentals", provider: "Coursera", url: "https://www.coursera.org/specializations/career-success" },
-          { title: "Professional Skills Development", provider: "LinkedIn Learning", url: "https://www.linkedin.com/learning/topics/professional-development" }
-        ];
-        certifications = ["Relevant industry certification (optional)"];
-      }
-
-      // Timelines per domain
-      const hrs = args.hoursPerWeek;
-      const weeks = args.weeks;
-      const makeBullets = (items: string[]) => items.join("\n");
-
-      const timeline = Array.from({ length: weeks }, (_, i) => {
-        const week = i + 1;
-
-        // Simple phase gating for structure
-        let phase: "Found" | "Build" | "Project" | "Interview" = "Build";
-        if (week <= Math.ceil(weeks * 0.25)) phase = "Found";
-        else if (week <= Math.ceil(weeks * 0.65)) phase = "Build";
-        else if (week <= Math.max(Math.ceil(weeks * 0.85), weeks - 2)) phase = "Project";
-        else phase = "Interview";
-
-        // Domain-specific weekly bullets (concise but concrete)
-        if (isSWE) {
-          const juniorLang = level === "junior" ? "TypeScript" : "your primary language";
-          const bulletsByPhase: Record<string, string[]> = {
-            Found: [
-              `- Solve 10 NeetCode easy problems (Arrays/Strings) (${Math.max(3, Math.round(hrs * 0.45))}h): https://neetcode.io/roadmap`,
-              `- Implement 2 classic problems in ${juniorLang} with tests (${Math.max(2, Math.round(hrs * 0.25))}h)`,
-              `- Notes on patterns in a README/Gist (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- Watch intro system design (1 video) and summarize (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Build: [
-              `- Build a small API with auth & pagination (${Math.max(3, Math.round(hrs * 0.45))}h)`,
-              `- Add SQL DB + 3 indexed queries (${Math.max(2, Math.round(hrs * 0.25))}h)`,
-              `- Containerize with Docker & basic CI (${Math.max(2, Math.round(hrs * 0.25))}h)`,
-              `- Integration tests baseline (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Project: [
-              `- Scope feature(s) for portfolio app; create issues/milestones (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- Implement feature + tests (${Math.max(3, Math.round(hrs * 0.45))}h)`,
-              `- Add logging/metrics; measure 1 perf metric (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Polish README with screenshots/demo (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Interview: [
-              `- 8–10 DSA problems mixed difficulty (${Math.max(3, Math.round(hrs * 0.45))}h): https://leetcode.com`,
-              `- 1 system design mock + HLD doc (${Math.max(2, Math.round(hrs * 0.3))}h)`,
-              `- Behavioral STAR stories (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- Resume refresh highlighting impact (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ]
-          };
-          return { week, focus: makeBullets(bulletsByPhase[phase]) };
-        }
-
-        if (isDS) {
-          const bulletsByPhase: Record<string, string[]> = {
-            Found: [
-              `- Complete Pandas data cleaning mini-project (${Math.max(3, Math.round(hrs * 0.45))}h)`,
-              `- EDA + visualization on public dataset; notebook deliverable (${Math.max(2, Math.round(hrs * 0.25))}h)`,
-              `- Stats refresher (distributions, CI) with notes (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- SQL practice set (20 queries) (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Build: [
-              `- Train baseline models (LR/Tree) + cross-validation (${Math.max(3, Math.round(hrs * 0.45))}h)`,
-              `- Feature engineering pipeline in sklearn (${Math.max(2, Math.round(hrs * 0.25))}h)`,
-              `- Model evaluation report (metrics/plots) (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Track experiments (MLflow or similar) (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Project: [
-              `- Define a portfolio ML project and dataset (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- Build MVP notebook + README (${Math.max(3, Math.round(hrs * 0.45))}h)`,
-              `- Create dashboard/visualization (Streamlit) (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Draft blog-style summary (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Interview: [
-              `- Kaggle mini-competition practice (${Math.max(3, Math.round(hrs * 0.45))}h): https://www.kaggle.com/competitions`,
-              `- ML concepts Q&A sheet (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Portfolio polish with links & screenshots (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- Behavioral story prep (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ]
-          };
-          return { week, focus: makeBullets(bulletsByPhase[phase]) };
-        }
-
-        if (isPM) {
-          const bulletsByPhase: Record<string, string[]> = {
-            Found: [
-              `- Draft 1-page problem statement for a product idea (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- 3 user interviews; notes + insights doc (${Math.max(2, Math.round(hrs * 0.3))}h)`,
-              `- Competitive analysis table (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Define success metrics (North Star + 2 input metrics) (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Build: [
-              `- Write a PRD for one feature (${Math.max(2, Math.round(hrs * 0.3))}h)`,
-              `- Create a simple roadmap & RICE scoring (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Design experiment plan (A/B) with metrics (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Stakeholder comms plan (brief) (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Project: [
-              `- Ship a clickable prototype/spec and walkthrough (${Math.max(3, Math.round(hrs * 0.45))}h)`,
-              `- Draft GTM brief + launch checklist (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Build a KPI dashboard mock (Sheets/Looker mock) (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Write a case study page (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Interview: [
-              `- PM case practice x2; write structured solutions (${Math.max(3, Math.round(hrs * 0.45))}h)`,
-              `- Metrics/estimation drills (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Portfolio/case study polish (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-              `- Behavioral stories (STAR) (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ]
-          };
-          return { week, focus: makeBullets(bulletsByPhase[phase]) };
-        }
-
-        if (isCUL) {
-          const bulletsByPhase: Record<string, string[]> = {
-            Found: [
-              `- Complete ServSafe Manager modules (${Math.max(2, Math.round(hrs * 0.4))}h): https://www.servsafe.com/ss/Food-Protection-Manager`,
-              `- Draft HACCP flow for 3 high-risk dishes; identify CCPs (${Math.max(1, Math.round(hrs * 0.25))}h): https://www.fda.gov/food/hazard-analysis-critical-control-point-haccp/haccp-training`,
-              `- Standardize 5 core recipes (grams, yields, allergens) + cost sheet (${Math.max(1, Math.round(hrs * 0.25))}h)`,
-              `- Run yield tests for 3 proteins; log waste and cost deltas (${Math.max(1, Math.round(hrs * 0.15))}h)`
-            ],
-            Build: [
-              `- Create menu engineering matrix for 10 items (CM, popularity) (${Math.max(2, Math.round(hrs * 0.35))}h): https://www.coursera.org/learn/food-beverage-management`,
-              `- Set par levels, prep list and mise en place SOP templates (${Math.max(2, Math.round(hrs * 0.35))}h)`,
-              `- Design line setup & pass timing; do a timed dry run (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Build vendor sheet (3 quotes) + receiving checklist (${Math.max(1, Math.round(hrs * 0.2))}h)`
-            ],
-            Project: [
-              `- Launch 1 seasonal special; run two tastings; capture feedback (${Math.max(2, Math.round(hrs * 0.35))}h)`,
-              `- Reduce food cost by ~2–3% via portion control & waste log (${Math.max(2, Math.round(hrs * 0.35))}h)`,
-              `- Train brigade on 2 SOPs; collect sign-offs (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-              `- Create allergen matrix & service brief for FOH (${Math.max(1, Math.round(hrs * 0.2))}h)`
-            ],
-            Interview: [
-              `- Assemble tasting menu portfolio + photos (${Math.max(2, Math.round(hrs * 0.35))}h)`,
-              `- Write HACCP summary + cleaning schedule template (${Math.max(1, Math.round(hrs * 0.25))}h)`,
-              `- Cost a sample menu & labor schedule; KPI one-pager (${Math.max(1, Math.round(hrs * 0.25))}h)`,
-              `- Mock trial cook; checklist + retrospective (${Math.max(1, Math.round(hrs * 0.2))}h)`
-            ]
-          };
-          return { week, focus: makeBullets(bulletsByPhase[phase]) };
-        }
-
-        // Generic but actionable
-        const generic: Record<string, string[]> = {
-          Found: [
-            `- Complete 2–3 foundational lessons with notes (${Math.max(2, Math.round(hrs * 0.5))}h)`,
-            `- Tiny exercise applying new concepts (${Math.max(2, Math.round(hrs * 0.3))}h)`,
-            `- Summarize learnings in a short post (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-            `- Identify role-specific resources (1h)`,
-          ],
-          Build: [
-            `- Deep-dive into an intermediate module (${Math.max(3, Math.round(hrs * 0.5))}h)`,
-            `- Implement 1–2 features in a sample project (${Math.max(2, Math.round(hrs * 0.3))}h)`,
-            `- Create flashcards/notes for key concepts (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-            `- Seek feedback from a peer/mentor (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-          ],
-          Project: [
-            `- Define scope for a portfolio-ready project (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-            `- Build and document an MVP (${Math.max(3, Math.round(hrs * 0.55))}h)`,
-            `- Add README with screenshots and instructions (${Math.max(1, Math.round(hrs * 0.2))}h)`,
-            `- Record a short demo (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-          ],
-          Interview: [
-            `- Refresh fundamentals with quick quizzes (${Math.max(2, Math.round(hrs * 0.35))}h)`,
-            `- Practice 2–3 mock interviews (${Math.max(2, Math.round(hrs * 0.35))}h)`,
-            `- Polish resume/portfolio with project highlights (${Math.max(1, Math.round(hrs * 0.3))}h)`,
-            `- Outreach: 2 networking touches (${Math.max(1, Math.round(hrs * 0.15))}h)`,
-          ],
-        };
-
-        return { week, focus: makeBullets(generic[phase]) };
-      });
-
-      // Before returning the fallback, explicitly reflect the exact role in topics to avoid generic labels
-      if (Array.isArray(topics)) {
-        topics = topics.map((t) => (roleTitle ? `${roleTitle}: ${t}` : t));
-      }
-
-      return {
-        topics,
-        courses,
-        certifications,
-        timeline,
-        summary: `Personalized ${args.weeks}-week plan aligned to ${roleTitle}${targetCompany ? " @ " + targetCompany : ""} (~${args.hoursPerWeek}h/week). Calibrated to ${level} with concrete weekly outputs and links.`,
-      };
-    }
-  },
-});
-
-// New: simple action to run entity extraction tests across diverse examples
-export const runEntityExtractionTests = action({
-  args: {},
-  handler: async (ctx) => {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      throw new Error("GROQ_API_KEY is not configured");
+      plan = JSON.parse(content);
+    } catch (e) {
+      throw new Error("Invalid AI response format for career plan.");
     }
 
-    const examples: Array<{ dreamRole: string; about?: string }> = [
-      { dreamRole: "SDE1 at Google" },
-      { dreamRole: "head chef in Taj Hotels" },
-      { dreamRole: "pilot for British Airways" },
-      { dreamRole: "ICU nurse at Mayo Clinic" },
-      { dreamRole: "Financial analyst at Goldman Sachs" },
-      { dreamRole: "High school math teacher in NYC DOE" },
-      { dreamRole: "Warehouse manager at Amazon fulfillment" },
-      { dreamRole: "UX designer @ Airbnb" },
-      { dreamRole: "Customer support representative at Shopify" },
-      { dreamRole: "Electrician apprentice at Local 3 IBEW" },
-    ];
+    // Minimal validation and normalization
+    if (!Array.isArray(plan.topics)) plan.topics = [];
+    if (!Array.isArray(plan.courses)) plan.courses = [];
+    if (!Array.isArray(plan.certifications)) plan.certifications = [];
+    if (!Array.isArray(plan.timeline)) plan.timeline = [];
+    if (typeof plan.summary !== "string") plan.summary = "";
 
-    const results: Array<{ input: string; entities: Entities | null }> = [];
-    for (const ex of examples) {
-      const entities = await extractEntities(apiKey, ex.dreamRole, ex.about ?? "");
-      results.push({ input: ex.dreamRole, entities });
+    // Normalize timeline to exactly N weeks
+    const N = Math.max(1, Math.min(52, args.weeks));
+    const timeline = [];
+    for (let i = 1; i <= N; i++) {
+      const entry = plan.timeline.find((w: any) => Number(w?.week) === i) || {};
+      const focus = typeof entry.focus === "string" && entry.focus.trim().length > 0
+        ? entry.focus
+        : "- Study core concepts\n- Practice with exercises\n- Build a small artifact";
+      timeline.push({ week: i, focus });
     }
-    return results;
+    plan.timeline = timeline;
+
+    // Ensure course items have required fields
+    plan.courses = plan.courses
+      .filter((c: any) => c && typeof c.title === "string" && typeof c.provider === "string" && typeof c.url === "string")
+      .slice(0, 8);
+
+    // Slice topics and certifications to reasonable counts
+    plan.topics = plan.topics.filter((t: any) => typeof t === "string" && t.trim()).slice(0, 10);
+    plan.certifications = plan.certifications.filter((c: any) => typeof c === "string" && c.trim()).slice(0, 6);
+
+    return {
+      topics: plan.topics as string[],
+      courses: plan.courses as Array<{ title: string; provider: string; url: string }>,
+      certifications: plan.certifications as string[],
+      timeline: plan.timeline as Array<{ week: number; focus: string }>,
+      summary: plan.summary as string,
+    };
   },
 });

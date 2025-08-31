@@ -27,6 +27,7 @@ import AnalysisLoading from "@/components/AnalysisLoading";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useMutation } from "convex/react";
 
 interface AnalysisReportProps {
   analysisId: Id<"analyses">;
@@ -35,6 +36,7 @@ interface AnalysisReportProps {
 
 export default function AnalysisReport({ analysisId, onBack }: AnalysisReportProps) {
   const analysis = useQuery(api.analyses.getAnalysis, { id: analysisId });
+  const setDreamJob = useMutation(api.analyses.setDreamJobAnalysis);
 
   // Single state for the active tab (Match or ATS)
   const [activeTab, setActiveTab] = useState<"match" | "ats">("match");
@@ -319,6 +321,16 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     toast("Exported analysis as text file");
   };
 
+  const handleSetDreamJob = async () => {
+    try {
+      await setDreamJob({ analysisId });
+      toast("Set as dream job successfully! 🌟");
+    } catch (error) {
+      console.error("Failed to set dream job:", error);
+      toast.error("Failed to set as dream job. Please try again.");
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -343,6 +355,17 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             <h1 className="text-lg font-medium text-foreground">Analysis Report</h1>
             
             <div className="ml-auto flex items-center gap-2">
+              {analysis?.status === "completed" && (
+                <Button
+                  variant={analysis.isDreamJob ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleSetDreamJob}
+                  className={analysis.isDreamJob ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" : ""}
+                >
+                  <Star className={`h-4 w-4 mr-2 ${analysis.isDreamJob ? "fill-current" : ""}`} />
+                  {analysis.isDreamJob ? "Dream Job ✨" : "Set as Dream Job"}
+                </Button>
+              )}
               <Button variant="outline" size="sm" className="px-2 sm:px-3" onClick={handleShare}>
                 <Share className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Share</span>
