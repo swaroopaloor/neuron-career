@@ -25,10 +25,10 @@ export const generateCareerPlan = action({
     // Generalized, domain-agnostic instructions (system) to ensure accuracy for ANY role
     const systemPrompt = `You are an expert career architect and curriculum designer.
 Objectives:
-- Infer the exact domain/industry and sub-specialty directly from the dream role and background (examples: healthcare, finance, legal, trades, arts, sales, marketing, HR, operations, customer support, manufacturing, logistics, hospitality, education, research, government, non-profit, etc.).
-- Be precise, concrete, and measurable. Avoid fluff and platitudes.
-- Use reputable, real resources with working URLs; avoid placeholders or vague sites like "example.com".
-- For each week, provide 4–6 bullets, each with: (1) a concrete deliverable, (2) a resource link where possible, and (3) a time estimate in parentheses like "(2h)".
+- Infer the exact domain/industry and sub-specialty directly from the dream role and background (examples: do not list; infer from input only).
+- Be precise, concrete, and measurable. Avoid generic category labels like "fundamentals" or "intermediate" unless they are followed by role-specific subskills.
+- Use authoritative, real resources with working URLs; prefer official standards bodies, certification orgs, and well-known providers in that domain.
+- For each week, provide 4–6 bullets, each with: (1) a concrete deliverable tangible to the role (checklist, SOP, report, recipe, demo, repo, case study, playbook), (2) a resource link where possible, and (3) a time estimate like "(2h)".
 - Respect the user's weekly time budget and produce exactly the requested number of weeks.
 - Output strictly valid JSON that matches the required schema with no extra text or markdown.`;
 
@@ -42,13 +42,13 @@ Available Time: ${args.hoursPerWeek} hours/week
 Dream Role: ${args.dreamRole}
 Timeline: ${args.weeks} weeks
 
-Constraints:
-- Topics must be domain-specific and skill-oriented (10–14 items) and avoid generic platitudes.
-- Courses must be real with accurate URLs from reputable providers (Coursera, edX, Udemy, LinkedIn Learning, O'Reilly, Pluralsight, Datacamp, vendor academies, reputable bootcamps, etc.).
-- Each week's "focus" must include 4–6 bullets that:
+Requirements:
+- The plan MUST be deeply tailored to the exact role and domain inferred from the input above (could be healthcare, hospitality/culinary, trades, arts, education, logistics, finance, legal, public sector, customer support, sales, operations, etc.).
+- Replace generic labels with specific subskills, tools, regulations, standards, and competencies unique to that job. Include industry credentials and standards where applicable (e.g., safety, compliance, licensure).
+- Each week's "focus" must contain 4–6 lines that:
   - start with "- "
-  - include a concrete deliverable (repo, README, doc, case study, portfolio artifact, score)
-  - include a resource or link where possible
+  - specify a concrete deliverable for that role (SOP, checklist, tasting menu, HACCP section, lesson plan, treatment protocol summary, sales call script, inspection report, shift schedule, repo, dashboard, etc.)
+  - include a resource link (official bodies, credible providers) where possible
   - include an estimated time in parentheses like "(2h)"
 - Calibrate depth and complexity to the user's level (${level}) and years (${args.yearsExperience}), and keep the total weekly workload within ~${args.hoursPerWeek}h/week.
 - Timeline MUST have exactly ${args.weeks} weeks.
@@ -155,6 +155,7 @@ Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
       const isSEC = /(cyber|security|infosec|soc|pentest|penetration|blue team|red team)/i.test(text);
       const isUX  = /(ux|ui|designer|product design|interaction design|visual design)/i.test(text);
       const isMKT = /(marketing|growth|seo|sem|ppc|content|ads|campaign)/i.test(text);
+      const isCUL = /(chef|culinary|cook|kitchen|pastry|line cook|sous chef|restaurant|hospitality|food(?!\s*science)|beverage)/i.test(text);
 
       // Fallback topics/courses/certs per domain
       let topics: string[] = [];
@@ -275,6 +276,33 @@ Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
           { title: "SEO Fundamentals", provider: "Semrush Academy", url: "https://www.semrush.com/academy/" }
         ];
         certifications = ["Google Ads Certifications", "HubSpot Inbound (optional)"];
+      } else if (isCUL) {
+        topics = [
+          "Kitchen leadership & brigade management",
+          "Food safety: HACCP, ServSafe, allergen controls",
+          "Menu engineering, recipe costing, and yield tests",
+          "Mise en place systems, prep lists, SOPs",
+          "Line checks, pass management, and ticket timing",
+          "Vendor selection, purchasing, and inventory (par levels)",
+          "Quality control: plating standards and consistency",
+          "Waste reduction and cost control (food cost %, labor)",
+          "Dietary protocols: vegan/gluten-free/allergen matrix",
+          "Equipment, maintenance, and kitchen safety",
+          "Training plans and shift scheduling",
+          "Seasonal menu development and tastings"
+        ];
+        courses = [
+          { title: "ServSafe Food Protection Manager Certification", provider: "ServSafe", url: "https://www.servsafe.com/ss/Food-Protection-Manager" },
+          { title: "HACCP Training Resources", provider: "U.S. FDA", url: "https://www.fda.gov/food/hazard-analysis-critical-control-point-haccp/haccp-training" },
+          { title: "Food & Beverage Management", provider: "Coursera (Bocconi)", url: "https://www.coursera.org/learn/food-beverage-management" },
+          { title: "The Science of Gastronomy", provider: "Coursera (HKUST)", url: "https://www.coursera.org/learn/science-of-gastronomy" }
+        ];
+        certifications = [
+          "ServSafe Food Protection Manager",
+          "HACCP Certification",
+          "Allergen Awareness (jurisdiction-specific)",
+          "Food Handler Card (jurisdiction-specific)"
+        ];
       } else {
         // Generic but still structured fallback
         topics = [
@@ -397,6 +425,36 @@ Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
               `- Metrics/estimation drills (${Math.max(1, Math.round(hrs * 0.2))}h)`,
               `- Portfolio/case study polish (${Math.max(1, Math.round(hrs * 0.15))}h)`,
               `- Behavioral stories (STAR) (${Math.max(1, Math.round(hrs * 0.15))}h)`
+            ]
+          };
+          return { week, focus: makeBullets(bulletsByPhase[phase]) };
+        }
+
+        if (isCUL) {
+          const bulletsByPhase: Record<string, string[]> = {
+            Found: [
+              `- Complete ServSafe Manager modules (${Math.max(2, Math.round(hrs * 0.4))}h): https://www.servsafe.com/ss/Food-Protection-Manager`,
+              `- Draft HACCP flow for 3 high-risk dishes; identify CCPs (${Math.max(1, Math.round(hrs * 0.25))}h): https://www.fda.gov/food/hazard-analysis-critical-control-point-haccp/haccp-training`,
+              `- Standardize 5 core recipes (grams, yields, allergens) + cost sheet (${Math.max(1, Math.round(hrs * 0.25))}h)`,
+              `- Run yield tests for 3 proteins; log waste and cost deltas (${Math.max(1, Math.round(hrs * 0.15))}h)`
+            ],
+            Build: [
+              `- Create menu engineering matrix for 10 items (CM, popularity) (${Math.max(2, Math.round(hrs * 0.35))}h): https://www.coursera.org/learn/food-beverage-management`,
+              `- Set par levels, prep list and mise en place SOP templates (${Math.max(2, Math.round(hrs * 0.35))}h)`,
+              `- Design line setup & pass timing; do a timed dry run (${Math.max(1, Math.round(hrs * 0.2))}h)`,
+              `- Build vendor sheet (3 quotes) + receiving checklist (${Math.max(1, Math.round(hrs * 0.2))}h)`
+            ],
+            Project: [
+              `- Launch 1 seasonal special; run two tastings; capture feedback (${Math.max(2, Math.round(hrs * 0.35))}h)`,
+              `- Reduce food cost by ~2–3% via portion control & waste log (${Math.max(2, Math.round(hrs * 0.35))}h)`,
+              `- Train brigade on 2 SOPs; collect sign-offs (${Math.max(1, Math.round(hrs * 0.2))}h)`,
+              `- Create allergen matrix & service brief for FOH (${Math.max(1, Math.round(hrs * 0.2))}h)`
+            ],
+            Interview: [
+              `- Assemble tasting menu portfolio + photos (${Math.max(2, Math.round(hrs * 0.35))}h)`,
+              `- Write HACCP summary + cleaning schedule template (${Math.max(1, Math.round(hrs * 0.25))}h)`,
+              `- Cost a sample menu & labor schedule; KPI one-pager (${Math.max(1, Math.round(hrs * 0.25))}h)`,
+              `- Mock trial cook; checklist + retrospective (${Math.max(1, Math.round(hrs * 0.2))}h)`
             ]
           };
           return { week, focus: makeBullets(bulletsByPhase[phase]) };
