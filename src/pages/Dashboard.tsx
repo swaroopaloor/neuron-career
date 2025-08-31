@@ -239,6 +239,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+              id="analytics"
             >
               {[
                 {
@@ -369,7 +370,7 @@ export default function Dashboard() {
                         { icon: FileText, label: "Resume Creator", action: () => navigate("/resume-builder") },
                         { icon: Settings, label: "Profile Settings", action: () => navigate("/profile") },
                         { icon: Star, label: "View Favorites", action: () => setFilter("favorites") },
-                        { icon: BarChart3, label: "Analytics", action: () => {} }
+                        { icon: BarChart3, label: "Analytics", action: () => navigate("/dashboard#analytics") }
                       ].map((item, index) => (
                         <motion.div
                           key={item.label}
