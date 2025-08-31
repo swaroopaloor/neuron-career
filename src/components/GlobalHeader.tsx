@@ -13,11 +13,13 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
-  ChevronLeft
+  ChevronLeft,
+  Bell
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 export function GlobalHeader() {
   const { isAuthenticated, user, signOut } = useAuth();
@@ -184,8 +186,9 @@ export function GlobalHeader() {
             </Link>
           </div>
 
-          {/* Quick action on the right: Theme toggle */}
+          {/* Right side actions: Notifications + Theme toggle */}
           <div className="flex items-center gap-2">
+            <NotificationCenter />
             <Button
               variant="ghost"
               size="icon"

@@ -17,6 +17,7 @@ import "./types/global.d.ts";
 import JobTracker from "./pages/JobTracker.tsx";
 import ResumeBuilder from "@/pages/ResumeBuilder.tsx";
 import { GlobalHeader } from "@/components/GlobalHeader";
+import { CommandPalette } from "@/components/CommandPalette";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -52,6 +53,7 @@ createRoot(document.getElementById("root")!).render(
           <BrowserRouter>
             <RouteSyncer />
             <GlobalHeader />
+            <CommandPalette />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
