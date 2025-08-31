@@ -131,23 +131,27 @@ export default function Landing() {
     {
       icon: Sparkles,
       title: "AI-Powered Analysis",
-      description: "Advanced machine learning algorithms analyze your resume against job requirements with 95% accuracy and detailed insights."
+      description:
+        "Rigorous, role-aware analysis with prioritized, high-impact improvements you can paste directly into your resume."
     },
     {
       icon: BarChart3,
-      title: "ATS Optimization", 
-      description: "Get detailed ATS compatibility scores and specific recommendations to pass applicant tracking systems effortlessly."
+      title: "Applications Analytics",
+      description:
+        "Track every job you apply to with a centralized analytics view—see trends, response rates, and what's working."
     },
     {
-      icon: Zap,
-      title: "Instant Results",
-      description: "Receive comprehensive analysis reports in under 30 seconds with actionable insights and improvement suggestions."
+      icon: Target,
+      title: "Dream Job Planner",
+      description:
+        "Define your target role and get a tailored learning roadmap, courses, and milestones to close the gap."
     },
     {
-      icon: Shield,
-      title: "Enterprise Security",
-      description: "Bank-level encryption ensures your documents are processed securely and never permanently stored on our servers."
-    }
+      icon: FileText,
+      title: "AI Resume Builder (Live Preview)",
+      description:
+        "Create and refine resumes with AI assistance and instant live preview—optimize content, structure, and keywords in real time."
+    },
   ];
 
   const stats = [
@@ -161,19 +165,22 @@ export default function Landing() {
     {
       step: "01",
       title: "Upload Resume",
-      description: "Drag and drop your PDF resume or browse from your device. We support all standard formats including PDF, DOC, and DOCX.",
+      description:
+        "Drag and drop your PDF resume or browse from your device. We support all standard formats including PDF, DOC, and DOCX.",
       icon: FileText
     },
     {
-      step: "02", 
+      step: "02",
       title: "Add Job Description",
-      description: "Paste the target job description. Our AI will identify key requirements, skills, and qualifications automatically.",
+      description:
+        "Paste the target job description. Use the AI Resume Builder with live preview to tailor content and structure instantly.",
       icon: Target
     },
     {
       step: "03",
       title: "Get Analysis",
-      description: "Receive detailed match scores, ATS ratings, and personalized improvement recommendations to boost your chances.",
+      description:
+        "Receive prioritized improvements, ATS ratings, and personalized recommendations. Track outcomes in your applications analytics.",
       icon: FileCheck
     }
   ];
@@ -298,8 +305,10 @@ export default function Landing() {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="text-sm sm:text-base text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
             >
-              Upload your resume and job description to get instant AI analysis, 
-              ATS optimization scores, and personalized recommendations that boost your hiring chances by 3x.
+              Upload your resume and job description to get instant AI analysis,
+              ATS optimization scores, and personalized recommendations that boost your hiring chances by 3x. 
+              Now with priority improvements, a full analytics dashboard for your applications, a Dream Job planner, 
+              and an AI resume builder with live preview.
             </motion.p>
             
             <motion.div
