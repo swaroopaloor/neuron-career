@@ -113,6 +113,21 @@ const schema = defineSchema(
       isFavorited: v.optional(v.boolean()),
       jobApplicationId: v.optional(v.id("jobApplications")),
       completedWeeks: v.optional(v.array(v.number())),
+      // Add: persisted AI career roadmap so it auto-loads next time
+      careerPlan: v.optional(v.object({
+        topics: v.array(v.string()),
+        courses: v.array(v.object({
+          title: v.string(),
+          provider: v.string(),
+          url: v.string(),
+        })),
+        certifications: v.array(v.string()),
+        timeline: v.array(v.object({
+          week: v.number(),
+          focus: v.string(),
+        })),
+        summary: v.string(),
+      })),
     })
       .index("by_user", ["userId"])
       .index("by_user_and_job", ["userId", "jobApplicationId"])

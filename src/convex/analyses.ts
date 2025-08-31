@@ -327,3 +327,35 @@ export const updateCompletedWeeks = mutation({
     await ctx.db.patch(analysisId, { completedWeeks });
   },
 });
+
+// Persist AI career plan for an analysis so it can be reloaded later
+export const saveCareerPlan = mutation({
+  args: {
+    analysisId: v.id("analyses"),
+    careerPlan: v.object({
+      topics: v.array(v.string()),
+      courses: v.array(v.object({
+        title: v.string(),
+        provider: v.string(),
+        url: v.string(),
+      })),
+      certifications: v.array(v.string()),
+      timeline: v.array(v.object({
+        week: v.number(),
+        focus: v.string(),
+      })),
+      summary: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("User must be authenticated to save a career plan.");
+    }
+    const analysis = await ctx.db.get(args.analysisId);
+    if (!analysis || analysis.userId !== user._id) {
+      throw new Error("Analysis not found or user does not have permission.");
+    }
+    await ctx.db.patch(args.analysisId, { careerPlan: args.careerPlan });
+  },
+});

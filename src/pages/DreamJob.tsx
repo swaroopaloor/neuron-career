@@ -52,6 +52,7 @@ export default function DreamJob() {
   const generateInsights = useAction(api.aiCareerGrowth.generateGrowthInsights);
   const generateCareerPlan = useAction(api.aiCareerGrowth.generateCareerPlan);
   const saveCompletedWeeks = useMutation(api.analyses.updateCompletedWeeks);
+  const saveCareerPlan = useMutation(api.analyses.saveCareerPlan);
 
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -97,6 +98,10 @@ export default function DreamJob() {
       // sync to local cache as well
       const key = `dreamProgress:${dreamJobAnalysis._id}`;
       localStorage.setItem(key, JSON.stringify(dreamJobAnalysis.completedWeeks));
+    }
+    // Load persisted roadmap automatically if available
+    if (dreamJobAnalysis.careerPlan) {
+      setPlan(dreamJobAnalysis.careerPlan);
     }
   }, [dreamJobAnalysis]);
 
@@ -208,6 +213,15 @@ export default function DreamJob() {
         hoursPerWeek: Math.max(1, Math.min(80, Number(hoursPerWeek) || 1)),
       });
       setPlan(result);
+      // Persist roadmap so user doesn't need to regenerate next time
+      try {
+        await saveCareerPlan({
+          analysisId: dreamJobAnalysis._id,
+          careerPlan: result,
+        });
+      } catch {
+        // if saving the plan fails, we still show it locally
+      }
       toast("Career roadmap generated!");
     } catch (e) {
       console.error(e);
