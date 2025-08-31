@@ -52,23 +52,150 @@ const CAREER_DATA = {
     "Software Engineering": [
       "Frontend Developer", "Backend Developer", "Full Stack Developer", "Mobile Developer (iOS)",
       "Mobile Developer (Android)", "DevOps Engineer", "Site Reliability Engineer", "Software Architect",
-      "Technical Lead", "Engineering Manager", "QA Engineer", "Test Automation Engineer"
+      "Technical Lead", "Engineering Manager", "QA Engineer", "Test Automation Engineer",
+      "Embedded Software Engineer", "GraphQL Engineer", "Platform Engineer", "Staff Software Engineer",
+      "Principal Engineer"
     ],
     "Data & Analytics": [
       "Data Scientist", "Data Analyst", "Data Engineer", "Machine Learning Engineer",
-      "AI Research Scientist", "Business Intelligence Analyst", "Analytics Manager", "Chief Data Officer"
+      "AI Research Scientist", "Business Intelligence Analyst", "Analytics Manager", "Chief Data Officer",
+      "MLOps Engineer", "Computer Vision Engineer", "NLP Engineer", "Applied Scientist"
     ],
     "Product & Design": [
       "Product Manager", "Senior Product Manager", "Product Owner", "UX Designer",
-      "UI Designer", "UX Researcher", "Product Designer", "Design Systems Lead"
+      "UI Designer", "UX Researcher", "Product Designer", "Design Systems Lead",
+      "Head of Product", "Director of Product", "Product Operations Manager"
     ],
     "Cybersecurity": [
       "Security Analyst", "Penetration Tester", "Security Engineer", "CISO",
-      "Incident Response Specialist", "Security Architect", "Compliance Manager", "Ethical Hacker"
+      "Incident Response Specialist", "Security Architect", "Compliance Manager", "Ethical Hacker",
+      "GRC Analyst", "Application Security Engineer", "Cloud Security Engineer", "Threat Intelligence Analyst"
     ],
     "Cloud & Infrastructure": [
       "Cloud Architect", "AWS Solutions Architect", "Azure Engineer", "GCP Engineer",
-      "Kubernetes Engineer", "Infrastructure Engineer", "Platform Engineer", "Cloud Security Engineer"
+      "Kubernetes Engineer", "Infrastructure Engineer", "Platform Engineer", "Cloud Security Engineer",
+      "Site Reliability Engineer", "Linux Systems Engineer", "Network Engineer (Cloud)"
+    ]
+  },
+  "Information Technology (IT)": {
+    "IT Support & Service Desk": [
+      "IT Support Specialist", "Help Desk Technician", "Desktop Support Technician",
+      "IT Service Desk Analyst", "Field Service Technician", "End-User Support Engineer",
+      "IT Support Manager"
+    ],
+    "Systems & Networks": [
+      "Systems Administrator", "Senior Systems Administrator", "Windows Server Administrator",
+      "Linux Systems Administrator", "Network Administrator", "Network Engineer",
+      "Network Operations Center (NOC) Engineer", "VoIP Engineer"
+    ],
+    "Cloud & Virtualization": [
+      "Cloud Administrator", "Cloud Engineer (AWS)", "Cloud Engineer (Azure)", "Cloud Engineer (GCP)",
+      "Virtualization Engineer (VMware)", "Citrix Engineer", "Cloud Solutions Architect"
+    ],
+    "IT Security & Governance": [
+      "Information Security Analyst", "SOC Analyst", "IT Auditor", "IT Compliance Analyst",
+      "GRC (Governance, Risk, Compliance) Specialist", "Identity & Access Management (IAM) Engineer",
+      "Security Operations Engineer"
+    ],
+    "Databases & Storage": [
+      "Database Administrator (DBA)", "SQL Server DBA", "Oracle DBA", "MySQL/MariaDB DBA",
+      "NoSQL Administrator (MongoDB/Cassandra)", "Storage Engineer (SAN/NAS)"
+    ],
+    "Enterprise Applications": [
+      "ERP Consultant (SAP/Oracle)", "Salesforce Administrator", "Salesforce Developer",
+      "Dynamics 365 Consultant", "Workday Analyst", "NetSuite Administrator", "ServiceNow Developer"
+    ],
+    "IT Service Management (ITSM)": [
+      "ITSM Process Owner", "Change Manager", "Incident Manager", "Problem Manager",
+      "Configuration Manager (CMDB)", "Service Catalog Manager"
+    ],
+    "Collaboration & Productivity": [
+      "M365 Administrator", "Google Workspace Administrator", "SharePoint Administrator",
+      "Messaging Engineer (Exchange/Email)", "Unified Communications Engineer"
+    ],
+    "IT Architecture": [
+      "Solutions Architect", "Enterprise Architect", "Infrastructure Architect",
+      "Security Architect (IT)", "Integration Architect"
+    ]
+  },
+  "Business & Management (MBA)": {
+    "Strategy & Corporate Development": [
+      "Strategy Analyst", "Strategy Manager", "Corporate Development Associate",
+      "Corporate Development Manager", "M&A Analyst", "M&A Manager", "Chief Strategy Officer"
+    ],
+    "Operations & Program Management": [
+      "Operations Analyst", "Operations Manager", "Director of Operations",
+      "Program Manager", "Project Manager (PMP)", "PMO Lead", "Business Operations Manager"
+    ],
+    "Product Management": [
+      "Associate Product Manager", "Product Manager", "Senior Product Manager",
+      "Group Product Manager", "Director of Product", "Head of Product", "Chief Product Officer"
+    ],
+    "Marketing & Growth": [
+      "Product Marketing Manager", "Growth Marketing Manager", "Brand Manager",
+      "Head of Marketing", "CMO", "Performance Marketing Manager", "Lifecycle Marketing Manager"
+    ],
+    "Finance & FP&A": [
+      "FP&A Analyst", "FP&A Manager", "Corporate Finance Manager",
+      "Controller", "Finance Director", "CFO", "Revenue Operations (RevOps) Manager"
+    ],
+    "Business Analytics & Insights": [
+      "Business Analyst", "Senior Business Analyst", "Insights Manager",
+      "BI Product Owner", "Analytics Translator", "Pricing Strategy Manager"
+    ],
+    "Entrepreneurship & Venture": [
+      "Founder", "Startup Operator", "Venture Associate", "Venture Partner",
+      "Accelerator Program Manager", "Entrepreneur in Residence (EIR)"
+    ],
+    "General Management & Leadership": [
+      "General Manager", "Business Unit Manager", "P&L Owner",
+      "Country Manager", "Regional Director", "Chief of Staff"
+    ],
+    "Supply Chain & Procurement": [
+      "Supply Chain Analyst", "Supply Chain Manager", "Demand Planning Manager",
+      "S&OP Manager", "Procurement Manager", "Category Manager", "Logistics Manager"
+    ],
+    "Customer & Commercial": [
+      "Business Development Manager", "Partnerships Manager", "Account Manager",
+      "Key Account Director", "Customer Success Manager", "Head of Customer Success"
+    ]
+  },
+  "People & HR": {
+    "Talent Acquisition": [
+      "Recruiter", "Senior Recruiter", "Technical Recruiter",
+      "Talent Acquisition Partner", "TA Manager", "Head of Talent Acquisition", "Campus Recruiter"
+    ],
+    "HR Operations": [
+      "HR Coordinator", "HR Generalist", "HR Operations Manager",
+      "HRIS Analyst", "People Operations Manager", "HR Administrator"
+    ],
+    "Total Rewards": [
+      "Compensation Analyst", "Benefits Analyst", "Comp & Ben Manager",
+      "Global Mobility Specialist", "Payroll Manager"
+    ],
+    "Learning & Development": [
+      "L&D Specialist", "Instructional Designer", "Training Manager",
+      "Leadership Development Manager", "Organizational Development (OD) Consultant"
+    ],
+    "HR Business Partner": [
+      "Associate HRBP", "HR Business Partner", "Senior HRBP",
+      "Director, HRBP", "People Partner Lead"
+    ],
+    "Employee Relations": [
+      "Employee Relations Specialist", "ER Manager", "HR Compliance Manager",
+      "Labor Relations Specialist"
+    ],
+    "People Analytics": [
+      "People Data Analyst", "Workforce Planning Analyst", "People Analytics Manager",
+      "HR Metrics & Insights Lead"
+    ],
+    "Employer Brand & DEI": [
+      "Employer Branding Specialist", "Diversity & Inclusion Specialist",
+      "DEI Program Manager", "Head of DEI"
+    ],
+    "People Systems": [
+      "Workday HRIS Analyst", "SAP SuccessFactors Analyst", "BambooHR Administrator",
+      "Greenhouse Admin", "Lever Admin"
     ]
   },
   "Healthcare": {
@@ -164,19 +291,74 @@ const CAREER_DATA = {
   "Manufacturing & Engineering": {
     "Mechanical Engineering": [
       "Mechanical Engineer", "Design Engineer", "Manufacturing Engineer", "Quality Engineer",
-      "Project Engineer", "R&D Engineer", "Process Engineer", "Plant Manager"
+      "Project Engineer", "R&D Engineer", "Process Engineer", "Plant Manager",
+      "HVAC Engineer", "Automotive Engineer", "Robotics Engineer"
     ],
     "Electrical Engineering": [
       "Electrical Engineer", "Electronics Engineer", "Power Systems Engineer",
-      "Control Systems Engineer", "Instrumentation Engineer", "Automation Engineer"
+      "Control Systems Engineer", "Instrumentation Engineer", "Automation Engineer",
+      "Embedded Systems Engineer", "Analog Design Engineer", "FPGA Engineer"
     ],
     "Civil Engineering": [
       "Civil Engineer", "Structural Engineer", "Transportation Engineer", "Environmental Engineer",
-      "Construction Manager", "Project Manager", "Site Engineer"
+      "Construction Manager", "Project Manager", "Site Engineer", "Geotechnical Engineer",
+      "Water Resources Engineer", "Urban Planner"
     ],
-    "Production & Operations": [
-      "Production Manager", "Operations Manager", "Quality Control Manager",
-      "Supply Chain Manager", "Logistics Coordinator", "Warehouse Manager"
+    "Chemical Engineering": [
+      "Chemical Engineer", "Process Engineer (Chemical)", "Materials Engineer (Polymer/Chemical)",
+      "Production Engineer (Chemicals)", "Environmental Process Engineer"
+    ],
+    "Industrial & Systems Engineering": [
+      "Industrial Engineer", "Operations Engineer", "Lean Six Sigma Engineer",
+      "Quality Systems Engineer", "Supply Chain Engineer", "Reliability Engineer"
+    ],
+    "Aerospace Engineering": [
+      "Aerospace Engineer", "Avionics Engineer", "Flight Test Engineer", "Propulsion Engineer",
+      "Airworthiness Engineer", "Space Systems Engineer"
+    ],
+    "Materials & Biomedical": [
+      "Materials Scientist", "Metallurgical Engineer", "Biomedical Engineer",
+      "Medical Device Engineer", "Biomechanics Engineer"
+    ],
+    "Nuclear & Energy": [
+      "Nuclear Engineer", "Reactor Operator", "Safety Engineer (Nuclear)",
+      "Renewable Energy Engineer", "Energy Systems Engineer"
+    ],
+    "Robotics & Mechatronics": [
+      "Mechatronics Engineer", "Robotics Engineer", "Automation Controls Engineer",
+      "Motion Control Engineer", "Autonomous Systems Engineer"
+    ]
+  },
+  "Operations & Supply Chain": {
+    "Operations": [
+      "Operations Coordinator", "Operations Analyst", "Operations Manager",
+      "Senior Operations Manager", "Director of Operations", "COO"
+    ],
+    "Supply Chain": [
+      "Supply Chain Analyst", "Demand Planner", "Supply Planner", "S&OP Planner",
+      "Logistics Coordinator", "Logistics Manager", "Warehouse Operations Manager"
+    ],
+    "Procurement": [
+      "Procurement Specialist", "Sourcing Specialist", "Category Manager",
+      "Procurement Manager", "Vendor Manager", "Supplier Quality Manager"
+    ]
+  },
+  "Consulting": {
+    "Management Consulting": [
+      "Associate Consultant", "Consultant", "Senior Consultant",
+      "Engagement Manager", "Principal", "Partner"
+    ],
+    "Technology Consulting": [
+      "Technology Consultant", "Digital Transformation Consultant", "Cloud Consultant",
+      "Data & Analytics Consultant", "CRM Consultant", "ERP Consultant"
+    ],
+    "Operations Consulting": [
+      "Operations Consultant", "Lean Consultant", "Supply Chain Consultant",
+      "Process Improvement Consultant"
+    ],
+    "Human Capital Consulting": [
+      "HR Transformation Consultant", "Org Design Consultant", "Change Management Consultant",
+      "People Analytics Consultant"
     ]
   },
   "Legal": {
