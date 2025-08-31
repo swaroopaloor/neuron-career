@@ -66,7 +66,7 @@ Return only the JSON object, no additional text.
       const groq = new Groq({ apiKey });
 
       const completion = await groq.chat.completions.create({
-        model: "llama3-8b-8192",
+        model: "llama-3.1-8b-instant",
         messages: [
           {
             role: "user",
@@ -167,7 +167,7 @@ INSTRUCTIONS:
 `;
 
     const completion = await groq.chat.completions.create({
-      model: "llama3-8b-8192",
+      model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
       temperature: 0.2,
