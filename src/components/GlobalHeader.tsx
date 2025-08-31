@@ -16,7 +16,7 @@ import {
   BarChart3,
   Heart
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -28,6 +28,16 @@ export function GlobalHeader() {
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Auto-open the sidebar once after login to help navigation
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const shownKey = "sidebar_shown_once";
+    if (!sessionStorage.getItem(shownKey)) {
+      setIsMenuOpen(true);
+      sessionStorage.setItem(shownKey, "1");
+    }
+  }, [isAuthenticated]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
