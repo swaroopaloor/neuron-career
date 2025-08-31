@@ -22,45 +22,54 @@ export const generateCareerPlan = action({
     // Normalize level for consistent logic
     const level = (args.currentLevel || "").toLowerCase();
 
-    // Generalized, domain-agnostic instructions (system) to ensure accuracy for ANY role
+    // Extract role title and optional company from dreamRole (e.g., "SDE1 at Google", "pilot for British Airways")
+    const originalDreamRole = (args.dreamRole || "").trim();
+    const companyMatch = originalDreamRole.match(/\b(?:at|for|in|@)\b\s+(.+)$/i);
+    const targetCompany = companyMatch ? companyMatch[1].trim() : "";
+    const roleTitle = companyMatch ? originalDreamRole.slice(0, companyMatch.index).trim() : originalDreamRole;
+
+    // Generalized, domain-agnostic instructions (system) to ensure accuracy for ANY role + optional company targeting
     const systemPrompt = `You are an expert career architect and curriculum designer.
 Objectives:
-- Infer the exact domain/industry and sub-specialty directly from the dream role and background (examples: do not list; infer from input only).
-- Be precise, concrete, and measurable. Avoid generic category labels like "fundamentals" or "intermediate" unless they are followed by role-specific subskills.
-- Use authoritative, real resources with working URLs; prefer official standards bodies, certification orgs, and well-known providers in that domain.
-- For each week, provide 4–6 bullets, each with: (1) a concrete deliverable tangible to the role (checklist, SOP, report, recipe, demo, repo, case study, playbook), (2) a resource link where possible, and (3) a time estimate like "(2h)".
+- Infer the exact domain/industry and sub-specialty directly from the inputs (dream role, background). If a company is mentioned, adapt the plan to that company's typical workflows, standards, and hiring bar for the specified level/title.
+- Be precise, concrete, and measurable. Avoid generic category labels unless immediately followed by role- and company-specific subskills or deliverables.
+- Prefer official/public sources: company engineering/careers blogs, handbooks, style guides, SOPs, training manuals; industry regulators and standards bodies (e.g., aviation authorities, health/food safety, healthcare boards, education departments, finance regulators).
+- Never link to or reference private/internal documents; only public pages.
+- For each week, provide 4–6 bullets, each with: (1) a concrete deliverable tangible to the role (SOP, checklist, report, repo, demo, lesson plan, protocol), (2) a resource link (official/authoritative) where possible, and (3) a time estimate like "(2h)".
 - Respect the user's weekly time budget and produce exactly the requested number of weeks.
-- Output strictly valid JSON that matches the required schema with no extra text or markdown.`;
+- Output strictly valid JSON matching the required schema with no extra text or markdown.`;
 
-    // User-specific context and strict schema - works for any role
-    const prompt = `You are a principal career mentor and curriculum designer. Generate a highly accurate, realistic, and actionable career plan calibrated to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, and DREAM ROLE — in ANY FIELD.
+    // User-specific context and strict schema - works for any role and optional company
+    const prompt = `You are a principal career mentor and curriculum designer. Generate a highly accurate, realistic, and actionable career plan calibrated to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE, and optional TARGET COMPANY — in ANY FIELD.
 
 User Background (verbatim): ${args.about}
+Role Title: ${roleTitle}
+Target Company: ${targetCompany || "N/A"}
 Current Level: ${level}
 Years of Experience: ${args.yearsExperience}
 Available Time: ${args.hoursPerWeek} hours/week
-Dream Role: ${args.dreamRole}
 Timeline: ${args.weeks} weeks
 
 Requirements:
 - The plan MUST be deeply tailored to the exact role and domain inferred from the input above (could be healthcare, hospitality/culinary, trades, arts, education, logistics, finance, legal, public sector, customer support, sales, operations, etc.).
-- Replace generic labels with specific subskills, tools, regulations, standards, and competencies unique to that job. Include industry credentials and standards where applicable (e.g., safety, compliance, licensure).
+- If a Target Company is provided, align topics, skills, deliverables, and resources with that company's typical expectations for this role/level (stack, tooling, safety/quality standards, operating procedures, compliance, customer experience). Include 2–3 links from that company's public resources where relevant (e.g., careers pages, engineering/culinary/ops blogs, service or safety manuals, brand/UX guidelines).
+- Replace generic labels with specific subskills, tools, regulations, standards, and competencies unique to the job and, when specified, the company. Include industry credentials and standards where applicable (aviation authorities, maritime, healthcare boards, educator certs, trade licenses, food safety, hospitality standards, finance/regulatory, etc.).
 - Each week's "focus" must contain 4–6 lines that:
   - start with "- "
-  - specify a concrete deliverable for that role (SOP, checklist, tasting menu, HACCP section, lesson plan, treatment protocol summary, sales call script, inspection report, shift schedule, repo, dashboard, etc.)
-  - include a resource link (official bodies, credible providers) where possible
+  - specify a concrete deliverable for that role/company context (SOP, tasting/inspection checklist, flight/procedure study pack, repo, lesson plan, treatment protocol summary, sales call script, shift schedule, KPI dashboard, etc.)
+  - include a resource link (official/authoritative) where possible
   - include an estimated time in parentheses like "(2h)"
 - Calibrate depth and complexity to the user's level (${level}) and years (${args.yearsExperience}), and keep the total weekly workload within ~${args.hoursPerWeek}h/week.
 - Timeline MUST have exactly ${args.weeks} weeks.
-- Ensure the plan clearly maps to the real responsibilities, tooling, and competencies of the target role and industry.
+- Ensure the plan clearly maps to real responsibilities, tooling, regulations, and competencies of the target role and, when provided, the target company.
 - Do NOT include placeholders, fake URLs, or vague advice.
 
 Strict output format: Return ONLY a JSON object with EXACTLY these fields and structure:
 
 {
-  "topics": ["role-specific-topic1", "role-specific-topic2", "... 10-14 total"],
+  "topics": ["role/company-specific-topic1", "role/company-specific-topic2", "... 10-14 total"],
   "courses": [
-    { "title": "Real Course Name", "provider": "Platform/Provider", "url": "https://actual-course-url.com" }
+    { "title": "Real Course or Official Training", "provider": "Provider/Company/Regulator", "url": "https://actual-url.com" }
   ],
   "certifications": ["cert1", "cert2", "... (if relevant)"],
   "timeline": [
@@ -69,7 +78,7 @@ Strict output format: Return ONLY a JSON object with EXACTLY these fields and st
       "focus": "- item1 (xh): https://link\\n- item2 (xh): https://link\\n- item3 (xh)\\n- item4 (xh)"
     }
   ],
-  "summary": "2–3 motivating sentences summarizing the plan and expected outcomes"
+  "summary": "2–3 motivating sentences summarizing the plan and expected outcomes, mentioning the role${targetCompany ? " and company" : ""}"
 }
 
 Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
@@ -87,9 +96,9 @@ Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
             { role: "system", content: systemPrompt },
             { role: "user", content: prompt }
           ],
-          max_tokens: 2600,
-          temperature: 0.1,
-          top_p: 0.9,
+          max_tokens: 3000,
+          temperature: 0.05,
+          top_p: 0.8,
         }),
       });
 
@@ -496,7 +505,7 @@ Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
         courses,
         certifications,
         timeline,
-        summary: `Personalized ${args.weeks}-week plan aligned to ${args.dreamRole || "your target role"} (~${args.hoursPerWeek}h/week). Calibrated to ${level} with concrete weekly outputs and links.`,
+        summary: `Personalized ${args.weeks}-week plan aligned to ${roleTitle}${targetCompany ? " @ " + targetCompany : ""} (~${args.hoursPerWeek}h/week). Calibrated to ${level} with concrete weekly outputs and links.`,
       };
     }
   },
