@@ -102,6 +102,128 @@ Return ONLY JSON: {"roleTitle": "...", "company": "...", "domain": "...", "subDo
   }
 }
 
+// Add: plan validation and revision helpers to enforce exact role alignment
+function validatePlanAlignment(plan: any, roleTitle: string, targetCompany: string, weeks: number, hoursPerWeek: number) {
+  const reasons: string[] = [];
+  const role = (roleTitle || "").trim();
+  const company = (targetCompany || "").trim();
+
+  const hasSchema =
+    plan &&
+    Array.isArray(plan.topics) &&
+    Array.isArray(plan.courses) &&
+    Array.isArray(plan.certifications) &&
+    Array.isArray(plan.timeline) &&
+    typeof plan.summary === "string";
+  if (!hasSchema) reasons.push("Invalid or missing required top-level keys.");
+
+  if (Array.isArray(plan.timeline) && plan.timeline.length !== weeks) {
+    reasons.push(`Timeline length must be exactly ${weeks} weeks.`);
+  }
+
+  // Require 10+ topics to ensure specificity
+  if (!Array.isArray(plan.topics) || plan.topics.length < 10) {
+    reasons.push("Provide at least 10 topics tailored to the exact role.");
+  }
+
+  // Summary must echo the exact role; if company provided, include it
+  if (typeof plan.summary === "string") {
+    if (role && !plan.summary.toLowerCase().includes(role.toLowerCase())) {
+      reasons.push("Summary must explicitly reference the exact role string.");
+    }
+    if (company && !plan.summary.toLowerCase().includes(company.toLowerCase())) {
+      reasons.push("Summary must reference the specified company when provided.");
+    }
+  } else {
+    reasons.push("Summary must be a string.");
+  }
+
+  // Each week: 4–6 lines starting with "- " and include time annotations like "(2h)"
+  if (Array.isArray(plan.timeline)) {
+    for (const w of plan.timeline) {
+      const focus = (w?.focus ?? "") as string;
+      const lines = focus.split("\n").filter((l) => l.trim().startsWith("- "));
+      if (lines.length < 4 || lines.length > 6) {
+        reasons.push(`Week ${w?.week ?? "?"}: focus must have 4 to 6 bullet lines starting with "- ".`);
+      }
+      // Require at least one bullet per week to mention role or company explicitly
+      const mentionsRoleOrCompany = lines.some((l) => {
+        const ll = l.toLowerCase();
+        return (role && ll.includes(role.toLowerCase())) || (company && ll.includes(company.toLowerCase()));
+      });
+      if (!(mentionsRoleOrCompany || !role)) {
+        reasons.push(`Week ${w?.week ?? "?"}: at least one bullet must reference the exact role.`);
+      }
+
+      // Time annotation check: majority of lines should contain "(xh)"
+      const timeLines = lines.filter((l) => /\(\d+\.?\d*h\)/i.test(l));
+      if (timeLines.length < Math.ceil(lines.length * 0.6)) {
+        reasons.push(`Week ${w?.week ?? "?"}: most bullets should include time annotations like "(2h)".`);
+      }
+    }
+  }
+
+  return { valid: reasons.length === 0, reasons };
+}
+
+async function requestPlanFromGroq(apiKey: string, systemPrompt: string, userPrompt: string) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      max_tokens: 3000,
+      temperature: 0.05,
+      top_p: 0.8,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Groq API error: ${response.status}`);
+  }
+  const data = await response.json();
+  const contentRaw = data?.choices?.[0]?.message?.content;
+  if (!contentRaw || typeof contentRaw !== "string") {
+    throw new Error("No content received from AI");
+  }
+  let jsonText = contentRaw.trim();
+  if (!jsonText.startsWith("{")) {
+    const start = jsonText.indexOf("{");
+    const end = jsonText.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      jsonText = jsonText.slice(start, end + 1);
+    }
+  }
+  return JSON.parse(jsonText);
+}
+
+async function revisePlanWithGroq(apiKey: string, systemPrompt: string, priorPlan: any, issues: string[], roleTitle: string, targetCompany: string, weeks: number, hoursPerWeek: number) {
+  const fixerSystem = `${systemPrompt}
+
+You must strictly correct the provided JSON to satisfy all constraints and preserve the exact role and company context. Return JSON ONLY with the same schema. Do NOT generalize.`;
+  const fixerUser = `The previous plan didn't meet the constraints.
+
+Exact role: ${roleTitle}
+Target company: ${targetCompany || "N/A"}
+Weeks: ${weeks}
+Hours/week: ${hoursPerWeek}
+
+Issues to fix:
+- ${issues.join("\n- ")}
+
+Here is the prior JSON plan. Transform it to fully comply with all constraints and align precisely to the exact role and company:
+
+${JSON.stringify(priorPlan)}`;
+
+  return await requestPlanFromGroq(apiKey, fixerSystem, fixerUser);
+}
+
 export const generateCareerPlan = action({
   args: {
     about: v.string(),
@@ -140,10 +262,11 @@ export const generateCareerPlan = action({
       industry: entities?.industry ?? null,
     };
 
-    // Generalized, domain-agnostic instructions (system) to ensure accuracy for ANY role + optional company targeting
+    // Updated: System prompt to forbid generalization and require mirroring the exact role/company
     const systemPrompt = `You are a specialized domain expert and curriculum architect for ANY profession (white‑collar, blue‑collar, regulated, licensed, union, trades, public sector, etc.). You build rigorous, company-aware, role-accurate learning roadmaps.
 
 Hard requirements:
+- Mirror the user's EXACT role text verbatim in outputs where appropriate; DO NOT substitute a different but "similar" role. Do NOT generalize to a role family.
 - Ground every recommendation in the realities of the role, domain, and industry. Be specific about workflows, tools, standards, regulations, certifications, and safety/quality practices used on the job.
 - When a target company is specified, adapt content to that company's typical stack, standards, processes, customer experience, and hiring bar for the specified role level.
 - Favor OFFICIAL, PUBLIC, AUTHORITATIVE sources: regulators (.gov), standards bodies (e.g., ISO, OSHA, FAA, FDA, IEC, NIST, NICE, WHO), accredited training/boards, universities (.edu), company engineering/careers/brand/ops blogs, manufacturer manuals, or well-known industry orgs.
@@ -156,10 +279,9 @@ Output standards:
 - Timeline has exactly the requested number of weeks.
 - Each weekly "focus" must contain 4–6 lines, each line:
   - Starts with "- "
-  - Includes a concrete deliverable
+  - Includes a concrete deliverable tied to the EXACT role (and company if provided)
   - Includes ONE authoritative resource link where possible
-  - Ends with a time estimate in parentheses like "(2h)"
-- Prefer specificity over categories. Replace "learn X" with "produce Y using Z standard/tool aligned to role/company context."
+  - Ends with a time estimate in parentheses like "(2h)".
 
 Edge cases to handle:
 - Non-tech roles (culinary, aviation, nursing, education, logistics, construction, hospitality, retail, manufacturing, legal, finance ops, call centers, etc.)
@@ -168,15 +290,17 @@ Edge cases to handle:
 - Roles with customer experience or brand standards (e.g., airlines, hotels, retail)
 - Geographic differences in certifications/standards — link to widely recognized sources.
 
-If info is ambiguous, make the safest, most typical industry assumption and provide role-accurate deliverables and credible links.`;
+If info is ambiguous, make the safest, most typical industry assumption and provide role-accurate deliverables and credible links.
+Absolutely do NOT generalize to a different role or a role family; always reflect the exact role string provided.`;
 
-    // User-specific context and strict schema - enriched with extracted entities for better grounding
-    const prompt = `Use the inputs below to produce a highly accurate and actionable career plan tailored to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE, and optional TARGET COMPANY.
+    // Updated: User prompt with explicit role echo and non-generalization instruction
+    const prompt = `Use the inputs below to produce a highly accurate and actionable career plan tailored to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE (exact), and optional TARGET COMPANY.
+
+Exact Role (echo verbatim): ${roleTitle}
+Target Company (if any): ${targetCompany || "N/A"}
 
 Inputs (verbatim):
 - User Background: ${args.about}
-- Role Title: ${roleTitle}
-- Target Company: ${targetCompany || "N/A"}
 - Current Level (normalized): ${level}
 - Years of Experience: ${args.yearsExperience}
 - Available Time: ${args.hoursPerWeek} hours/week
@@ -190,18 +314,11 @@ Inferred Entities (from extraction):
 - Industry: ${inferred.industry ?? "N/A"}
 
 You must:
-1) Align all topics, deliverables, and resources to the exact role/domain (and company if provided). Tie work products to real responsibilities, tools, and standards (safety, compliance, operating procedures, customer experience, technical stack).
+1) Align all topics, deliverables, and resources to the EXACT role "${roleTitle}" (and company "${targetCompany || "N/A"}" if provided). Do NOT generalize to a different role or category.
 2) Calibrate depth and complexity to the user's level (${level}) and experience (${args.yearsExperience}). Avoid junior overload or senior triviality.
 3) Fit weekly work within ~${args.hoursPerWeek}h. Use at least ~70% of the budget but never exceed it across the listed bullet estimates for that week.
 4) Include 2–3 company-specific links (if a target company is provided) from public sources (engineering/ops/brand/UX/careers/safety/compliance pages).
-5) Replace generic phrases with specific subskills, tools, standards, and measurable outcomes. Every weekly bullet must have a concrete output and a single authoritative link when available.
-
-Quality rubric (self-check before output; do not include the rubric in the response):
-- Role fidelity: Does each item reflect how the job is actually practiced?
-- Authority: Are links official and credible (regulators, standards bodies, .edu, company blogs/manuals)?
-- Measurability: Are outputs tangible and scorable (SOP, report, repo feature, checklist, demo, protocol)?
-- Feasibility: Do times sum to <= ~${args.hoursPerWeek}h/week and >= ~70% of it?
-- Company alignment: If company provided, do at least 2–3 links and practices reflect that company?
+5) Replace generic phrases with specific subskills, tools, standards, and measurable outcomes tied to "${roleTitle}". Every weekly bullet must have a concrete output and a single authoritative link when available.
 
 Strict output format: Return ONLY a JSON object with EXACTLY these keys and structure:
 
@@ -214,10 +331,10 @@ Strict output format: Return ONLY a JSON object with EXACTLY these keys and stru
   "timeline": [
     {
       "week": 1,
-      "focus": "- deliverable (xh): https://authoritative-link
-- deliverable (xh): https://authoritative-link
-- deliverable (xh)
-- deliverable (xh)"
+      "focus": "- deliverable tied to ${roleTitle} (xh): https://authoritative-link
+- deliverable tied to ${roleTitle} (xh): https://authoritative-link
+- deliverable tied to ${roleTitle} (xh)
+- deliverable tied to ${roleTitle} (xh)"
     }
   ],
   "summary": "2–3 motivating sentences summarizing outcomes for ${roleTitle}${targetCompany ? " at " + targetCompany : ""}, calibrated to ${level} with ~${args.hoursPerWeek}h/week."
@@ -226,67 +343,30 @@ Strict output format: Return ONLY a JSON object with EXACTLY these keys and stru
 Output JSON ONLY with no extra text.`;
 
     try {
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-70b-versatile",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: prompt }
-          ],
-          max_tokens: 3000,
-          temperature: 0.05,
-          top_p: 0.8,
-        }),
-      });
+      // Primary request
+      let plan: any = await requestPlanFromGroq(apiKey, systemPrompt, prompt);
 
-      if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const contentRaw = data?.choices?.[0]?.message?.content;
-      if (!contentRaw || typeof contentRaw !== "string") {
-        throw new Error("No content received from AI");
-      }
-
-      // Robust JSON extraction: handle cases with extra text or code fences
-      let jsonText = contentRaw.trim();
-      if (!jsonText.startsWith("{")) {
-        const start = jsonText.indexOf("{");
-        const end = jsonText.lastIndexOf("}");
-        if (start !== -1 && end !== -1 && end > start) {
-          jsonText = jsonText.slice(start, end + 1);
+      // Validation and auto-revision if needed
+      let { valid, reasons } = validatePlanAlignment(plan, roleTitle, targetCompany, args.weeks, args.hoursPerWeek);
+      if (!valid) {
+        plan = await revisePlanWithGroq(apiKey, systemPrompt, plan, reasons, roleTitle, targetCompany, args.weeks, args.hoursPerWeek);
+        ({ valid, reasons } = validatePlanAlignment(plan, roleTitle, targetCompany, args.weeks, args.hoursPerWeek));
+        if (!valid) {
+          throw new Error(`AI plan failed validation after revision: ${reasons.join("; ")}`);
         }
       }
 
-      let plan: any;
-      try {
-        plan = JSON.parse(jsonText);
-      } catch (e) {
-        throw new Error("Failed to parse AI JSON response");
-      }
-
-      // Validate structure
-      if (!plan.topics || !plan.courses || !plan.certifications || !plan.timeline || !plan.summary) {
-        throw new Error("Invalid plan structure received from AI");
-      }
-
-      // Enforce exactly args.weeks in timeline; fill gaps with actionable generic items aligned to the target role
+      // Ensure exactly args.weeks in timeline; fill gaps with role-aligned generic items if any (should not happen post-validation)
       if (Array.isArray(plan.timeline)) {
         if (plan.timeline.length > args.weeks) {
           plan.timeline = plan.timeline.slice(0, args.weeks);
         } else if (plan.timeline.length < args.weeks) {
           const start = plan.timeline.length;
           const genericFocus = [
-            `- Close skill gaps toward ${args.dreamRole} with 2–3 targeted lessons (${Math.max(2, Math.round(args.hoursPerWeek * 0.4))}h)`,
-            `- Produce a tangible artifact (repo/case study/doc) (${Math.max(1, Math.round(args.hoursPerWeek * 0.3))}h)`,
-            `- Apply learning using role-specific tools/methods (${Math.max(1, Math.round(args.hoursPerWeek * 0.2))}h)`,
-            `- Reflect, track outcomes, and plan next steps (${Math.max(1, Math.round(args.hoursPerWeek * 0.1))}h)`
+            `- Close skill gaps toward ${roleTitle} with 2–3 targeted lessons (${Math.max(2, Math.round(args.hoursPerWeek * 0.4))}h)`,
+            `- Produce a ${roleTitle}-specific artifact (repo/case study/doc) (${Math.max(1, Math.round(args.hoursPerWeek * 0.3))}h)`,
+            `- Apply learning using ${roleTitle}-specific tools/methods (${Math.max(1, Math.round(args.hoursPerWeek * 0.2))}h)`,
+            `- Reflect, track outcomes, and plan next steps (${Math.max(1, Math.round(args.hoursPerWeek * 0.1))}h)`,
           ].join("\n");
           for (let w = start; w < args.weeks; w++) {
             plan.timeline.push({ week: w + 1, focus: genericFocus });
@@ -641,6 +721,11 @@ Output JSON ONLY with no extra text.`;
 
         return { week, focus: makeBullets(generic[phase]) };
       });
+
+      // Before returning the fallback, explicitly reflect the exact role in topics to avoid generic labels
+      if (Array.isArray(topics)) {
+        topics = topics.map((t) => (roleTitle ? `${roleTitle}: ${t}` : t));
+      }
 
       return {
         topics,
