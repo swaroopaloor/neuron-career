@@ -300,8 +300,6 @@ export default function DreamJob() {
     );
   }
 
-  // moved: generatorRef and handleJumpToGenerator are declared above to maintain consistent hook order
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -671,310 +669,304 @@ export default function DreamJob() {
         </Collapsible>
 
         {hasInsights ? (
-          <div className="space-y-8 mt-8">
-            {/* Gap Analysis - collapsible */}
-            <Collapsible>
-              <CollapsibleTrigger asChild>
-                <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
-                  <span className="text-xl font-semibold text-foreground flex items-center gap-2">
-                    <AlertCircle className="h-6 w-6 text-orange-500" />
-                    Gap Analysis
-                  </span>
-                  <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Lacking Skills */}
-                  <Card className="elevation-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Code className="h-5 w-5 text-blue-500" />
-                        Skills to Develop
-                      </CardTitle>
-                      <CardDescription>
-                        Technical and soft skills you need to acquire
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {dreamJobAnalysis.lackingSkills && dreamJobAnalysis.lackingSkills.length > 0 ? (
-                        <div className="space-y-2">
-                          {dreamJobAnalysis.lackingSkills.map((skill, index) => (
-                            <motion.div
-                              key={skill}
-                              initial={{ x: -20, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.1 * index }}
-                            >
-                              <Badge variant="outline" className="w-full justify-start p-3 text-sm">
-                                {skill}
+          // NEW: Two-column layout with glass cards (excluding Weekly Action Plan which stays full-width)
+          <div className="mt-8 space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* LEFT COLUMN: AI Career Roadmap core sections */}
+              <div className="lg:col-span-7 space-y-6">
+                {plan && (
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-white/5 dark:bg-white/5 backdrop-blur supports-[backdrop-filter]:bg-white/5 border-white/10 hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
+                        <span className="text-2xl font-bold text-foreground flex items-center gap-2">
+                          <Sparkles className="h-6 w-6 text-primary" />
+                          AI Career Roadmap
+                        </span>
+                        <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-8">
+                        {/* Topics */}
+                        <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur p-5">
+                          <h3 className="text-lg font-semibold tracking-tight">Core Topics</h3>
+                          <div className="flex flex-wrap gap-2.5">
+                            {plan.topics.map((t, i) => (
+                              <Badge key={i} variant="secondary" className="py-1.5 px-2.5 text-xs md:text-sm rounded-full">
+                                {t}
                               </Badge>
-                            </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No skill gaps identified
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Lacking Education */}
-                  <Card className="elevation-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <GraduationCap className="h-5 w-5 text-green-500" />
-                        Education & Certifications
-                      </CardTitle>
-                      <CardDescription>
-                        Qualifications and certifications to pursue
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {dreamJobAnalysis.lackingEducation && dreamJobAnalysis.lackingEducation.length > 0 ? (
-                        <div className="space-y-2">
-                          {dreamJobAnalysis.lackingEducation.map((education, index) => (
-                            <motion.div
-                              key={education}
-                              initial={{ x: -20, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.1 * index }}
-                            >
-                              <Badge variant="outline" className="w-full justify-start p-3 text-sm">
-                                {education}
-                              </Badge>
-                            </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No education gaps identified
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Lacking Experience */}
-                  <Card className="elevation-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Briefcase className="h-5 w-5 text-purple-500" />
-                        Experience to Gain
-                      </CardTitle>
-                      <CardDescription>
-                        Professional experience areas to focus on
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {dreamJobAnalysis.lackingExperience && dreamJobAnalysis.lackingExperience.length > 0 ? (
-                        <div className="space-y-2">
-                          {dreamJobAnalysis.lackingExperience.map((experience, index) => (
-                            <motion.div
-                              key={experience}
-                              initial={{ x: -20, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.1 * index }}
-                            >
-                              <Badge variant="outline" className="w-full justify-start p-3 text-sm">
-                                {experience}
-                              </Badge>
-                            </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No experience gaps identified
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Growth Plan - collapsible */}
-            {dreamJobAnalysis.growthPlan && dreamJobAnalysis.growthPlan.length > 0 && (
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
-                    <span className="text-2xl font-bold text-foreground flex items-center gap-2">
-                      <Zap className="h-6 w-6 text-green-500" />
-                      Your Growth Roadmap
-                    </span>
-                    <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  {dreamJobAnalysis.growthPlan.map((milestone, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: 0.1 * index }}
-                    >
-                      <Card className="elevation-2 hover:elevation-3 transition-all duration-300">
-                        <CardContent className="p-6">
-                          <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0">
-                              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                                {index + 1}
-                              </div>
-                            </div>
-                            <div className="flex-1 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-foreground">
-                                  {milestone.milestone}
-                                </h3>
-                                <Badge variant="secondary" className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {milestone.timeline}
-                                </Badge>
-                              </div>
-                              <p className="text-muted-foreground leading-relaxed">
-                                {milestone.details}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            {/* AI Career Roadmap - collapsible */}
-            {plan && (
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
-                    <span className="text-2xl font-bold text-foreground flex items-center gap-2">
-                      <Sparkles className="h-6 w-6 text-primary" />
-                      AI Career Roadmap
-                    </span>
-                    <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="space-y-8">
-                    {/* Topics */}
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-semibold tracking-tight">Core Topics</h3>
-                      <div className="flex flex-wrap gap-2.5">
-                        {plan.topics.map((t, i) => (
-                          <Badge key={i} variant="secondary" className="py-1.5 px-2.5 text-xs md:text-sm rounded-full">
-                            {t}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Courses */}
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-semibold tracking-tight">Curated Courses</h3>
-                      <div className="space-y-3 md:space-y-4">
-                        {plan.courses.map((c, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between gap-6 border rounded-lg p-4 bg-card/60 hover:bg-accent/40 transition-colors"
-                          >
-                            <div className="space-y-1.5">
-                              <div className="font-semibold text-foreground text-sm md:text-base">{c.title}</div>
-                              <div className="text-xs text-muted-foreground">{c.provider}</div>
-                            </div>
-                            <Button asChild size="sm" variant="outline">
-                              <a href={c.url} target="_blank" rel="noreferrer">Open</a>
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Certifications */}
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                        <GraduationCap className="h-5 w-5 text-green-500" />
-                        Recommended Certifications
-                      </h3>
-                      <p className="text-sm text-muted-foreground">Optional credentials to signal proficiency</p>
-                      <div className="flex flex-wrap gap-2.5">
-                        {plan.certifications.map((c, i) => (
-                          <Badge
-                            key={i}
-                            variant="outline"
-                            className="py-1.5 px-2.5 text-xs md:text-sm rounded-full inline-flex items-center gap-1.5"
-                          >
-                            <GraduationCap className="h-3.5 w-3.5" />
-                            {c}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Weekly Action Plan */}
-                    <Card className="elevation-2">
-                      <CardHeader>
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <CardTitle className="text-xl font-semibold">Weekly Action Plan</CardTitle>
-                            <CardDescription className="text-sm">
-                              Check off weeks as you complete them. Progress saves locally — use "Save Progress" to sync.
-                            </CardDescription>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={resetProgress}>
-                              Reset
-                            </Button>
-                            <Button size="sm" onClick={handleSaveProgress}>
-                              Save Progress
-                            </Button>
+                            ))}
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {plan.timeline.map((w, i) => {
-                            const done = completedWeeks.has(w.week);
-                            return (
+
+                        {/* Courses */}
+                        <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur p-5">
+                          <h3 className="text-lg font-semibold tracking-tight">Curated Courses</h3>
+                          <div className="space-y-3 md:space-y-4">
+                            {plan.courses.map((c, i) => (
                               <div
                                 key={i}
-                                className={`rounded-xl border p-5 bg-card/60 relative overflow-hidden ${
-                                  done ? "ring-1 ring-green-500/40" : ""
-                                }`}
+                                className="flex items-center justify-between gap-6 border rounded-lg p-4 bg-card/60 hover:bg-accent/40 transition-colors"
                               >
-                                {/* subtle background fill when done */}
-                                <div
-                                  className={`absolute inset-0 pointer-events-none transition-opacity ${
-                                    done ? "opacity-10 bg-green-500" : "opacity-0"
-                                  }`}
-                                />
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <Checkbox
-                                      checked={done}
-                                      onCheckedChange={() => toggleWeek(w.week)}
-                                      aria-label={`Mark week ${w.week} complete`}
-                                    />
-                                    <div className="font-semibold text-sm md:text-base">Week {w.week}</div>
-                                  </div>
-                                  <Badge variant={done ? "secondary" : "outline"} className="text-xs">
-                                    {(w.week * (Number(hoursPerWeek) || 0))}h total
-                                  </Badge>
+                                <div className="space-y-1.5">
+                                  <div className="font-semibold text-foreground text-sm md:text-base">{c.title}</div>
+                                  <div className="text-xs text-muted-foreground">{c.provider}</div>
                                 </div>
-                                <div className="h-px bg-border/70 mb-3" />
-                                <pre className="whitespace-pre-wrap text-[13px] md:text-sm text-muted-foreground leading-7">
-                                  {w.focus}
-                                </pre>
+                                <Button asChild size="sm" variant="outline">
+                                  <a href={c.url} target="_blank" rel="noreferrer">Open</a>
+                                </Button>
                               </div>
-                            );
-                          })}
+                            ))}
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+
+                        {/* Certifications */}
+                        <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur p-5">
+                          <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                            <GraduationCap className="h-5 w-5 text-green-500" />
+                            Recommended Certifications
+                          </h3>
+                          <p className="text-sm text-muted-foreground">Optional credentials to signal proficiency</p>
+                          <div className="flex flex-wrap gap-2.5">
+                            {plan.certifications.map((c, i) => (
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className="py-1.5 px-2.5 text-xs md:text-sm rounded-full inline-flex items-center gap-1.5"
+                              >
+                                <GraduationCap className="h-3.5 w-3.5" />
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN: Gap Analysis + Growth Roadmap */}
+              <div className="lg:col-span-5 space-y-6">
+                {/* Gap Analysis */}
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-white/5 dark:bg-white/5 backdrop-blur supports-[backdrop-filter]:bg-white/5 border-white/10 hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
+                      <span className="text-xl font-semibold text-foreground flex items-center gap-2">
+                        <AlertCircle className="h-6 w-6 text-orange-500" />
+                        Gap Analysis
+                      </span>
+                      <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* Lacking Skills */}
+                      <Card className="elevation-2 border-white/10 bg-white/5 backdrop-blur">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <Code className="h-5 w-5 text-blue-500" />
+                            Skills to Develop
+                          </CardTitle>
+                          <CardDescription>Technical and soft skills you need to acquire</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {dreamJobAnalysis.lackingSkills && dreamJobAnalysis.lackingSkills.length > 0 ? (
+                            <div className="space-y-2">
+                              {dreamJobAnalysis.lackingSkills.map((skill, index) => (
+                                <motion.div
+                                  key={skill}
+                                  initial={{ x: -20, opacity: 0 }}
+                                  animate={{ x: 0, opacity: 1 }}
+                                  transition={{ delay: 0.05 * index }}
+                                >
+                                  <Badge variant="outline" className="w-full justify-start p-3 text-sm">
+                                    {skill}
+                                  </Badge>
+                                </motion.div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-center py-4">No skill gaps identified</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Lacking Education */}
+                      <Card className="elevation-2 border-white/10 bg-white/5 backdrop-blur">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <GraduationCap className="h-5 w-5 text-green-500" />
+                            Education & Certifications
+                          </CardTitle>
+                          <CardDescription>Qualifications and certifications to pursue</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {dreamJobAnalysis.lackingEducation && dreamJobAnalysis.lackingEducation.length > 0 ? (
+                            <div className="space-y-2">
+                              {dreamJobAnalysis.lackingEducation.map((education, index) => (
+                                <motion.div
+                                  key={education}
+                                  initial={{ x: -20, opacity: 0 }}
+                                  animate={{ x: 0, opacity: 1 }}
+                                  transition={{ delay: 0.05 * index }}
+                                >
+                                  <Badge variant="outline" className="w-full justify-start p-3 text-sm">
+                                    {education}
+                                  </Badge>
+                                </motion.div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-center py-4">No education gaps identified</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Lacking Experience */}
+                      <Card className="elevation-2 border-white/10 bg-white/5 backdrop-blur">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <Briefcase className="h-5 w-5 text-purple-500" />
+                            Experience to Gain
+                          </CardTitle>
+                          <CardDescription>Professional experience areas to focus on</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {dreamJobAnalysis.lackingExperience && dreamJobAnalysis.lackingExperience.length > 0 ? (
+                            <div className="space-y-2">
+                              {dreamJobAnalysis.lackingExperience.map((experience, index) => (
+                                <motion.div
+                                  key={experience}
+                                  initial={{ x: -20, opacity: 0 }}
+                                  animate={{ x: 0, opacity: 1 }}
+                                  transition={{ delay: 0.05 * index }}
+                                >
+                                  <Badge variant="outline" className="w-full justify-start p-3 text-sm">
+                                    {experience}
+                                  </Badge>
+                                </motion.div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-center py-4">No experience gaps identified</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Growth Roadmap */}
+                {dreamJobAnalysis.growthPlan && dreamJobAnalysis.growthPlan.length > 0 && (
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-white/5 dark:bg-white/5 backdrop-blur supports-[backdrop-filter]:bg-white/5 border-white/10 hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
+                        <span className="text-xl font-semibold text-foreground flex items-center gap-2">
+                          <Zap className="h-6 w-6 text-green-500" />
+                          Your Growth Roadmap
+                        </span>
+                        <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {dreamJobAnalysis.growthPlan.map((milestone, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.05 * index }}
+                        >
+                          <Card className="elevation-2 hover:elevation-3 transition-all duration-300 border-white/10 bg-white/5 backdrop-blur">
+                            <CardContent className="p-6">
+                              <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                                    {index + 1}
+                                  </div>
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-foreground">{milestone.milestone}</h3>
+                                    <Badge variant="secondary" className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {milestone.timeline}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-muted-foreground leading-relaxed">{milestone.details}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </div>
+            </div>
+
+            {/* FULL-WIDTH: Weekly Action Plan (glass) */}
+            {plan && (
+              <Card className="elevation-2 border-white/10 bg-white/5 backdrop-blur">
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-xl font-semibold">Weekly Action Plan</CardTitle>
+                      <CardDescription className="text-sm">
+                        Check off weeks as you complete them. Progress saves locally — use "Save Progress" to sync.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={resetProgress}>
+                        Reset
+                      </Button>
+                      <Button size="sm" onClick={handleSaveProgress}>
+                        Save Progress
+                      </Button>
+                    </div>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {plan.timeline.map((w, i) => {
+                      const done = completedWeeks.has(w.week);
+                      return (
+                        <div
+                          key={i}
+                          className={`rounded-xl border p-5 bg-card/60 relative overflow-hidden ${
+                            done ? "ring-1 ring-green-500/40" : ""
+                          }`}
+                        >
+                          {/* subtle background fill when done */}
+                          <div
+                            className={`absolute inset-0 pointer-events-none transition-opacity ${
+                              done ? "opacity-10 bg-green-500" : "opacity-0"
+                            }`}
+                          />
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={done}
+                                onCheckedChange={() => toggleWeek(w.week)}
+                                aria-label={`Mark week ${w.week} complete`}
+                              />
+                              <div className="font-semibold text-sm md:text-base">Week {w.week}</div>
+                            </div>
+                            <Badge variant={done ? "secondary" : "outline"} className="text-xs">
+                              {(w.week * (Number(hoursPerWeek) || 0))}h total
+                            </Badge>
+                          </div>
+                          <div className="h-px bg-border/70 mb-3" />
+                          <pre className="whitespace-pre-wrap text-[13px] md:text-sm text-muted-foreground leading-7">
+                            {w.focus}
+                          </pre>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         ) : (
