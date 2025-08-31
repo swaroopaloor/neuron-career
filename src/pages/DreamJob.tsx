@@ -1,4 +1,7 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { Link } from "react-router";
+import { toast } from "sonner";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +17,16 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
-import { toast } from "sonner";
-import { useState } from "react";
-import { Link } from "react-router-dom";
-
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Star, 
   BookOpen, 
@@ -58,6 +65,61 @@ export default function DreamJob() {
     timeline: Array<{ week: number; focus: string }>;
     summary: string;
   } | null>(null);
+
+  // Add: progress state for weekly completion
+  const [completedWeeks, setCompletedWeeks] = useState<Set<number>>(new Set());
+  const [showCongrats, setShowCongrats] = useState(false);
+
+  // Keyed storage for progress by analysis id
+  const progressKey = dreamJobAnalysis ? `dreamProgress:${dreamJobAnalysis._id}` : null;
+
+  // Load saved progress on mount or when plan changes
+  useEffect(() => {
+    if (!plan || !progressKey) return;
+    try {
+      const raw = localStorage.getItem(progressKey);
+      if (raw) {
+        const arr: number[] = JSON.parse(raw);
+        setCompletedWeeks(new Set(arr));
+      } else {
+        setCompletedWeeks(new Set());
+      }
+    } catch {
+      setCompletedWeeks(new Set());
+    }
+  }, [plan, progressKey]);
+
+  // Helper: save progress
+  const saveProgress = (next: Set<number>) => {
+    if (!progressKey) return;
+    const arr = Array.from(next.values()).sort((a, b) => a - b);
+    localStorage.setItem(progressKey, JSON.stringify(arr));
+  };
+
+  // Toggle a week's completion
+  const toggleWeek = (weekNumber: number) => {
+    setCompletedWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(weekNumber)) next.delete(weekNumber);
+      else next.add(weekNumber);
+      saveProgress(next);
+
+      // Trigger celebration if all completed
+      const total = plan?.timeline?.length || 0;
+      if (total > 0 && next.size === total) {
+        setShowCongrats(true);
+        toast("Amazing! You've completed your roadmap 🎉");
+      }
+      return next;
+    });
+  };
+
+  // Reset progress
+  const resetProgress = () => {
+    setCompletedWeeks(new Set());
+    if (progressKey) localStorage.removeItem(progressKey);
+    toast("Progress reset");
+  };
 
   const handleGenerateInsights = async () => {
     if (!dreamJobAnalysis) return;
@@ -156,17 +218,6 @@ export default function DreamJob() {
     );
   }
 
-  // Chart data based on timeline length and hours/week
-  const computedWeeks = plan?.timeline?.length || weeks;
-  const chartData =
-    Array.from({ length: computedWeeks }, (_, i) => {
-      const w = i + 1;
-      return {
-        week: `W${w}`,
-        cumulativeHours: w * (Number(hoursPerWeek) || 0),
-      };
-    });
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -209,6 +260,42 @@ export default function DreamJob() {
           </div>
         </div>
       </header>
+
+      <Dialog open={showCongrats} onOpenChange={setShowCongrats}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Congratulations! 🎉</DialogTitle>
+            <DialogDescription>
+              You've completed every week of your roadmap. That's huge.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-foreground font-medium">Recommended next steps:</p>
+            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <li>Consolidate learnings into a showcase project or case study</li>
+              <li>Update your resume with quantified outcomes from this journey</li>
+              <li>Publish a short write-up on LinkedIn or personal site</li>
+              <li>Target roles that highlight these skills and apply this week</li>
+              <li>Schedule mock interviews and refine answers</li>
+            </ul>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCongrats(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setShowCongrats(false);
+                // small nudge to reset for another iteration
+                toast("Set a new target or iterate to go deeper 🚀");
+              }}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            >
+              What's next
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dream Job Header */}
@@ -342,36 +429,33 @@ export default function DreamJob() {
                   </div>
                 </div>
 
-                {/* Progress chart */}
+                {/* Progress summary */}
                 <div className="space-y-3">
                   <div className="text-sm text-muted-foreground">
-                    Estimated weekly investment and cumulative progress
+                    Track your weekly completion and see your progress toward the goal
                   </div>
-                  <ChartContainer
-                    className="rounded-lg border bg-card p-2"
-                    config={{
-                      progress: { label: "Cumulative Hours", color: "hsl(var(--primary))" },
-                    }}
-                  >
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="week" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
-                      <Line
-                        type="monotone"
-                        dataKey="cumulativeHours"
-                        name="Cumulative Hours"
-                        stroke="var(--color-progress)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ChartContainer>
+                  <div className="rounded-lg border bg-card p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm">
+                        {plan?.timeline?.length
+                          ? `${completedWeeks.size} of ${plan.timeline.length} weeks completed`
+                          : `0 of ${weeks} weeks completed`}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={resetProgress}>
+                        Reset
+                      </Button>
+                    </div>
+                    <Progress
+                      value={
+                        plan?.timeline?.length
+                          ? (completedWeeks.size / plan.timeline.length) * 100
+                          : 0
+                      }
+                      className="h-2"
+                    />
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    Target: {computedWeeks} weeks • {hoursPerWeek} hrs/week • Total ~{" "}
-                    {computedWeeks * (Number(hoursPerWeek) || 0)} hrs
+                    Stay consistent. Check off each week as you complete it.
                   </div>
                 </div>
               </div>
@@ -641,19 +725,46 @@ export default function DreamJob() {
                   <Card className="elevation-2">
                     <CardHeader>
                       <CardTitle className="text-lg">Weekly Action Plan</CardTitle>
-                      <CardDescription>Exactly what to focus on each week</CardDescription>
+                      <CardDescription>
+                        Check off weeks as you complete them. Progress saves automatically.
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {plan.timeline.map((w, i) => (
-                          <div key={i} className="rounded-lg border p-4 bg-card/60">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="font-semibold">Week {w.week}</div>
-                              <Badge variant="secondary">{(w.week * (Number(hoursPerWeek) || 0))}h total</Badge>
+                        {plan.timeline.map((w, i) => {
+                          const done = completedWeeks.has(w.week);
+                          return (
+                            <div
+                              key={i}
+                              className={`rounded-lg border p-4 bg-card/60 relative overflow-hidden ${
+                                done ? "ring-1 ring-green-500/40" : ""
+                              }`}
+                            >
+                              {/* filled background indicator */}
+                              <div
+                                className={`absolute inset-0 pointer-events-none transition-opacity ${
+                                  done ? "opacity-10 bg-green-500" : "opacity-0"
+                                }`}
+                              />
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={done}
+                                    onCheckedChange={() => toggleWeek(w.week)}
+                                    aria-label={`Mark week ${w.week} complete`}
+                                  />
+                                  <div className="font-semibold">Week {w.week}</div>
+                                </div>
+                                <Badge variant={done ? "secondary" : "outline"}>
+                                  {((w.week) * (Number(hoursPerWeek) || 0))}h total
+                                </Badge>
+                              </div>
+                              <pre className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">
+                                {w.focus}
+                              </pre>
                             </div>
-                            <pre className="whitespace-pre-wrap text-sm text-muted-foreground">{w.focus}</pre>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
