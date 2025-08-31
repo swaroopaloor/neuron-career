@@ -42,100 +42,100 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* CHANGE VALUES FOR THEME */
+/* MINIMALIST THEME COLORS */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  /* Light theme: clean with blue brand */
-  --background: oklch(0.995 0 0);
-  --foreground: oklch(0.22 0.01 255);
+  /* Minimalist light theme: Clean whites and soft grays with subtle blue accents */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.15 0.01 240);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.01 255);
+  --card-foreground: oklch(0.15 0.01 240);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.01 255);
+  --popover-foreground: oklch(0.15 0.01 240);
 
-  /* Brand blues */
-  --primary: oklch(0.59 0.16 255);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Soft, approachable blue */
+  --primary: oklch(0.55 0.12 240);
+  --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.96 0.03 255);
-  --secondary-foreground: oklch(0.25 0.02 255);
+  --secondary: oklch(0.97 0.01 240);
+  --secondary-foreground: oklch(0.2 0.01 240);
 
-  --muted: oklch(0.96 0.01 255);
-  --muted-foreground: oklch(0.45 0.01 255);
+  --muted: oklch(0.96 0.005 240);
+  --muted-foreground: oklch(0.5 0.01 240);
 
-  --accent: oklch(0.97 0.03 255);
-  --accent-foreground: oklch(0.25 0.02 255);
+  --accent: oklch(0.98 0.01 240);
+  --accent-foreground: oklch(0.2 0.01 240);
 
-  --destructive: oklch(0.62 0.23 28);
+  --destructive: oklch(0.65 0.2 25);
 
-  --border: oklch(0.92 0 0);
-  --input: oklch(0.92 0 0);
-  --ring: oklch(0.59 0.16 255);
+  --border: oklch(0.92 0.005 240);
+  --input: oklch(0.94 0.005 240);
+  --ring: oklch(0.55 0.12 240);
 
-  /* Charts (cool palette) */
-  --chart-1: oklch(0.62 0.19 255);
-  --chart-2: oklch(0.64 0.2 210);
-  --chart-3: oklch(0.68 0.18 180);
-  --chart-4: oklch(0.74 0.16 150);
-  --chart-5: oklch(0.78 0.14 120);
+  /* Harmonious chart colors */
+  --chart-1: oklch(0.6 0.15 240);
+  --chart-2: oklch(0.65 0.15 200);
+  --chart-3: oklch(0.7 0.12 160);
+  --chart-4: oklch(0.75 0.1 120);
+  --chart-5: oklch(0.8 0.08 80);
 
   /* Sidebar */
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.22 0.01 255);
-  --sidebar-primary: oklch(0.59 0.16 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.96 0.03 255);
-  --sidebar-accent-foreground: oklch(0.25 0.02 255);
-  --sidebar-border: oklch(0.92 0 0);
-  --sidebar-ring: oklch(0.59 0.16 255);
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.15 0.01 240);
+  --sidebar-primary: oklch(0.55 0.12 240);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.97 0.01 240);
+  --sidebar-accent-foreground: oklch(0.2 0.01 240);
+  --sidebar-border: oklch(0.92 0.005 240);
+  --sidebar-ring: oklch(0.55 0.12 240);
 }
 
 .dark {
-  /* Deep navy with vibrant blue accents for better contrast and a modern feel */
-  --background: oklch(0.22 0.05 255); /* slightly lighter and more blue than before */
-  --foreground: oklch(0.985 0 0);
+  /* Minimalist dark theme: Deep, comfortable grays with warm blue accents */
+  --background: oklch(0.08 0.01 240);
+  --foreground: oklch(0.95 0.005 240);
 
-  --card: oklch(0.26 0.05 255);
-  --card-foreground: oklch(0.985 0 0);
+  --card: oklch(0.1 0.01 240);
+  --card-foreground: oklch(0.95 0.005 240);
 
-  --popover: oklch(0.26 0.05 255);
-  --popover-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.1 0.01 240);
+  --popover-foreground: oklch(0.95 0.005 240);
 
-  --primary: oklch(0.80 0.24 255);
-  --primary-foreground: oklch(0.18 0.03 255);
+  --primary: oklch(0.7 0.15 240);
+  --primary-foreground: oklch(0.08 0.01 240);
 
-  --secondary: oklch(0.34 0.03 255);
-  --secondary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.15 0.01 240);
+  --secondary-foreground: oklch(0.9 0.005 240);
 
-  --muted: oklch(0.30 0.02 255);
-  --muted-foreground: oklch(0.92 0.01 255); /* brighter for visibility */
+  --muted: oklch(0.12 0.01 240);
+  --muted-foreground: oklch(0.65 0.01 240);
 
-  --accent: oklch(0.32 0.03 255);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.14 0.01 240);
+  --accent-foreground: oklch(0.9 0.005 240);
 
-  --destructive: oklch(0.72 0.20 22);
+  --destructive: oklch(0.7 0.18 25);
 
-  --border: oklch(1 0 0 / 16%);
-  --input: oklch(1 0 0 / 20%);
-  --ring: oklch(0.80 0.24 255);
+  --border: oklch(0.18 0.01 240);
+  --input: oklch(0.16 0.01 240);
+  --ring: oklch(0.7 0.15 240);
 
-  --chart-1: oklch(0.78 0.23 255);
-  --chart-2: oklch(0.72 0.21 230);
-  --chart-3: oklch(0.75 0.18 200);
-  --chart-4: oklch(0.70 0.20 170);
-  --chart-5: oklch(0.74 0.17 140);
+  --chart-1: oklch(0.75 0.15 240);
+  --chart-2: oklch(0.7 0.15 200);
+  --chart-3: oklch(0.65 0.12 160);
+  --chart-4: oklch(0.6 0.1 120);
+  --chart-5: oklch(0.55 0.08 80);
 
-  --sidebar: oklch(0.26 0.05 255);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.80 0.24 255);
-  --sidebar-primary-foreground: oklch(0.18 0.03 255);
-  --sidebar-accent: oklch(0.34 0.03 255);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 16%);
-  --sidebar-ring: oklch(0.80 0.24 255);
+  --sidebar: oklch(0.1 0.01 240);
+  --sidebar-foreground: oklch(0.95 0.005 240);
+  --sidebar-primary: oklch(0.7 0.15 240);
+  --sidebar-primary-foreground: oklch(0.08 0.01 240);
+  --sidebar-accent: oklch(0.15 0.01 240);
+  --sidebar-accent-foreground: oklch(0.9 0.005 240);
+  --sidebar-border: oklch(0.18 0.01 240);
+  --sidebar-ring: oklch(0.7 0.15 240);
 }
 
 @layer base {
@@ -196,19 +196,19 @@
     background:
       radial-gradient(
         700px circle at 15% -10%,
-        color-mix(in oklab, var(--primary) 18%, transparent) 0%,
+        color-mix(in oklab, var(--primary) 8%, transparent) 0%,
         transparent 60%
       ),
       radial-gradient(
         800px circle at 85% 0%,
-        color-mix(in oklab, var(--primary) 14%, transparent) 0%,
+        color-mix(in oklab, var(--primary) 6%, transparent) 0%,
         transparent 60%
       );
   }
 
-  /* New utilities for enhanced UI */
+  /* Enhanced minimalist utilities */
   .smooth-transition {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .line-clamp-1 {
@@ -232,56 +232,48 @@
     -webkit-line-clamp: 3;
   }
 
-  /* Notification animations */
-  .notification-enter {
-    animation: slideInRight 0.3s ease-out;
+  /* Minimalist animations */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
   }
 
-  .notification-exit {
-    animation: slideOutRight 0.3s ease-in;
+  .slide-up {
+    animation: slideUp 0.6s ease-out;
   }
 
-  @keyframes slideInRight {
+  @keyframes fadeIn {
     from {
-      transform: translateX(100%);
       opacity: 0;
     }
     to {
-      transform: translateX(0);
       opacity: 1;
     }
   }
 
-  @keyframes slideOutRight {
+  @keyframes slideUp {
     from {
-      transform: translateX(0);
-      opacity: 1;
+      opacity: 0;
+      transform: translateY(20px);
     }
     to {
-      transform: translateX(100%);
-      opacity: 0;
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
-  /* Command palette backdrop */
-  .command-backdrop {
-    backdrop-filter: blur(8px);
-    background-color: color-mix(in oklab, var(--background) 20%, transparent);
-  }
-
-  /* Enhanced focus styles */
+  /* Enhanced focus styles for accessibility */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
 
-  /* Improved hover states */
+  /* Subtle hover effects */
   .hover-lift {
     transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
   }
 
   .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px -8px color-mix(in oklab, var(--foreground) 15%, transparent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -4px color-mix(in oklab, var(--foreground) 10%, transparent);
   }
 
   /* Status indicators */
@@ -312,8 +304,7 @@
 
   /* Interactive elements */
   .interactive {
-    @apply cursor-pointer select-none;
-    transition: all 0.15s ease-out;
+    @apply cursor-pointer select-none smooth-transition;
   }
 
   .interactive:hover {
@@ -332,12 +323,12 @@ html {
 
 @media (min-width: 640px) {
   html {
-    font-size: 17px;
+    font-size: 16px;
   }
 }
 
 @media (min-width: 1024px) {
   html {
-    font-size: 18px;
+    font-size: 17px;
   }
 }
