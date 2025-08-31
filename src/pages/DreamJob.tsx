@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useQuery, useAction, useMutation } from "convex/react";
@@ -91,8 +91,17 @@ export default function DreamJob() {
   const progressKey = dreamJobAnalysis ? `dreamProgress:${dreamJobAnalysis._id}` : null;
 
   // Add: derived metrics for hero summary
-  const totalWeeks = (plan?.timeline?.length ?? Number(weeks)) || 0;
-  const progressPercent = totalWeeks > 0 ? Math.min(100, Math.round((completedWeeks.size / totalWeeks) * 100)) : 0;
+  const totalWeeks = (plan?.timeline?.length ?? (Number(weeks) || 0));
+  const doneCount = completedWeeks.size;
+  const remainingCount = Math.max(0, totalWeeks - doneCount);
+  const nextWeekNumber = plan?.timeline
+    ? plan.timeline.find((w) => !completedWeeks.has(w.week))?.week ?? null
+    : null;
+  const nextFocusText =
+    nextWeekNumber && plan
+      ? plan.timeline.find((w) => w.week === nextWeekNumber)?.focus ?? ""
+      : "";
+  const progressPercent = totalWeeks > 0 ? Math.min(100, Math.round((doneCount / totalWeeks) * 100)) : 0;
   const statusLabel = dreamJobAnalysis ? (dreamJobAnalysis.status.charAt(0).toUpperCase() + dreamJobAnalysis.status.slice(1)) : "—";
 
   // Prefer server-saved progress if available
@@ -284,6 +293,13 @@ export default function DreamJob() {
     );
   }
 
+  // Ref: jump to generator
+  const generatorRef = useRef<HTMLButtonElement | null>(null);
+// Smooth scroll to the generator section
+const handleJumpToGenerator = () => {
+  generatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -348,7 +364,7 @@ export default function DreamJob() {
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-white/90">Roadmap Progress</span>
                 <span className="text-white/90">
-                  {totalWeeks ? `${completedWeeks.size}/${totalWeeks} weeks` : "No roadmap yet"}
+                  {totalWeeks ? `${doneCount}/${totalWeeks} weeks` : "No roadmap yet"}
                 </span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-white/20 overflow-hidden">
@@ -370,6 +386,50 @@ export default function DreamJob() {
                   <div className="font-semibold">{progressPercent}%</div>
                   <div className="text-white/80">Progress</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Add: Next step + Quick actions row */}
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="col-span-2 rounded-xl bg-white/10 backdrop-blur p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm text-white/80">Next action</div>
+                  <div className="mt-1 font-medium">
+                    {plan && nextWeekNumber
+                      ? `Week ${nextWeekNumber}:`
+                      : plan
+                      ? "All caught up!"
+                      : "Generate your roadmap to get started"}
+                  </div>
+                  <div className="mt-1 text-sm text-white/80 line-clamp-2">
+                    {plan && nextWeekNumber ? nextFocusText : plan ? "Consider going deeper or adding stretch goals." : "Open the generator to create a personalized plan."}
+                  </div>
+                </div>
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/20">
+                  {remainingCount > 0 ? `${remainingCount} weeks left` : "Complete"}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-white/10 backdrop-blur p-3 flex items-center justify-between gap-2">
+              <div className="text-sm">
+                <div className="text-white/80">Momentum</div>
+                <div className="font-medium">{doneCount} completed • {remainingCount} to go</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="secondary" className="bg-white text-purple-700 hover:bg-white/90" onClick={handleSaveProgress}>
+                  Save Progress
+                </Button>
+                <Button size="sm" variant="outline" className="border-white/40 text-white hover:bg-white/10" onClick={handleJumpToGenerator}>
+                  Edit Plan
+                </Button>
+                {!hasInsights && (
+                  <Button size="sm" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" onClick={handleGenerateInsights} disabled={isGeneratingInsights}>
+                    {isGeneratingInsights ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Working</> : <>Generate Insights</>}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -427,12 +487,15 @@ export default function DreamJob() {
         </DialogContent>
       </Dialog>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dream Job Header - now collapsible */}
         <Collapsible>
           <CollapsibleTrigger asChild>
-            <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-6 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-              <span className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <button
+              ref={generatorRef}
+              className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+            >
+              <span className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
                 <Star className="h-5 w-5 text-purple-500" />
                 Dream Job Setup & Roadmap Generator
               </span>
@@ -440,7 +503,7 @@ export default function DreamJob() {
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <Card className="elevation-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
+            <Card className="elevation-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800 mt-4">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
@@ -606,12 +669,12 @@ export default function DreamJob() {
         </Collapsible>
 
         {hasInsights ? (
-          <div className="space-y-10">
+          <div className="space-y-8 mt-8">
             {/* Gap Analysis - collapsible */}
             <Collapsible>
               <CollapsibleTrigger asChild>
-                <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-4 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <span className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
+                  <span className="text-xl font-semibold text-foreground flex items-center gap-2">
                     <AlertCircle className="h-6 w-6 text-orange-500" />
                     Gap Analysis
                   </span>
@@ -732,7 +795,7 @@ export default function DreamJob() {
             {dreamJobAnalysis.growthPlan && dreamJobAnalysis.growthPlan.length > 0 && (
               <Collapsible>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-4 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
                     <span className="text-2xl font-bold text-foreground flex items-center gap-2">
                       <Zap className="h-6 w-6 text-green-500" />
                       Your Growth Roadmap
@@ -783,7 +846,7 @@ export default function DreamJob() {
             {plan && (
               <Collapsible>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-4 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
                     <span className="text-2xl font-bold text-foreground flex items-center gap-2">
                       <Sparkles className="h-6 w-6 text-primary" />
                       AI Career Roadmap
@@ -924,7 +987,7 @@ export default function DreamJob() {
         {/* Job Description - collapsible */}
         <Collapsible>
           <CollapsibleTrigger asChild>
-            <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 hover:bg-accent/50 transition-colors mb-4 mt-8 bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 hover:bg-accent/50 transition-colors mb-4 mt-8 bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
               <span className="text-xl font-semibold text-foreground flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
                 Original Job Description
