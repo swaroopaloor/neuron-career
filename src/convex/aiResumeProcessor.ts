@@ -11,9 +11,9 @@ export const generateSuggestions = action({
   },
   handler: async (ctx, args) => {
     try {
-      const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-      if (!openRouterApiKey) {
-        throw new Error("OpenRouter API key not configured");
+      const groqApiKey = process.env.GROQ_API_KEY;
+      if (!groqApiKey) {
+        throw new Error("GROQ API key not configured");
       }
 
       const prompt = `You are an expert resume optimization assistant. Analyze the following resume content and provide actionable suggestions for improvement.
@@ -39,16 +39,14 @@ Focus on:
 4. Industry-specific improvements
 5. Quantifiable achievements`;
 
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${openRouterApiKey}`,
+          Authorization: `Bearer ${groqApiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://your-domain.com",
-          "X-Title": "Resume Analyzer AI",
         },
         body: JSON.stringify({
-          model: "anthropic/claude-3.5-sonnet",
+          model: "llama-3.1-70b-versatile",
           messages: [
             {
               role: "user",
@@ -61,7 +59,7 @@ Focus on:
       });
 
       if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
+        throw new Error(`Groq API error: ${response.status}`);
       }
 
       const data = await response.json();
