@@ -265,7 +265,7 @@ export default function Dashboard() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+              className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-[260px] md:[&>*]:min-w-0"
               id="analytics"
             >
               {[
@@ -478,22 +478,23 @@ export default function Dashboard() {
                         </CardDescription>
                       </div>
                       
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-auto">
                           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             placeholder="Search analyses..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 w-40 sm:w-48"
+                            className="pl-8 w-full sm:w-48"
                           />
                         </div>
                         
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 w-full sm:w-auto">
                           <Button
                             variant={filter === "all" ? "default" : "outline"}
                             size="sm"
                             onClick={() => setFilter("all")}
+                            className="flex-1 sm:flex-none"
                           >
                             All
                           </Button>
@@ -501,6 +502,7 @@ export default function Dashboard() {
                             variant={filter === "favorites" ? "default" : "outline"}
                             size="sm"
                             onClick={() => setFilter("favorites")}
+                            className="flex-1 sm:flex-none"
                           >
                             <Heart className="h-3 w-3 mr-1" />
                             Favorites
