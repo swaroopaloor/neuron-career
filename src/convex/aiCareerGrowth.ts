@@ -8,6 +8,10 @@ export const generateCareerPlan = action({
     about: v.string(),
     dreamRole: v.string(),
     weeks: v.number(),
+    // Add: user calibration inputs
+    currentLevel: v.string(),
+    yearsExperience: v.number(),
+    hoursPerWeek: v.number(),
   },
   handler: async (ctx, args) => {
     const apiKey = process.env.GROQ_API_KEY;
@@ -15,45 +19,45 @@ export const generateCareerPlan = action({
       throw new Error("GROQ_API_KEY is not configured");
     }
 
-    const prompt = `You are a career growth expert and mentor. Based on the user's background and dream role, create a comprehensive, accurate, and realistic career development plan.
+    // Strengthen and personalize the prompt using currentLevel, yearsExperience, and hoursPerWeek
+    const prompt = `You are a senior career mentor. Create a highly accurate, realistic, and actionable career development plan tailored to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, and DREAM ROLE.
 
-User Background: ${args.about}
+User Background (verbatim): ${args.about}
+Current Level: ${args.currentLevel}
+Years of Experience: ${args.yearsExperience}
+Available Time: ${args.hoursPerWeek} hours/week
 Dream Role: ${args.dreamRole}
 Timeline: ${args.weeks} weeks
 
-Generate a detailed career growth plan as a JSON object with this exact structure:
+Strict output format: Return ONLY a JSON object with EXACTLY these fields and structure:
 
 {
-  "topics": ["topic1", "topic2", ...], // 6-8 key topics/skills to master
+  "topics": ["topic1", "topic2", ...], 
   "courses": [
-    {
-      "title": "Course Name",
-      "provider": "Platform/Provider",
-      "url": "https://actual-course-url.com"
-    }
-  ], // 3-5 high-quality, real courses with actual URLs
-  "certifications": ["cert1", "cert2", ...], // 2-4 relevant industry certifications
+    { "title": "Course Name", "provider": "Platform/Provider", "url": "https://actual-course-url.com" }
+  ],
+  "certifications": ["cert1", "cert2", ...],
   "timeline": [
     {
       "week": 1,
-      "focus": "Detailed, actionable guidance including 3-6 concrete tasks or sub-goals for this week. Use short bullet points separated by new lines. Example:
-- Read X and summarize Y
-- Complete course module Z
-- Build a small project A
-- Share progress on LinkedIn"
+      "focus": "Provide 4-6 concrete action items, one per line, each starting with '- '. Each task MUST include: a specific deliverable or output, and where possible a resource (course/module/reading/link). Calibrate workload to ${args.hoursPerWeek}h/week and level ${args.currentLevel}. Example:
+- Complete Coursera 'X' Module 1 and take notes (2h): https://...
+- Build mini-project 'Y' with feature Z and README (3h)
+- Practice 10 role-specific questions on topic A (1h)
+- Share progress post on LinkedIn summarizing key learnings (0.5h)"
     }
-  ], // Weekly breakdown for ${args.weeks} weeks with SPECIFIC, PRACTICAL tasks per week
-  "summary": "A motivating 2-3 sentence summary of the career plan"
+  ],
+  "summary": "2-3 motivating sentences summarizing the plan and expected outcomes"
 }
 
 Requirements:
-- Provide REAL course URLs from platforms like Coursera, Udemy, edX, Pluralsight, LinkedIn Learning, etc.
-- Make certifications industry-relevant and achievable
-- Create a realistic weekly timeline that builds progressively
-- Tailor everything specifically to the user's background and target role
-- Focus on practical, actionable steps and measurable outcomes each week
-
-Return ONLY the JSON object, no additional text, no markdown, no code fences.`;
+- Tailor depth, pace, and complexity to the user's level (${args.currentLevel}) and years of experience (${args.yearsExperience}).
+- Ensure weekly workload aligns with ${args.hoursPerWeek} hours/week. Avoid unrealistic scope.
+- Courses MUST be real with accurate URLs (Coursera, Udemy, edX, Pluralsight, LinkedIn Learning, etc.).
+- Certifications MUST be relevant to ${args.dreamRole}.
+- No generic advice; every weekly task should be specific, measurable, and tied to the target role.
+- Prefer role-specific topics, tools, frameworks, and portfolio-worthy outputs.
+- Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
 
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -168,9 +172,7 @@ Return ONLY the JSON object, no additional text, no markdown, no code fences.`;
 - Apply to 5-10 targeted roles and track outcomes`,
           };
         }),
-        summary: `Personalized ${args.weeks}-week career development plan tailored to help you transition into ${
-          args.dreamRole || "your target role"
-        }, with weekly, actionable tasks.`,
+        summary: `Personalized ${args.weeks}-week plan aligned to ${args.dreamRole || "your target role"} with roughly ${args.hoursPerWeek} hours/week, calibrated to your current level (${args.currentLevel}).`,
       };
     }
   },

@@ -31,6 +31,10 @@ export default function CareerGrowth() {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
 
+  const [currentLevel, setCurrentLevel] = useState<string>("mid");
+  const [yearsExperience, setYearsExperience] = useState<number>(2);
+  const [hoursPerWeek, setHoursPerWeek] = useState<number>(8);
+
   const generateCareerPlan = useAction(api.aiCareerGrowth.generateCareerPlan);
 
   const disabled = useMemo(() => !dreamRole.trim() && !about.trim(), [about, dreamRole]);
@@ -47,6 +51,9 @@ export default function CareerGrowth() {
         about: about.trim(),
         dreamRole: dreamRole.trim(),
         weeks,
+        currentLevel,
+        yearsExperience,
+        hoursPerWeek,
       });
       
       setPlan(result);
@@ -124,6 +131,54 @@ export default function CareerGrowth() {
                       <SelectItem value="24">24 weeks (Deep-Dive)</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Current Level</label>
+                  <Select value={currentLevel} onValueChange={setCurrentLevel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your current level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">Student / Bootcamp</SelectItem>
+                      <SelectItem value="junior">Junior</SelectItem>
+                      <SelectItem value="mid">Mid-level</SelectItem>
+                      <SelectItem value="senior">Senior</SelectItem>
+                      <SelectItem value="lead">Lead / Staff</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Years of Experience</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={50}
+                    step="1"
+                    value={Number.isFinite(yearsExperience) ? yearsExperience : 0}
+                    onChange={(e) => {
+                      const val = e.target.valueAsNumber;
+                      setYearsExperience(Number.isFinite(val) ? Math.max(0, Math.min(50, val)) : 0);
+                    }}
+                    placeholder="e.g., 2"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Hours per week</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    step="1"
+                    value={Number.isFinite(hoursPerWeek) ? hoursPerWeek : 8}
+                    onChange={(e) => {
+                      const val = e.target.valueAsNumber;
+                      setHoursPerWeek(Number.isFinite(val) ? Math.max(1, Math.min(60, val)) : 8);
+                    }}
+                    placeholder="e.g., 8"
+                  />
                 </div>
               </div>
               <div className="pt-2">
@@ -234,8 +289,15 @@ export default function CareerGrowth() {
                     {plan.timeline.map((t) => {
                       const lines = (t.focus || "").split(/\r?\n/).filter(Boolean);
                       return (
-                        <div key={t.week} className="rounded-lg border p-3 bg-card">
-                          <p className="text-sm font-semibold mb-1">Week {t.week}</p>
+                        <div
+                          key={t.week}
+                          className="rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors p-3 border-l-4 border-l-primary/70"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              Week {t.week}
+                            </span>
+                          </div>
                           {lines.length > 1 ? (
                             <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                               {lines.map((line, i) => (
