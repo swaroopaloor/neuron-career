@@ -304,7 +304,7 @@
 
   /* Interactive elements */
   .interactive {
-    @apply cursor-pointer select-none smooth-transition;
+    @apply cursor-pointer select-none transition-all duration-300 ease-out;
   }
 
   .interactive:hover {
