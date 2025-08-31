@@ -159,3 +159,86 @@ export const deleteAnalysis = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+// Get detailed analytics for the user
+export const getDetailedAnalytics = query({
+  args: {},
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("User must be authenticated to view analytics.");
+    }
+
+    const allAnalyses = await ctx.db
+      .query("analyses")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const completedAnalyses = allAnalyses.filter(a => a.status === "completed");
+    const totalAnalyses = allAnalyses.length;
+    const totalCompleted = completedAnalyses.length;
+
+    // Calculate averages
+    const avgMatchScore = completedAnalyses.length > 0 
+      ? Math.round(completedAnalyses.reduce((sum, a) => sum + a.matchScore, 0) / completedAnalyses.length)
+      : 0;
+    
+    const avgAtsScore = completedAnalyses.length > 0 
+      ? Math.round(completedAnalyses.reduce((sum, a) => sum + a.atsScore, 0) / completedAnalyses.length)
+      : 0;
+
+    // Success metrics
+    const highMatchAnalyses = completedAnalyses.filter(a => a.matchScore >= 80).length;
+    const excellentAtsAnalyses = completedAnalyses.filter(a => a.atsScore >= 90).length;
+    const successRate = completedAnalyses.length > 0 
+      ? Math.round((highMatchAnalyses / completedAnalyses.length) * 100)
+      : 0;
+
+    // Unique counts
+    const uniqueResumes = new Set(allAnalyses.map(a => a.resumeFileId)).size;
+    const uniqueJobDescriptions = new Set(allAnalyses.map(a => a.jobDescription)).size;
+
+    // Time-based analytics (last 30 days)
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const recentAnalyses = allAnalyses.filter(a => a._creationTime >= thirtyDaysAgo);
+    const recentCompleted = recentAnalyses.filter(a => a.status === "completed");
+
+    // Weekly breakdown (last 4 weeks)
+    const weeklyData = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = Date.now() - ((i + 1) * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = Date.now() - (i * 7 * 24 * 60 * 60 * 1000);
+      const weekAnalyses = allAnalyses.filter(a => 
+        a._creationTime >= weekStart && a._creationTime < weekEnd
+      );
+      const weekCompleted = weekAnalyses.filter(a => a.status === "completed");
+      const weekAvgMatch = weekCompleted.length > 0 
+        ? Math.round(weekCompleted.reduce((sum, a) => sum + a.matchScore, 0) / weekCompleted.length)
+        : 0;
+
+      weeklyData.push({
+        week: `Week ${4 - i}`,
+        analyses: weekAnalyses.length,
+        completed: weekCompleted.length,
+        avgMatchScore: weekAvgMatch
+      });
+    }
+
+    return {
+      totalAnalyses,
+      totalCompleted,
+      avgMatchScore,
+      avgAtsScore,
+      highMatchAnalyses,
+      excellentAtsAnalyses,
+      successRate,
+      uniqueResumes,
+      uniqueJobDescriptions,
+      recentAnalyses: recentAnalyses.length,
+      recentCompleted: recentCompleted.length,
+      weeklyData,
+      favoriteAnalyses: allAnalyses.filter(a => a.isFavorited).length,
+      failedAnalyses: allAnalyses.filter(a => a.status === "failed").length
+    };
+  },
+});

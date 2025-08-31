@@ -370,7 +370,7 @@ export default function Dashboard() {
                         { icon: FileText, label: "Resume Creator", action: () => navigate("/resume-builder") },
                         { icon: Settings, label: "Profile Settings", action: () => navigate("/profile") },
                         { icon: Star, label: "View Favorites", action: () => setFilter("favorites") },
-                        { icon: BarChart3, label: "Analytics", action: () => navigate("/dashboard#analytics") }
+                        { icon: BarChart3, label: "Analytics", action: () => navigate("/analytics") }
                       ].map((item, index) => (
                         <motion.div
                           key={item.label}
