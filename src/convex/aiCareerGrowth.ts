@@ -22,6 +22,17 @@ export const generateCareerPlan = action({
     // Normalize level for consistent logic
     const level = (args.currentLevel || "").toLowerCase();
 
+    // Generalized, domain-agnostic instructions (system) to ensure accuracy for ANY role
+    const systemPrompt = `You are an expert career architect and curriculum designer.
+Objectives:
+- Infer the exact domain/industry and sub-specialty directly from the dream role and background (examples: healthcare, finance, legal, trades, arts, sales, marketing, HR, operations, customer support, manufacturing, logistics, hospitality, education, research, government, non-profit, etc.).
+- Be precise, concrete, and measurable. Avoid fluff and platitudes.
+- Use reputable, real resources with working URLs; avoid placeholders or vague sites like "example.com".
+- For each week, provide 4–6 bullets, each with: (1) a concrete deliverable, (2) a resource link where possible, and (3) a time estimate in parentheses like "(2h)".
+- Respect the user's weekly time budget and produce exactly the requested number of weeks.
+- Output strictly valid JSON that matches the required schema with no extra text or markdown.`;
+
+    // User-specific context and strict schema - works for any role
     const prompt = `You are a principal career mentor and curriculum designer. Generate a highly accurate, realistic, and actionable career plan calibrated to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, and DREAM ROLE — in ANY FIELD.
 
 User Background (verbatim): ${args.about}
@@ -31,10 +42,9 @@ Available Time: ${args.hoursPerWeek} hours/week
 Dream Role: ${args.dreamRole}
 Timeline: ${args.weeks} weeks
 
-Critical guidance:
-- Adapt ALL content to the domain implied by the dream role (e.g., Software Engineering, Data Science/ML, Data Engineering, Cybersecurity, Product Management, UX/UI Design, Marketing/Growth, Sales, Finance, Healthcare, etc.).
+Constraints:
 - Topics must be domain-specific and skill-oriented (10–14 items) and avoid generic platitudes.
-- Courses must be real with accurate URLs (Coursera, edX, Udemy, Frontend Masters, O'Reilly, LinkedIn Learning, Datacamp, etc.).
+- Courses must be real with accurate URLs from reputable providers (Coursera, edX, Udemy, LinkedIn Learning, O'Reilly, Pluralsight, Datacamp, vendor academies, reputable bootcamps, etc.).
 - Each week's "focus" must include 4–6 bullets that:
   - start with "- "
   - include a concrete deliverable (repo, README, doc, case study, portfolio artifact, score)
@@ -42,6 +52,8 @@ Critical guidance:
   - include an estimated time in parentheses like "(2h)"
 - Calibrate depth and complexity to the user's level (${level}) and years (${args.yearsExperience}), and keep the total weekly workload within ~${args.hoursPerWeek}h/week.
 - Timeline MUST have exactly ${args.weeks} weeks.
+- Ensure the plan clearly maps to the real responsibilities, tooling, and competencies of the target role and industry.
+- Do NOT include placeholders, fake URLs, or vague advice.
 
 Strict output format: Return ONLY a JSON object with EXACTLY these fields and structure:
 
@@ -54,21 +66,13 @@ Strict output format: Return ONLY a JSON object with EXACTLY these fields and st
   "timeline": [
     {
       "week": 1,
-      "focus": "- item1 (xh): https://link\n- item2 (xh): https://link\n- item3 (xh)\n- item4 (xh)"
+      "focus": "- item1 (xh): https://link\\n- item2 (xh): https://link\\n- item3 (xh)\\n- item4 (xh)"
     }
   ],
   "summary": "2–3 motivating sentences summarizing the plan and expected outcomes"
 }
 
-Return ONLY the JSON object, no extra text, no markdown, no code fences.
-
-Examples of domain adaptation (do NOT output this section):
-- Software Engineering: DSA, language mastery, testing, system design, backend/frontend frameworks, CI/CD, cloud, observability, security, portfolio projects.
-- Data Science/ML: stats, Python, Pandas, visualization, ML algorithms, model evaluation, MLOps basics, projects and analyses with notebooks/dashboards.
-- Cybersecurity: network fundamentals, threat modeling, security tooling, OWASP, SIEM, incident response, lab projects, certs (e.g., Security+).
-- Product Management: product discovery, user research, PRD writing, metrics/analytics, roadmaps, prioritization frameworks, go-to-market, stakeholder comms.
-- UX/UI Design: research, wireframing, prototyping, visual design, accessibility, design systems, portfolio case studies, usability testing.
-- Marketing/Growth: positioning, ICP, SEO/SEM, content, paid ads, analytics, experimentation (A/B), campaign planning, reporting dashboards.`;
+Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
 
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -79,10 +83,13 @@ Examples of domain adaptation (do NOT output this section):
         },
         body: JSON.stringify({
           model: "llama-3.1-70b-versatile",
-          messages: [{ role: "user", content: prompt }],
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt }
+          ],
           max_tokens: 2600,
-          temperature: 0.2
-          // Removed response_format; Groq often rejects this and returns 400, causing fallback.
+          temperature: 0.1,
+          top_p: 0.9,
         }),
       });
 
@@ -116,6 +123,24 @@ Examples of domain adaptation (do NOT output this section):
       // Validate structure
       if (!plan.topics || !plan.courses || !plan.certifications || !plan.timeline || !plan.summary) {
         throw new Error("Invalid plan structure received from AI");
+      }
+
+      // Enforce exactly args.weeks in timeline; fill gaps with actionable generic items aligned to the target role
+      if (Array.isArray(plan.timeline)) {
+        if (plan.timeline.length > args.weeks) {
+          plan.timeline = plan.timeline.slice(0, args.weeks);
+        } else if (plan.timeline.length < args.weeks) {
+          const start = plan.timeline.length;
+          const genericFocus = [
+            `- Close skill gaps toward ${args.dreamRole} with 2–3 targeted lessons (${Math.max(2, Math.round(args.hoursPerWeek * 0.4))}h)`,
+            `- Produce a tangible artifact (repo/case study/doc) (${Math.max(1, Math.round(args.hoursPerWeek * 0.3))}h)`,
+            `- Apply learning using role-specific tools/methods (${Math.max(1, Math.round(args.hoursPerWeek * 0.2))}h)`,
+            `- Reflect, track outcomes, and plan next steps (${Math.max(1, Math.round(args.hoursPerWeek * 0.1))}h)`
+          ].join("\n");
+          for (let w = start; w < args.weeks; w++) {
+            plan.timeline.push({ week: w + 1, focus: genericFocus });
+          }
+        }
       }
 
       return plan;
