@@ -78,6 +78,7 @@ export default function DreamJob() {
   const [completedWeeks, setCompletedWeeks] = useState<Set<number>>(new Set());
   const [showCongrats, setShowCongrats] = useState(false);
   const [showMotivation, setShowMotivation] = useState(false);
+
   const motivationalMessages = [
     "Nice work! Every week compounds 🚀",
     "Great momentum! Keep going 💪",
@@ -86,6 +87,12 @@ export default function DreamJob() {
     "Consistency wins. Proud of you! 🧠",
   ] as const;
   const [motivationText, setMotivationText] = useState<string>("");
+
+  // Add: stable ref and jump handler placed before any early returns to keep hook order consistent
+  const generatorRef = useRef<HTMLButtonElement | null>(null);
+  const handleJumpToGenerator = () => {
+    generatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Keyed storage for progress by analysis id
   const progressKey = dreamJobAnalysis ? `dreamProgress:${dreamJobAnalysis._id}` : null;
@@ -293,12 +300,7 @@ export default function DreamJob() {
     );
   }
 
-  // Ref: jump to generator
-  const generatorRef = useRef<HTMLButtonElement | null>(null);
-// Smooth scroll to the generator section
-const handleJumpToGenerator = () => {
-  generatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-};
+  // moved: generatorRef and handleJumpToGenerator are declared above to maintain consistent hook order
 
   return (
     <motion.div
