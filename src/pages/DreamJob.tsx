@@ -289,7 +289,7 @@ export default function DreamJob() {
       {/* Header */}
       <header className="border-b bg-card/95 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16 gap-4">
+          <div className="flex items-center h-14 gap-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                 <Star className="h-5 w-5 text-white fill-current" />
@@ -373,11 +373,11 @@ export default function DreamJob() {
         </DialogContent>
       </Dialog>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px_4 sm:px-6 lg:px-8 py-12">
         {/* Dream Job Header - now collapsible */}
         <Collapsible>
           <CollapsibleTrigger asChild>
-            <button className="w-full group flex items-center justify-between rounded-lg border bg-card/60 px-4 py-3 mb-4 hover:bg-accent transition">
+            <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-6 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Star className="h-5 w-5 text-purple-500" />
                 Dream Job Setup & Roadmap Generator
@@ -386,184 +386,177 @@ export default function DreamJob() {
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.05 }}
-              className="mb-8"
-            >
-              <Card className="elevation-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-2xl text-purple-900 dark:text-purple-100 mb-2">
-                        Your Dream Job
-                      </CardTitle>
-                      <CardDescription className="text-purple-700 dark:text-purple-300">
-                        Based on your analysis from {new Date(dreamJobAnalysis._creationTime).toLocaleDateString()}
-                      </CardDescription>
-                    </div>
-                    <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                      Dream Job ✨
-                    </Badge>
+            <Card className="elevation-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-2xl text-purple-900 dark:text-purple-100 mb-2">
+                      Your Dream Job
+                    </CardTitle>
+                    <CardDescription className="text-purple-700 dark:text-purple-300">
+                      Based on your analysis from {new Date(dreamJobAnalysis._creationTime).toLocaleDateString()}
+                    </CardDescription>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Generator form */}
-                    <div className="lg:col-span-2 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Dream Role</Label>
-                          <Input
-                            placeholder="e.g., Senior Backend Engineer"
-                            value={dreamRole}
-                            onChange={(e) => setDreamRole(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Current Level</Label>
-                          <Select value={currentLevel} onValueChange={setCurrentLevel}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select level" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Junior">Junior</SelectItem>
-                              <SelectItem value="Mid">Mid</SelectItem>
-                              <SelectItem value="Senior">Senior</SelectItem>
-                              <SelectItem value="Lead">Lead</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Years of Experience</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={yearsExperience}
-                            onChange={(e) => setYearsExperience(Number(e.target.value))}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Hours per Week</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={80}
-                            value={hoursPerWeek}
-                            onChange={(e) => setHoursPerWeek(Number(e.target.value))}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Duration (weeks)</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={52}
-                            value={weeks}
-                            onChange={(e) => setWeeks(Number(e.target.value))}
-                          />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>About you (optional)</Label>
-                          <Textarea
-                            rows={3}
-                            placeholder="Briefly describe your background, stack, and target domain."
-                            value={about}
-                            onChange={(e) => setAbout(e.target.value)}
-                          />
-                        </div>
+                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                    Dream Job ✨
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Generator form */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Dream Role</Label>
+                        <Input
+                          placeholder="e.g., Senior Backend Engineer"
+                          value={dreamRole}
+                          onChange={(e) => setDreamRole(e.target.value)}
+                        />
                       </div>
+                      <div className="space-y-2">
+                        <Label>Current Level</Label>
+                        <Select value={currentLevel} onValueChange={setCurrentLevel}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Junior">Junior</SelectItem>
+                            <SelectItem value="Mid">Mid</SelectItem>
+                            <SelectItem value="Senior">Senior</SelectItem>
+                            <SelectItem value="Lead">Lead</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Years of Experience</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={yearsExperience}
+                          onChange={(e) => setYearsExperience(Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Hours per Week</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={80}
+                          value={hoursPerWeek}
+                          onChange={(e) => setHoursPerWeek(Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Duration (weeks)</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={52}
+                          value={weeks}
+                          onChange={(e) => setWeeks(Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>About you (optional)</Label>
+                        <Textarea
+                          rows={3}
+                          placeholder="Briefly describe your background, stack, and target domain."
+                          value={about}
+                          onChange={(e) => setAbout(e.target.value)}
+                        />
+                      </div>
+                    </div>
 
-                      <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        onClick={handleGeneratePlan}
+                        disabled={isGeneratingPlan}
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      >
+                        {isGeneratingPlan ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating Career Roadmap...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Career Roadmap
+                          </>
+                        )}
+                      </Button>
+
+                      {!hasInsights && (
                         <Button
-                          onClick={handleGeneratePlan}
-                          disabled={isGeneratingPlan}
-                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                          variant="secondary"
+                          onClick={handleGenerateInsights}
+                          disabled={isGeneratingInsights}
                         >
-                          {isGeneratingPlan ? (
+                          {isGeneratingInsights ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Generating Career Roadmap...
+                              Generating Growth Insights...
                             </>
                           ) : (
                             <>
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Generate Career Roadmap
+                              <Zap className="h-4 w-4 mr-2" />
+                              Generate Gap Insights
                             </>
                           )}
                         </Button>
-
-                        {!hasInsights && (
-                          <Button
-                            variant="secondary"
-                            onClick={handleGenerateInsights}
-                            disabled={isGeneratingInsights}
-                          >
-                            {isGeneratingInsights ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Generating Growth Insights...
-                              </>
-                            ) : (
-                              <>
-                                <Zap className="h-4 w-4 mr-2" />
-                                Generate Gap Insights
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Progress summary */}
-                    <div className="space-y-3">
-                      <div className="text-sm text-muted-foreground">
-                        Track your weekly completion and see your progress toward the goal
-                      </div>
-                      <div className="rounded-lg border bg-card p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm">
-                            {plan?.timeline?.length
-                              ? `${completedWeeks.size} of ${plan.timeline.length} weeks completed`
-                              : `0 of ${weeks} weeks completed`}
-                          </div>
-                          <Button variant="outline" size="sm" onClick={resetProgress}>
-                            Reset
-                          </Button>
-                        </div>
-                        <Progress
-                          value={
-                            plan?.timeline?.length
-                              ? (completedWeeks.size / plan.timeline.length) * 100
-                              : 0
-                          }
-                          className="h-2"
-                        />
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Stay consistent. Check off each week as you complete it.
-                      </div>
+                      )}
                     </div>
                   </div>
 
-                  {plan?.summary && (
-                    <div className="mt-6 p-4 rounded-md bg-muted/40 text-sm leading-relaxed">
-                      {plan.summary}
+                  {/* Progress summary */}
+                  <div className="space-y-4">
+                    <div className="text-sm text-muted-foreground">
+                      Track your weekly completion and see your progress toward the goal
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+                    <div className="rounded-lg border bg-card p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm">
+                          {plan?.timeline?.length
+                            ? `${completedWeeks.size} of ${plan.timeline.length} weeks completed`
+                            : `0 of ${weeks} weeks completed`}
+                        </div>
+                        <Button variant="outline" size="sm" onClick={resetProgress}>
+                          Reset
+                        </Button>
+                      </div>
+                      <Progress
+                        value={
+                          plan?.timeline?.length
+                            ? (completedWeeks.size / plan.timeline.length) * 100
+                            : 0
+                        }
+                        className="h-2.5"
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Stay consistent. Check off each week as you complete it.
+                    </div>
+                  </div>
+                </div>
+
+                {plan?.summary && (
+                  <div className="mt-8 p-5 rounded-md bg-muted/40 text-sm leading-relaxed">
+                    {plan.summary}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </CollapsibleContent>
         </Collapsible>
 
         {hasInsights ? (
-          <div className="space-y-8">
-            {/* Gap Analysis - collapsible (header becomes full-width hoverable trigger) */}
+          <div className="space-y-10">
+            {/* Gap Analysis - collapsible */}
             <Collapsible>
               <CollapsibleTrigger asChild>
-                <button className="w-full group flex items-center justify-between rounded-lg border bg-card/60 px-4 py-3 hover:bg-accent transition mb-2">
+                <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-4 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                   <span className="text-2xl font-bold text-foreground flex items-center gap-2">
                     <AlertCircle className="h-6 w-6 text-orange-500" />
                     Gap Analysis
@@ -681,11 +674,11 @@ export default function DreamJob() {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Growth Plan - collapsible (styled trigger) */}
+            {/* Growth Plan - collapsible */}
             {dreamJobAnalysis.growthPlan && dreamJobAnalysis.growthPlan.length > 0 && (
               <Collapsible>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full group flex items-center justify-between rounded-lg border bg-card/60 px-4 py-3 hover:bg-accent transition mb-2">
+                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-4 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                     <span className="text-2xl font-bold text-foreground flex items-center gap-2">
                       <Zap className="h-6 w-6 text-green-500" />
                       Your Growth Roadmap
@@ -732,11 +725,11 @@ export default function DreamJob() {
               </Collapsible>
             )}
 
-            {/* AI Career Roadmap - collapsible (styled trigger) */}
+            {/* AI Career Roadmap - collapsible */}
             {plan && (
               <Collapsible>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full group flex items-center justify-between rounded-lg border bg-card/60 px-4 py-3 hover:bg-accent transition mb-2">
+                  <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 mb-4 bg-card/70 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                     <span className="text-2xl font-bold text-foreground flex items-center gap-2">
                       <Sparkles className="h-6 w-6 text-primary" />
                       AI Career Roadmap
@@ -795,13 +788,13 @@ export default function DreamJob() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {plan.timeline.map((w, i) => {
                           const done = completedWeeks.has(w.week);
                           return (
                             <div
                               key={i}
-                              className={`rounded-lg border p-4 bg-card/60 relative overflow-hidden ${
+                              className={`rounded-xl border p-5 bg-card/60 relative overflow-hidden ${
                                 done ? "ring-1 ring-green-500/40" : ""
                               }`}
                             >
@@ -874,10 +867,10 @@ export default function DreamJob() {
           </motion.div>
         )}
 
-        {/* Job Description - collapsible (styled trigger) */}
+        {/* Job Description - collapsible */}
         <Collapsible>
           <CollapsibleTrigger asChild>
-            <button className="w-full group flex items-center justify-between rounded-lg border bg-card/60 px-4 py-3 hover:bg-accent transition mb-2 mt-8">
+            <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3.5 hover:bg-accent/50 transition-colors mb-4 mt-8 bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="text-xl font-semibold text-foreground flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
                 Original Job Description
