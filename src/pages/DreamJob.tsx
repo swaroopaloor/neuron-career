@@ -857,94 +857,104 @@ export default function DreamJob() {
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="flex flex-wrap gap-2">
-                    {plan.topics.map((t, i) => (
-                      <Badge key={i} variant="secondary" className="py-1 px-2">
-                        {t}
-                      </Badge>
-                    ))}
-                  </div>
+                  <div className="space-y-8">
+                    {/* Topics */}
+                    <div className="flex flex-wrap gap-3">
+                      {plan.topics.map((t, i) => (
+                        <Badge key={i} variant="secondary" className="py-1.5 px-2.5 text-xs md:text-sm">
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
 
-                  <div className="space-y-3">
-                    {plan.courses.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between gap-4 border rounded-md p-3">
-                        <div className="space-y-1">
-                          <div className="font-medium">{c.title}</div>
-                          <div className="text-xs text-muted-foreground">{c.provider}</div>
-                        </div>
-                        <Button asChild size="sm" variant="outline">
-                          <a href={c.url} target="_blank" rel="noreferrer">Open</a>
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {plan.certifications.map((c, i) => (
-                      <Badge key={i} variant="outline" className="py-1 px-2">
-                        {c}
-                      </Badge>
-                    ))}
-                  </div>
-
-                  <Card className="elevation-2">
-                    <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <CardTitle className="text-lg">Weekly Action Plan</CardTitle>
-                          <CardDescription>
-                            Check off weeks as you complete them. Progress saves locally — use "Save Progress" to sync.
-                          </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={resetProgress}>
-                            Reset
-                          </Button>
-                          <Button size="sm" onClick={handleSaveProgress}>
-                            Save Progress
+                    {/* Courses */}
+                    <div className="space-y-4">
+                      {plan.courses.map((c, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between gap-6 border rounded-lg p-4 bg-card/60 hover:bg-accent/40 transition-colors"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="font-semibold text-foreground text-sm md:text-base">{c.title}</div>
+                            <div className="text-xs text-muted-foreground">{c.provider}</div>
+                          </div>
+                          <Button asChild size="sm" variant="outline">
+                            <a href={c.url} target="_blank" rel="noreferrer">Open</a>
                           </Button>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {plan.timeline.map((w, i) => {
-                          const done = completedWeeks.has(w.week);
-                          return (
-                            <div
-                              key={i}
-                              className={`rounded-xl border p-5 bg-card/60 relative overflow-hidden ${
-                                done ? "ring-1 ring-green-500/40" : ""
-                              }`}
-                            >
-                              {/* filled background indicator */}
+                      ))}
+                    </div>
+
+                    {/* Certifications */}
+                    <div className="flex flex-wrap gap-3">
+                      {plan.certifications.map((c, i) => (
+                        <Badge key={i} variant="outline" className="py-1.5 px-2.5 text-xs md:text-sm">
+                          {c}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    {/* Weekly Action Plan */}
+                    <Card className="elevation-2">
+                      <CardHeader>
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <CardTitle className="text-xl font-semibold">Weekly Action Plan</CardTitle>
+                            <CardDescription className="text-sm">
+                              Check off weeks as you complete them. Progress saves locally — use "Save Progress" to sync.
+                            </CardDescription>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={resetProgress}>
+                              Reset
+                            </Button>
+                            <Button size="sm" onClick={handleSaveProgress}>
+                              Save Progress
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {plan.timeline.map((w, i) => {
+                            const done = completedWeeks.has(w.week);
+                            return (
                               <div
-                                className={`absolute inset-0 pointer-events-none transition-opacity ${
-                                  done ? "opacity-10 bg-green-500" : "opacity-0"
+                                key={i}
+                                className={`rounded-xl border p-5 bg-card/60 relative overflow-hidden ${
+                                  done ? "ring-1 ring-green-500/40" : ""
                                 }`}
-                              />
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <Checkbox
-                                    checked={done}
-                                    onCheckedChange={() => toggleWeek(w.week)}
-                                    aria-label={`Mark week ${w.week} complete`}
-                                  />
-                                  <div className="font-semibold">Week {w.week}</div>
+                              >
+                                {/* subtle background fill when done */}
+                                <div
+                                  className={`absolute inset-0 pointer-events-none transition-opacity ${
+                                    done ? "opacity-10 bg-green-500" : "opacity-0"
+                                  }`}
+                                />
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <Checkbox
+                                      checked={done}
+                                      onCheckedChange={() => toggleWeek(w.week)}
+                                      aria-label={`Mark week ${w.week} complete`}
+                                    />
+                                    <div className="font-semibold text-sm md:text-base">Week {w.week}</div>
+                                  </div>
+                                  <Badge variant={done ? "secondary" : "outline"} className="text-xs">
+                                    {(w.week * (Number(hoursPerWeek) || 0))}h total
+                                  </Badge>
                                 </div>
-                                <Badge variant={done ? "secondary" : "outline"}>
-                                  {((w.week) * (Number(hoursPerWeek) || 0))}h total
-                                </Badge>
+                                <div className="h-px bg-border/70 mb-3" />
+                                <pre className="whitespace-pre-wrap text-[13px] md:text-sm text-muted-foreground leading-7">
+                                  {w.focus}
+                                </pre>
                               </div>
-                              <pre className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">
-                                {w.focus}
-                              </pre>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
             )}
