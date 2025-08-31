@@ -50,28 +50,26 @@
   --background: oklch(0.99 0 0);
   --foreground: oklch(0.12 0 0);
 
-  --card: oklch(1 0 0);
+  /* Replace solid panels with subtle glass derived from background */
+  --card: color-mix(in oklab, var(--background) 85%, transparent);
   --card-foreground: var(--foreground);
 
-  --popover: oklch(1 0 0);
+  --popover: color-mix(in oklab, var(--background) 85%, transparent);
   --popover-foreground: var(--foreground);
 
   /* Soft, approachable blue */
   --primary: oklch(0.55 0.12 240);
   --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.97 0.01 240);
+  --secondary: color-mix(in oklab, var(--background) 92%, transparent);
   --secondary-foreground: oklch(0.2 0.01 240);
 
-  --muted: oklch(0.96 0.005 240);
+  --muted: color-mix(in oklab, var(--background) 94%, transparent);
   --muted-foreground: oklch(0.5 0.03 240);
 
-  --accent: oklch(0.98 0.01 240);
-  --accent-foreground: oklch(0.2 0.01 240);
+  /* Slightly softer border for glass */
+  --border: color-mix(in oklab, var(--foreground) 8%, transparent);
 
-  --destructive: oklch(0.65 0.2 25);
-
-  --border: oklch(0.92 0.005 240);
   --input: oklch(0.94 0.005 240);
   --ring: oklch(0.55 0.12 240);
 
@@ -99,27 +97,22 @@
   /* Keep foreground as white as requested */
   --foreground: oklch(0.98 0 0);
 
-  --card: oklch(0.1 0.01 240);
+  /* Glass surfaces over deep blue background */
+  --card: color-mix(in oklab, var(--background) 82%, transparent);
   --card-foreground: var(--foreground);
 
-  --popover: oklch(0.1 0.01 240);
+  --popover: color-mix(in oklab, var(--background) 82%, transparent);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.7 0.15 240);
-  --primary-foreground: oklch(0.08 0.01 240);
-
-  --secondary: oklch(0.15 0.01 240);
+  --secondary: color-mix(in oklab, var(--background) 78%, transparent);
   --secondary-foreground: oklch(0.9 0.005 240);
 
-  --muted: oklch(0.12 0.01 240);
+  --muted: color-mix(in oklab, var(--background) 80%, transparent);
   --muted-foreground: oklch(0.7 0.035 240);
 
-  --accent: oklch(0.14 0.01 240);
-  --accent-foreground: oklch(0.9 0.005 240);
+  /* Softer border for glass panels */
+  --border: color-mix(in oklab, var(--foreground) 12%, transparent);
 
-  --destructive: oklch(0.7 0.18 25);
-
-  --border: oklch(0.18 0.01 240);
   --input: oklch(0.16 0.01 240);
   --ring: oklch(0.7 0.15 240);
 
