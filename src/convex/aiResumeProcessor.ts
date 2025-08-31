@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import Groq from "groq-sdk";
 
 export const generateSuggestions = action({
   args: {
@@ -39,56 +40,55 @@ Focus on:
 4. Industry-specific improvements
 5. Quantifiable achievements`;
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${groqApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-70b-versatile",
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          max_tokens: 2000,
-          temperature: 0.7,
-        }),
+      // Switch to Groq SDK for consistency across the codebase
+      const groq = new Groq({ apiKey: groqApiKey });
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.1-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 2000,
+        temperature: 0.7,
       });
 
-      if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-
+      const content = completion.choices[0]?.message?.content;
       if (!content) {
         throw new Error("No response from AI");
       }
 
-      // Try to parse JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const suggestions = JSON.parse(jsonMatch[0]);
+      // Parse structured JSON directly
+      let suggestions;
+      try {
+        suggestions = JSON.parse(content);
+      } catch {
+        // Fallback if content isn't perfectly formatted as JSON
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          suggestions = JSON.parse(jsonMatch[0]);
+        }
+      }
+
+      if (!suggestions) {
+        // Final fallback (same as existing behavior)
         return {
           success: true,
-          suggestions,
+          suggestions: {
+            atsOptimization: ["Ensure consistent formatting throughout the document"],
+            keywordSuggestions: ["Add relevant industry keywords"],
+            contentImprovements: ["Quantify achievements with specific numbers"],
+            structureRecommendations: ["Use clear section headers"],
+            overallScore: 75,
+          },
         };
       }
 
-      // Fallback if JSON parsing fails
       return {
         success: true,
-        suggestions: {
-          atsOptimization: ["Ensure consistent formatting throughout the document"],
-          keywordSuggestions: ["Add relevant industry keywords"],
-          contentImprovements: ["Quantify achievements with specific numbers"],
-          structureRecommendations: ["Use clear section headers"],
-          overallScore: 75,
-        },
+        suggestions,
       };
     } catch (error) {
       console.error("AI Resume Processing Error:", error);

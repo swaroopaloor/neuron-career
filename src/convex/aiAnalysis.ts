@@ -260,3 +260,23 @@ If the input is a list or bullets, return refined bullets (one per line, startin
     return content;
   },
 });
+
+export const groqHealthCheck = action({
+  args: {},
+  handler: async () => {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error("The Groq API key is not configured. Please add the GROQ_API_KEY to your project's environment variables.");
+    }
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: "ok" }],
+      max_tokens: 1,
+      temperature: 0,
+    });
+    const ok = Boolean(completion.choices?.[0]?.message?.content);
+    if (!ok) throw new Error("Groq health check failed");
+    return { ok: true };
+  },
+});
