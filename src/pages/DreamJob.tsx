@@ -90,6 +90,11 @@ export default function DreamJob() {
   // Keyed storage for progress by analysis id
   const progressKey = dreamJobAnalysis ? `dreamProgress:${dreamJobAnalysis._id}` : null;
 
+  // Add: derived metrics for hero summary
+  const totalWeeks = (plan?.timeline?.length ?? Number(weeks)) || 0;
+  const progressPercent = totalWeeks > 0 ? Math.min(100, Math.round((completedWeeks.size / totalWeeks) * 100)) : 0;
+  const statusLabel = dreamJobAnalysis ? (dreamJobAnalysis.status.charAt(0).toUpperCase() + dreamJobAnalysis.status.slice(1)) : "—";
+
   // Prefer server-saved progress if available
   useEffect(() => {
     if (!dreamJobAnalysis) return;
@@ -322,6 +327,55 @@ export default function DreamJob() {
         </div>
       </header>
 
+      {/* New: Hero summary banner */}
+      <section className="border-b bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm">
+                <Star className="h-4 w-4" />
+                Dream Job Analysis
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                Your personalized path to the next role
+              </h2>
+              <p className="text-white/80 text-sm">
+                Analyzed on {new Date(dreamJobAnalysis._creationTime).toLocaleDateString()} • Status: {statusLabel}
+              </p>
+            </div>
+
+            <div className="w-full lg:w-[520px] rounded-xl bg-white/10 backdrop-blur p-4">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-white/90">Roadmap Progress</span>
+                <span className="text-white/90">
+                  {totalWeeks ? `${completedWeeks.size}/${totalWeeks} weeks` : "No roadmap yet"}
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-white/20 overflow-hidden">
+                <div
+                  className="h-full bg-white/90 rounded-full transition-all"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-center text-xs">
+                <div className="rounded-lg bg-white/10 px-2 py-2">
+                  <div className="font-semibold">{dreamJobAnalysis.matchScore || 0}%</div>
+                  <div className="text-white/80">Match</div>
+                </div>
+                <div className="rounded-lg bg-white/10 px-2 py-2">
+                  <div className="font-semibold">{dreamJobAnalysis.atsScore || 0}%</div>
+                  <div className="text-white/80">ATS</div>
+                </div>
+                <div className="rounded-lg bg-white/10 px-2 py-2">
+                  <div className="font-semibold">{progressPercent}%</div>
+                  <div className="text-white/80">Progress</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <Dialog open={showMotivation} onOpenChange={setShowMotivation}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -373,7 +427,7 @@ export default function DreamJob() {
         </DialogContent>
       </Dialog>
 
-      <div className="max-w-7xl mx-auto px_4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Dream Job Header - now collapsible */}
         <Collapsible>
           <CollapsibleTrigger asChild>
