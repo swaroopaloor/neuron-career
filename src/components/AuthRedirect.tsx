@@ -1,16 +1,14 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router";
 
 interface AuthRedirectProps {
   to: string;
 }
 
 export function AuthRedirect({ to }: AuthRedirectProps) {
-  const navigate = useNavigate();
-
   useEffect(() => {
-    navigate(to, { replace: true });
-  }, [navigate, to]);
+    // Use replace to avoid leaving the current page in browser history
+    window.location.replace(to);
+  }, [to]);
 
   return null;
 }
