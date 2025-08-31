@@ -859,39 +859,57 @@ export default function DreamJob() {
                 <CollapsibleContent>
                   <div className="space-y-8">
                     {/* Topics */}
-                    <div className="flex flex-wrap gap-3">
-                      {plan.topics.map((t, i) => (
-                        <Badge key={i} variant="secondary" className="py-1.5 px-2.5 text-xs md:text-sm">
-                          {t}
-                        </Badge>
-                      ))}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold tracking-tight">Core Topics</h3>
+                      <div className="flex flex-wrap gap-2.5">
+                        {plan.topics.map((t, i) => (
+                          <Badge key={i} variant="secondary" className="py-1.5 px-2.5 text-xs md:text-sm rounded-full">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Courses */}
-                    <div className="space-y-4">
-                      {plan.courses.map((c, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between gap-6 border rounded-lg p-4 bg-card/60 hover:bg-accent/40 transition-colors"
-                        >
-                          <div className="space-y-1.5">
-                            <div className="font-semibold text-foreground text-sm md:text-base">{c.title}</div>
-                            <div className="text-xs text-muted-foreground">{c.provider}</div>
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold tracking-tight">Curated Courses</h3>
+                      <div className="space-y-3 md:space-y-4">
+                        {plan.courses.map((c, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between gap-6 border rounded-lg p-4 bg-card/60 hover:bg-accent/40 transition-colors"
+                          >
+                            <div className="space-y-1.5">
+                              <div className="font-semibold text-foreground text-sm md:text-base">{c.title}</div>
+                              <div className="text-xs text-muted-foreground">{c.provider}</div>
+                            </div>
+                            <Button asChild size="sm" variant="outline">
+                              <a href={c.url} target="_blank" rel="noreferrer">Open</a>
+                            </Button>
                           </div>
-                          <Button asChild size="sm" variant="outline">
-                            <a href={c.url} target="_blank" rel="noreferrer">Open</a>
-                          </Button>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
 
                     {/* Certifications */}
-                    <div className="flex flex-wrap gap-3">
-                      {plan.certifications.map((c, i) => (
-                        <Badge key={i} variant="outline" className="py-1.5 px-2.5 text-xs md:text-sm">
-                          {c}
-                        </Badge>
-                      ))}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5 text-green-500" />
+                        Recommended Certifications
+                      </h3>
+                      <p className="text-sm text-muted-foreground">Optional credentials to signal proficiency</p>
+                      <div className="flex flex-wrap gap-2.5">
+                        {plan.certifications.map((c, i) => (
+                          <Badge
+                            key={i}
+                            variant="outline"
+                            className="py-1.5 px-2.5 text-xs md:text-sm rounded-full inline-flex items-center gap-1.5"
+                          >
+                            <GraduationCap className="h-3.5 w-3.5" />
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Weekly Action Plan */}
