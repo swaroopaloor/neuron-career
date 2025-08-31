@@ -141,66 +141,89 @@ export const generateCareerPlan = action({
     };
 
     // Generalized, domain-agnostic instructions (system) to ensure accuracy for ANY role + optional company targeting
-    const systemPrompt = `You are an expert career architect and curriculum designer.
-Objectives:
-- Infer the exact domain/industry and sub-specialty directly from the inputs (dream role, background). If a company is mentioned, adapt the plan to that company's typical workflows, standards, and hiring bar for the specified level/title.
-- Be precise, concrete, and measurable. Avoid generic category labels unless immediately followed by role- and company-specific subskills or deliverables.
-- Prefer official/public sources: company engineering/careers blogs, handbooks, style guides, SOPs, training manuals; industry regulators and standards bodies (e.g., aviation authorities, health/food safety, healthcare boards, education departments, finance regulators).
-- Never link to or reference private/internal documents; only public pages.
-- For each week, provide 4–6 bullets, each with: (1) a concrete deliverable tangible to the role (SOP, checklist, report, repo, demo, lesson plan, protocol), (2) a resource link (official/authoritative) where possible, and (3) a time estimate like "(2h)".
-- Respect the user's weekly time budget and produce exactly the requested number of weeks.
-- Output strictly valid JSON matching the required schema with no extra text or markdown.`;
+    const systemPrompt = `You are a specialized domain expert and curriculum architect for ANY profession (white‑collar, blue‑collar, regulated, licensed, union, trades, public sector, etc.). You build rigorous, company-aware, role-accurate learning roadmaps.
+
+Hard requirements:
+- Ground every recommendation in the realities of the role, domain, and industry. Be specific about workflows, tools, standards, regulations, certifications, and safety/quality practices used on the job.
+- When a target company is specified, adapt content to that company's typical stack, standards, processes, customer experience, and hiring bar for the specified role level.
+- Favor OFFICIAL, PUBLIC, AUTHORITATIVE sources: regulators (.gov), standards bodies (e.g., ISO, OSHA, FAA, FDA, IEC, NIST, NICE, WHO), accredited training/boards, universities (.edu), company engineering/careers/brand/ops blogs, manufacturer manuals, or well-known industry orgs.
+- Never invent or link to placeholder/fake URLs. Avoid generic directories or content farms. Choose the most authoritative link for each bullet.
+- Deliverables must be concrete and role-ready: SOPs, checklists, protocols, lesson plans, design specs, HLDs, reports, dashboards, repo features, demos, scripts, maintenance schedules, safety audits, tasting menus, cost sheets, etc.
+- Ensure weekly workload fits the user's time budget (~hours/week) and uses at least ~70% of it, never exceeding 100%.
+
+Output standards:
+- JSON ONLY. No markdown, no prose outside JSON, no code fences.
+- Timeline has exactly the requested number of weeks.
+- Each weekly "focus" must contain 4–6 lines, each line:
+  - Starts with "- "
+  - Includes a concrete deliverable
+  - Includes ONE authoritative resource link where possible
+  - Ends with a time estimate in parentheses like "(2h)"
+- Prefer specificity over categories. Replace "learn X" with "produce Y using Z standard/tool aligned to role/company context."
+
+Edge cases to handle:
+- Non-tech roles (culinary, aviation, nursing, education, logistics, construction, hospitality, retail, manufacturing, legal, finance ops, call centers, etc.)
+- Licensed/regulated professions requiring compliance or certifications
+- Apprenticeships and union roles (IBEW, UA, IATSE, etc.)
+- Roles with customer experience or brand standards (e.g., airlines, hotels, retail)
+- Geographic differences in certifications/standards — link to widely recognized sources.
+
+If info is ambiguous, make the safest, most typical industry assumption and provide role-accurate deliverables and credible links.`;
 
     // User-specific context and strict schema - enriched with extracted entities for better grounding
-    const prompt = `You are a principal career mentor and curriculum designer. Generate a highly accurate, realistic, and actionable career plan calibrated to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE, and optional TARGET COMPANY — in ANY FIELD.
+    const prompt = `Use the inputs below to produce a highly accurate and actionable career plan tailored to the user's CURRENT LEVEL, YEARS OF EXPERIENCE, AVAILABLE HOURS/WEEK, DREAM ROLE, and optional TARGET COMPANY.
 
-User Background (verbatim): ${args.about}
-Role Title: ${roleTitle}
-Target Company: ${targetCompany || "N/A"}
-Current Level: ${level}
-Years of Experience: ${args.yearsExperience}
-Available Time: ${args.hoursPerWeek} hours/week
-Timeline: ${args.weeks} weeks
+Inputs (verbatim):
+- User Background: ${args.about}
+- Role Title: ${roleTitle}
+- Target Company: ${targetCompany || "N/A"}
+- Current Level (normalized): ${level}
+- Years of Experience: ${args.yearsExperience}
+- Available Time: ${args.hoursPerWeek} hours/week
+- Timeline (weeks): ${args.weeks}
 
-Inferred Entities:
+Inferred Entities (from extraction):
 - Domain: ${inferred.domain ?? "N/A"}
 - SubDomain: ${inferred.subDomain ?? "N/A"}
 - Seniority (standardized): ${inferred.seniorityLevel ?? "N/A"}
 - Location: ${inferred.location ?? "N/A"}
 - Industry: ${inferred.industry ?? "N/A"}
 
-Requirements:
-- The plan MUST be deeply tailored to the exact role and domain inferred from the input above (could be healthcare, hospitality/culinary, trades, arts, education, logistics, finance, legal, public sector, customer support, sales, operations, etc.).
-- If a Target Company is provided, align topics, skills, deliverables, and resources with that company's typical expectations for this role/level (stack, tooling, safety/quality standards, operating procedures, compliance, customer experience). Include 2–3 links from that company's public resources where relevant (e.g., careers pages, engineering/culinary/ops blogs, service or safety manuals, brand/UX guidelines).
-- Replace generic labels with specific subskills, tools, regulations, standards, and competencies unique to the job and, when specified, the company. Include industry credentials and standards where applicable (aviation authorities, maritime, healthcare boards, educator certs, trade licenses, food safety, hospitality standards, finance/regulatory, etc.).
-- Each week's "focus" must contain 4–6 lines that:
-  - start with "- "
-  - specify a concrete deliverable for that role/company context (SOP, tasting/inspection checklist, flight/procedure study pack, repo, lesson plan, treatment protocol summary, sales call script, shift schedule, KPI dashboard, etc.)
-  - include a resource link (official/authoritative) where possible
-  - include an estimated time in parentheses like "(2h)"
-- Calibrate depth and complexity to the user's level (${level}) and years (${args.yearsExperience}), and keep the total weekly workload within ~${args.hoursPerWeek}h/week.
-- Timeline MUST have exactly ${args.weeks} weeks.
-- Ensure the plan clearly maps to real responsibilities, tooling, regulations, and competencies of the target role and, when provided, the target company.
-- Do NOT include placeholders, fake URLs, or vague advice.
+You must:
+1) Align all topics, deliverables, and resources to the exact role/domain (and company if provided). Tie work products to real responsibilities, tools, and standards (safety, compliance, operating procedures, customer experience, technical stack).
+2) Calibrate depth and complexity to the user's level (${level}) and experience (${args.yearsExperience}). Avoid junior overload or senior triviality.
+3) Fit weekly work within ~${args.hoursPerWeek}h. Use at least ~70% of the budget but never exceed it across the listed bullet estimates for that week.
+4) Include 2–3 company-specific links (if a target company is provided) from public sources (engineering/ops/brand/UX/careers/safety/compliance pages).
+5) Replace generic phrases with specific subskills, tools, standards, and measurable outcomes. Every weekly bullet must have a concrete output and a single authoritative link when available.
 
-Strict output format: Return ONLY a JSON object with EXACTLY these fields and structure:
+Quality rubric (self-check before output; do not include the rubric in the response):
+- Role fidelity: Does each item reflect how the job is actually practiced?
+- Authority: Are links official and credible (regulators, standards bodies, .edu, company blogs/manuals)?
+- Measurability: Are outputs tangible and scorable (SOP, report, repo feature, checklist, demo, protocol)?
+- Feasibility: Do times sum to <= ~${args.hoursPerWeek}h/week and >= ~70% of it?
+- Company alignment: If company provided, do at least 2–3 links and practices reflect that company?
+
+Strict output format: Return ONLY a JSON object with EXACTLY these keys and structure:
 
 {
-  "topics": ["role/company-specific-topic1", "role/company-specific-topic2", "... 10-14 total"],
+  "topics": ["12–14 specific, role/company-aligned topics (no vague categories)"],
   "courses": [
-    { "title": "Real Course or Official Training", "provider": "Provider/Company/Regulator", "url": "https://actual-url.com" }
+    { "title": "Official Course or Training", "provider": "Provider/Company/Regulator", "url": "https://authoritative-url" }
   ],
-  "certifications": ["cert1", "cert2", "... (if relevant)"],
+  "certifications": ["cert1", "cert2", "... (if applicable)"],
   "timeline": [
     {
       "week": 1,
-      "focus": "- item1 (xh): https://link\\n- item2 (xh): https://link\\n- item3 (xh)\\n- item4 (xh)"
+      "focus": "- deliverable (xh): https://authoritative-link
+- deliverable (xh): https://authoritative-link
+- deliverable (xh)
+- deliverable (xh)"
     }
   ],
-  "summary": "2–3 motivating sentences summarizing the plan and expected outcomes, mentioning the role${targetCompany ? " and company" : ""}"
+  "summary": "2–3 motivating sentences summarizing outcomes for ${roleTitle}${targetCompany ? " at " + targetCompany : ""}, calibrated to ${level} with ~${args.hoursPerWeek}h/week."
 }
 
-Return ONLY the JSON object, no extra text, no markdown, no code fences.`;
+Output JSON ONLY with no extra text.`;
 
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
