@@ -538,7 +538,7 @@ export default function Dashboard() {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.05 * index }}
                               whileHover={{ scale: 1.01, x: 5 }}
-                              className="bg-secondary/30 border border-border rounded-lg p-4 hover:bg-secondary/50 smooth-transition cursor-pointer group"
+                              className="bg-secondary/30 border border-border rounded-lg p-4 hover:bg-secondary/50 transition-all duration-300 cursor-pointer group"
                               onClick={() => analysis.status === "completed" && setSelectedAnalysisId(analysis._id)}
                             >
                               <div className="flex items-start justify-between">
@@ -595,7 +595,7 @@ export default function Dashboard() {
                                   className="ml-3 flex-shrink-0"
                                 >
                                   <Heart 
-                                    className={`h-5 w-5 smooth-transition ${
+                                    className={`h-5 w-5 transition-colors duration-200 ${
                                       analysis.isFavorited 
                                         ? "text-red-500 fill-red-500" 
                                         : "text-muted-foreground/50 hover:text-red-500"
