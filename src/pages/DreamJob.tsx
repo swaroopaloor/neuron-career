@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,13 +38,20 @@ import {
   Code,
   Users,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from "lucide-react";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 export default function DreamJob() {
   const dreamJobAnalysis = useQuery(api.analyses.getDreamJobAnalysis);
   const generateInsights = useAction(api.aiCareerGrowth.generateGrowthInsights);
   const generateCareerPlan = useAction(api.aiCareerGrowth.generateCareerPlan);
+  const saveCompletedWeeks = useMutation(api.analyses.updateCompletedWeeks);
 
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -69,9 +76,29 @@ export default function DreamJob() {
   // Add: progress state for weekly completion
   const [completedWeeks, setCompletedWeeks] = useState<Set<number>>(new Set());
   const [showCongrats, setShowCongrats] = useState(false);
+  const [showMotivation, setShowMotivation] = useState(false);
+  const motivationalMessages = [
+    "Nice work! Every week compounds 🚀",
+    "Great momentum! Keep going 💪",
+    "You're building real skills. Onwards! 🌟",
+    "Another step closer to your dream role 🎯",
+    "Consistency wins. Proud of you! 🧠",
+  ] as const;
+  const [motivationText, setMotivationText] = useState<string>("");
 
   // Keyed storage for progress by analysis id
   const progressKey = dreamJobAnalysis ? `dreamProgress:${dreamJobAnalysis._id}` : null;
+
+  // Prefer server-saved progress if available
+  useEffect(() => {
+    if (!dreamJobAnalysis) return;
+    if (Array.isArray(dreamJobAnalysis.completedWeeks) && dreamJobAnalysis.completedWeeks.length >= 0) {
+      setCompletedWeeks(new Set(dreamJobAnalysis.completedWeeks));
+      // sync to local cache as well
+      const key = `dreamProgress:${dreamJobAnalysis._id}`;
+      localStorage.setItem(key, JSON.stringify(dreamJobAnalysis.completedWeeks));
+    }
+  }, [dreamJobAnalysis]);
 
   // Load saved progress on mount or when plan changes
   useEffect(() => {
@@ -100,9 +127,17 @@ export default function DreamJob() {
   const toggleWeek = (weekNumber: number) => {
     setCompletedWeeks(prev => {
       const next = new Set(prev);
-      if (next.has(weekNumber)) next.delete(weekNumber);
+      const wasDone = next.has(weekNumber);
+      if (wasDone) next.delete(weekNumber);
       else next.add(weekNumber);
       saveProgress(next);
+
+      // Show motivational popup when a week transitions to done
+      if (!wasDone) {
+        const msg = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+        setMotivationText(msg);
+        setShowMotivation(true);
+      }
 
       // Trigger celebration if all completed
       const total = plan?.timeline?.length || 0;
@@ -119,6 +154,18 @@ export default function DreamJob() {
     setCompletedWeeks(new Set());
     if (progressKey) localStorage.removeItem(progressKey);
     toast("Progress reset");
+  };
+
+  const handleSaveProgress = async () => {
+    if (!dreamJobAnalysis) return;
+    try {
+      const weeks = Array.from(completedWeeks.values()).sort((a, b) => a - b);
+      await saveCompletedWeeks({ analysisId: dreamJobAnalysis._id, completedWeeks: weeks });
+      toast("Progress saved to your account ✔️");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to save progress. Please try again.");
+    }
   };
 
   const handleGenerateInsights = async () => {
@@ -260,6 +307,21 @@ export default function DreamJob() {
           </div>
         </div>
       </header>
+
+      <Dialog open={showMotivation} onOpenChange={setShowMotivation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nice Progress! ✨</DialogTitle>
+            <DialogDescription>{motivationText}</DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            Small steps every week add up to big outcomes. You've got this.
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowMotivation(false)}>Keep Going</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showCongrats} onOpenChange={setShowCongrats}>
         <DialogContent className="sm:max-w-md">
@@ -471,138 +533,146 @@ export default function DreamJob() {
 
         {hasInsights ? (
           <div className="space-y-8">
-            {/* Gap Analysis */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                <AlertCircle className="h-6 w-6 text-orange-500" />
-                Gap Analysis
-              </h2>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Lacking Skills */}
-                <Card className="elevation-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Code className="h-5 w-5 text-blue-500" />
-                      Skills to Develop
-                    </CardTitle>
-                    <CardDescription>
-                      Technical and soft skills you need to acquire
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dreamJobAnalysis.lackingSkills && dreamJobAnalysis.lackingSkills.length > 0 ? (
-                      <div className="space-y-2">
-                        {dreamJobAnalysis.lackingSkills.map((skill, index) => (
-                          <motion.div
-                            key={skill}
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: 0.1 * index }}
-                          >
-                            <Badge variant="outline" className="w-full justify-start p-3 text-sm">
-                              {skill}
-                            </Badge>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">
-                        No skill gaps identified
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Lacking Education */}
-                <Card className="elevation-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <GraduationCap className="h-5 w-5 text-green-500" />
-                      Education & Certifications
-                    </CardTitle>
-                    <CardDescription>
-                      Qualifications and certifications to pursue
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dreamJobAnalysis.lackingEducation && dreamJobAnalysis.lackingEducation.length > 0 ? (
-                      <div className="space-y-2">
-                        {dreamJobAnalysis.lackingEducation.map((education, index) => (
-                          <motion.div
-                            key={education}
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: 0.1 * index }}
-                          >
-                            <Badge variant="outline" className="w-full justify-start p-3 text-sm">
-                              {education}
-                            </Badge>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">
-                        No education gaps identified
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Lacking Experience */}
-                <Card className="elevation-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Briefcase className="h-5 w-5 text-purple-500" />
-                      Experience to Gain
-                    </CardTitle>
-                    <CardDescription>
-                      Professional experience areas to focus on
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dreamJobAnalysis.lackingExperience && dreamJobAnalysis.lackingExperience.length > 0 ? (
-                      <div className="space-y-2">
-                        {dreamJobAnalysis.lackingExperience.map((experience, index) => (
-                          <motion.div
-                            key={experience}
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: 0.1 * index }}
-                          >
-                            <Badge variant="outline" className="w-full justify-start p-3 text-sm">
-                              {experience}
-                            </Badge>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">
-                        No experience gaps identified
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </motion.div>
-
-            {/* Growth Plan */}
-            {dreamJobAnalysis.growthPlan && dreamJobAnalysis.growthPlan.length > 0 && (
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                  <Zap className="h-6 w-6 text-green-500" />
-                  Your Growth Roadmap
+            {/* Gap Analysis - collapsible */}
+            <Collapsible>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <AlertCircle className="h-6 w-6 text-orange-500" />
+                  Gap Analysis
                 </h2>
-                
-                <div className="space-y-6">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="gap-2">
+                    Toggle
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Lacking Skills */}
+                  <Card className="elevation-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Code className="h-5 w-5 text-blue-500" />
+                        Skills to Develop
+                      </CardTitle>
+                      <CardDescription>
+                        Technical and soft skills you need to acquire
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {dreamJobAnalysis.lackingSkills && dreamJobAnalysis.lackingSkills.length > 0 ? (
+                        <div className="space-y-2">
+                          {dreamJobAnalysis.lackingSkills.map((skill, index) => (
+                            <motion.div
+                              key={skill}
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 0.1 * index }}
+                            >
+                              <Badge variant="outline" className="w-full justify-start p-3 text-sm">
+                                {skill}
+                              </Badge>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">
+                          No skill gaps identified
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Lacking Education */}
+                  <Card className="elevation-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <GraduationCap className="h-5 w-5 text-green-500" />
+                        Education & Certifications
+                      </CardTitle>
+                      <CardDescription>
+                        Qualifications and certifications to pursue
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {dreamJobAnalysis.lackingEducation && dreamJobAnalysis.lackingEducation.length > 0 ? (
+                        <div className="space-y-2">
+                          {dreamJobAnalysis.lackingEducation.map((education, index) => (
+                            <motion.div
+                              key={education}
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 0.1 * index }}
+                            >
+                              <Badge variant="outline" className="w-full justify-start p-3 text-sm">
+                                {education}
+                              </Badge>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">
+                          No education gaps identified
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Lacking Experience */}
+                  <Card className="elevation-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Briefcase className="h-5 w-5 text-purple-500" />
+                        Experience to Gain
+                      </CardTitle>
+                      <CardDescription>
+                        Professional experience areas to focus on
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {dreamJobAnalysis.lackingExperience && dreamJobAnalysis.lackingExperience.length > 0 ? (
+                        <div className="space-y-2">
+                          {dreamJobAnalysis.lackingExperience.map((experience, index) => (
+                            <motion.div
+                              key={experience}
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 0.1 * index }}
+                            >
+                              <Badge variant="outline" className="w-full justify-start p-3 text-sm">
+                                {experience}
+                              </Badge>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">
+                          No experience gaps identified
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Growth Plan - collapsible */}
+            {dreamJobAnalysis.growthPlan && dreamJobAnalysis.growthPlan.length > 0 && (
+              <Collapsible>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Zap className="h-6 w-6 text-green-500" />
+                    Your Growth Roadmap
+                  </h2>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="gap-2">
+                      Toggle
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent>
                   {dreamJobAnalysis.growthPlan.map((milestone, index) => (
                     <motion.div
                       key={index}
@@ -637,97 +707,73 @@ export default function DreamJob() {
                       </Card>
                     </motion.div>
                   ))}
-                </div>
-              </motion.div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
 
             {plan && (
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.15 }}
-                className="space-y-8"
-              >
-                {/* Topics to focus */}
-                {plan.topics.length > 0 && (
-                  <Card className="elevation-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Users className="h-5 w-5 text-primary" />
-                        Key Topics to Master
-                      </CardTitle>
-                      <CardDescription>High-impact topics aligned to your goal</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {plan.topics.map((t, i) => (
-                          <Badge key={i} variant="secondary" className="py-1 px-2">
-                            {t}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+              <Collapsible>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                    AI Career Roadmap
+                  </h2>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="gap-2">
+                      Toggle
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent>
+                  <div className="flex flex-wrap gap-2">
+                    {plan.topics.map((t, i) => (
+                      <Badge key={i} variant="secondary" className="py-1 px-2">
+                        {t}
+                      </Badge>
+                    ))}
+                  </div>
 
-                {/* Curated courses */}
-                {plan.courses.length > 0 && (
-                  <Card className="elevation-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <GraduationCap className="h-5 w-5 text-green-500" />
-                        Curated Courses
-                      </CardTitle>
-                      <CardDescription>Top learning resources with direct links</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {plan.courses.map((c, i) => (
-                          <div key={i} className="flex items-center justify-between gap-4 border rounded-md p-3">
-                            <div className="space-y-1">
-                              <div className="font-medium">{c.title}</div>
-                              <div className="text-xs text-muted-foreground">{c.provider}</div>
-                            </div>
-                            <Button asChild size="sm" variant="outline">
-                              <a href={c.url} target="_blank" rel="noreferrer">Open</a>
-                            </Button>
-                          </div>
-                        ))}
+                  <div className="space-y-3">
+                    {plan.courses.map((c, i) => (
+                      <div key={i} className="flex items-center justify-between gap-4 border rounded-md p-3">
+                        <div className="space-y-1">
+                          <div className="font-medium">{c.title}</div>
+                          <div className="text-xs text-muted-foreground">{c.provider}</div>
+                        </div>
+                        <Button asChild size="sm" variant="outline">
+                          <a href={c.url} target="_blank" rel="noreferrer">Open</a>
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
+                    ))}
+                  </div>
 
-                {/* Certifications */}
-                {plan.certifications.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {plan.certifications.map((c, i) => (
+                      <Badge key={i} variant="outline" className="py-1 px-2">
+                        {c}
+                      </Badge>
+                    ))}
+                  </div>
+
                   <Card className="elevation-2">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Badge className="bg-primary text-primary-foreground">Certs</Badge>
-                        Recommended Certifications
-                      </CardTitle>
-                      <CardDescription>Credentials that add credibility</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {plan.certifications.map((c, i) => (
-                          <Badge key={i} variant="outline" className="py-1 px-2">
-                            {c}
-                          </Badge>
-                        ))}
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <CardTitle className="text-lg">Weekly Action Plan</CardTitle>
+                          <CardDescription>
+                            Check off weeks as you complete them. Progress saves locally — use "Save Progress" to sync.
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={resetProgress}>
+                            Reset
+                          </Button>
+                          <Button size="sm" onClick={handleSaveProgress}>
+                            Save Progress
+                          </Button>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Weekly Timeline as rich cards */}
-                {plan.timeline.length > 0 && (
-                  <Card className="elevation-2">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Weekly Action Plan</CardTitle>
-                      <CardDescription>
-                        Check off weeks as you complete them. Progress saves automatically.
-                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -768,8 +814,8 @@ export default function DreamJob() {
                       </div>
                     </CardContent>
                   </Card>
-                )}
-              </motion.div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </div>
         ) : (
@@ -810,31 +856,40 @@ export default function DreamJob() {
         )}
 
         {/* Job Description */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-8"
-        >
-          <Card className="elevation-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-primary" />
-                Original Job Description
-              </CardTitle>
-              <CardDescription>
-                The job description for your dream role
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted/50 rounded-lg p-4 max-h-64 overflow-y-auto">
-                <pre className="text-sm text-foreground whitespace-pre-wrap font-sans">
-                  {dreamJobAnalysis.jobDescription}
-                </pre>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Collapsible>
+          <div className="flex items-center justify-between mb-2 mt-8">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <h3 className="text-xl font-semibold">Original Job Description</h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="gap-2">
+                Toggle
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent>
+            <Card className="elevation-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  Original Job Description
+                </CardTitle>
+                <CardDescription>
+                  The job description for your dream role
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  <pre className="text-sm text-foreground whitespace-pre-wrap font-sans">
+                    {dreamJobAnalysis.jobDescription}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </motion.div>
   );

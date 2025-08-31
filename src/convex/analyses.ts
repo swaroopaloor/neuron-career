@@ -314,3 +314,16 @@ export const removeDreamJob = mutation({
     }
   },
 });
+
+// Add: Save/update completed weeks progress for an analysis
+export const updateCompletedWeeks = mutation({
+  args: {
+    analysisId: v.id("analyses"),
+    completedWeeks: v.array(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { analysisId, completedWeeks } = args;
+    // Shallow patch to persist the week's completion
+    await ctx.db.patch(analysisId, { completedWeeks });
+  },
+});

@@ -112,6 +112,7 @@ const schema = defineSchema(
       errorMessage: v.optional(v.string()),
       isFavorited: v.optional(v.boolean()),
       jobApplicationId: v.optional(v.id("jobApplications")),
+      completedWeeks: v.optional(v.array(v.number())),
     })
       .index("by_user", ["userId"])
       .index("by_user_and_job", ["userId", "jobApplicationId"])
