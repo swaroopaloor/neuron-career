@@ -860,60 +860,7 @@ export default function DreamJob() {
                   </CollapsibleContent>
                 </Collapsible>
 
-                {/* Growth Roadmap */}
-                {dreamJobAnalysis.growthPlan && dreamJobAnalysis.growthPlan.length > 0 && (
-                  <Collapsible>
-                    <CollapsibleTrigger asChild>
-                      <button className="w-full group flex items-center justify-between rounded-xl border px-5 py-3 bg-white/5 dark:bg-white/5 backdrop-blur supports-[backdrop-filter]:bg-white/5 border-white/10 hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm">
-                        <span className="text-xl font-semibold text-foreground flex items-center gap-2">
-                          <Zap className="h-6 w-6 text-green-500" />
-                          Long-term Growth Plan
-                        </span>
-                        <ChevronDown className="h-5 w-5 transition-transform data-[state=open]:rotate-180" />
-                      </button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <Card className="elevation-2 hover:elevation-3 transition-all duration-300 border-white/10 bg-white/5 backdrop-blur">
-                        <CardContent className="p-6">
-                          <div className="space-y-5">
-                            {dreamJobAnalysis.growthPlan.map((milestone, index) => (
-                              <motion.div
-                                key={index}
-                                initial={{ x: -20, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: 0.04 * index }}
-                                className="relative pl-8"
-                              >
-                                {/* timeline dot + line */}
-                                <div className="absolute left-0 top-2 flex flex-col items-center">
-                                  <div className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-sm" />
-                                  {index < (dreamJobAnalysis.growthPlan?.length ?? 0) - 1 && (
-                                    <div className="w-px h-10 bg-white/20 mt-1" />
-                                  )}
-                                </div>
-
-                                <div className="rounded-lg border border-white/10 bg-card/60 p-4">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <h3 className="text-base md:text-lg font-semibold text-foreground">
-                                      {milestone.milestone}
-                                    </h3>
-                                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                                      <Clock className="h-3.5 w-3.5" />
-                                      {milestone.timeline}
-                                    </Badge>
-                                  </div>
-                                  <p className="mt-2 text-sm md:text-[15px] leading-relaxed text-muted-foreground">
-                                    {milestone.details}
-                                  </p>
-                                </div>
-                              </motion.div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
+                
               </div>
             </div>
 

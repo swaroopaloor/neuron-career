@@ -34,6 +34,17 @@ import {
   BarChart3,
   Activity
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
@@ -43,9 +54,12 @@ export default function Dashboard() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const [confirmDreamOpen, setConfirmDreamOpen] = useState(false);
+  const [pendingDreamId, setPendingDreamId] = useState<Id<"analyses"> | null>(null);
+
   const analyses = useQuery(api.analyses.getUserAnalyses, { limit: 20 });
   const toggleFavorite = useMutation(api.analyses.toggleFavorite);
+  const setDreamJob = useMutation(api.analyses.setDreamJobAnalysis);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -65,6 +79,19 @@ export default function Dashboard() {
       toast.success("Updated favorites!");
     } catch (error) {
       toast.error("Failed to update favorite");
+    }
+  };
+
+  const handleConfirmSetDreamJob = async () => {
+    if (!pendingDreamId) return;
+    try {
+      await setDreamJob({ analysisId: pendingDreamId });
+      toast.success("Set as your Dream Job!");
+    } catch (e) {
+      toast.error("Failed to set Dream Job. Please try again.");
+    } finally {
+      setConfirmDreamOpen(false);
+      setPendingDreamId(null);
     }
   };
 
@@ -602,6 +629,27 @@ export default function Dashboard() {
                                     }`} 
                                   />
                                 </motion.button>
+                                {analysis.status === "completed" && !analysis.isDreamJob && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-2 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPendingDreamId(analysis._id);
+                                      setConfirmDreamOpen(true);
+                                    }}
+                                  >
+                                    <Star className="h-3 w-3 mr-1" />
+                                    Set as Dream Job
+                                  </Button>
+                                )}
+                                {analysis.isDreamJob && (
+                                  <Badge variant="outline" className="ml-2 flex-shrink-0">
+                                    <Star className="h-3 w-3 mr-1 text-yellow-500" />
+                                    Dream Job
+                                  </Badge>
+                                )}
                               </div>
                             </motion.div>
                           ))}
@@ -620,6 +668,23 @@ export default function Dashboard() {
         open={uploadDialogOpen} 
         onOpenChange={setUploadDialogOpen}
       />
+
+      <AlertDialog open={confirmDreamOpen} onOpenChange={setConfirmDreamOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set as your Dream Job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark this analysis as your Dream Job and replace any previously selected one. You can change it later anytime.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSetDreamJob}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
