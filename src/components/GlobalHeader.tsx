@@ -13,8 +13,8 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
-  ChevronLeft,
-  BarChart3
+  BarChart3,
+  TrendingUp
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -42,10 +42,6 @@ export function GlobalHeader() {
     }
   };
 
-  const handleBack = () => {
-    navigate("/dashboard");
-  };
-
   if (!isAuthenticated) {
     return null;
   }
@@ -60,6 +56,11 @@ export function GlobalHeader() {
       label: "Analytics",
       path: "/analytics",
       icon: BarChart3
+    },
+    {
+      label: "Career Growth",
+      path: "/career-growth",
+      icon: TrendingUp
     },
     {
       label: "Resume Builder",
@@ -125,15 +126,6 @@ export function GlobalHeader() {
                         </Button>
                       </SheetClose>
                     ))}
-                    <Button
-                      variant="ghost"
-                      size="lg"
-                      onClick={handleBack}
-                      className="w-full justify-start h-11 rounded-md text-muted-foreground"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </Button>
-
                     {/* Theme toggle in sidebar */}
                     <Button
                       variant="ghost"
@@ -171,10 +163,6 @@ export function GlobalHeader() {
               </SheetContent>
             </Sheet>
 
-            <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Back to Dashboard">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-
             {/* Logo / Brand */}
             <Link to="/dashboard" className="flex items-center gap-3 group">
               <motion.div
@@ -189,9 +177,8 @@ export function GlobalHeader() {
             </Link>
           </div>
 
-          {/* Right side actions: Notifications + Theme toggle */}
+          {/* Right side actions: Theme toggle only */}
           <div className="flex items-center gap-2">
-            <NotificationCenter />
             <Button
               variant="ghost"
               size="icon"

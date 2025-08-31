@@ -19,6 +19,7 @@ import ResumeBuilder from "@/pages/ResumeBuilder.tsx";
 import { GlobalHeader } from "@/components/GlobalHeader";
 import { CommandPalette } from "@/components/CommandPalette";
 import Analytics from "@/pages/Analytics.tsx";
+import CareerGrowth from "@/pages/CareerGrowth.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -63,6 +64,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/profile" element={<Profile />} />
               <Route path="/job-tracker" element={<JobTracker />} />
               <Route path="/resume-builder" element={<ResumeBuilder />} />
+              <Route path="/career-growth" element={<CareerGrowth />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
