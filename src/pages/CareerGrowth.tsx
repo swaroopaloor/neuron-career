@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, GraduationCap, Target, Clock, Link as LinkIcon, ListChecks } from "lucide-react";
+import { GraduationCap, Target, Clock, Link as LinkIcon, ListChecks, Sparkles } from "lucide-react";
+import { useAction } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 type Plan = {
   topics: string[];
@@ -22,94 +24,6 @@ type Plan = {
   summary: string;
 };
 
-function rolePreset(role: string) {
-  const r = role.toLowerCase();
-  if (r.includes("data")) {
-    return {
-      topics: ["Python", "SQL", "Statistics", "Pandas/Numpy", "Data Viz (Tableau/Power BI)", "ML Basics"],
-      courses: [
-        { title: "Google Data Analytics", provider: "Coursera", url: "https://www.coursera.org/professional-certificates/google-data-analytics" },
-        { title: "Introduction to Machine Learning", provider: "Kaggle Learn", url: "https://www.kaggle.com/learn/intro-to-machine-learning" },
-        { title: "SQL for Data Analysis", provider: "Mode", url: "https://mode.com/sql-tutorial/" },
-      ],
-      certs: ["Google Data Analytics Professional Certificate", "Databricks Lakehouse Fundamentals"],
-    };
-  }
-  if (r.includes("frontend")) {
-    return {
-      topics: ["HTML/CSS", "JavaScript/TypeScript", "React + Router", "State Mgmt", "Testing (Vitest/Jest)", "Performance & Accessibility"],
-      courses: [
-        { title: "Epic React", provider: "Kent C. Dodds", url: "https://epicreact.dev/" },
-        { title: "TypeScript for JS Devs", provider: "Frontend Masters", url: "https://frontendmasters.com/learn/typescript/" },
-        { title: "Web Accessibility", provider: "Google", url: "https://web.dev/learn/accessibility/" },
-      ],
-      certs: ["Meta Front-End Developer", "Google Mobile Web Specialist"],
-    };
-  }
-  if (r.includes("backend")) {
-    return {
-      topics: ["Node.js", "APIs (REST/GraphQL)", "Databases (SQL/NoSQL)", "Auth & Security", "Cloud (AWS/GCP)", "Observability"],
-      courses: [
-        { title: "Node.js, Express, MongoDB", provider: "Udemy", url: "https://www.udemy.com/course/nodejs-express-mongodb-bootcamp/" },
-        { title: "Designing RESTful APIs", provider: "Udacity", url: "https://www.udacity.com/course/designing-restful-apis--ud388" },
-        { title: "AWS Cloud Practitioner", provider: "AWS", url: "https://www.aws.training/Details/Curriculum?id=20685" },
-      ],
-      certs: ["AWS Cloud Practitioner", "Google Associate Cloud Engineer"],
-    };
-  }
-  if (r.includes("product")) {
-    return {
-      topics: ["Product Strategy", "User Research", "Roadmapping", "Metrics/Analytics", "Design Basics", "Stakeholder Management"],
-      courses: [
-        { title: "Become a Product Manager", provider: "Udemy", url: "https://www.udemy.com/course/become-a-product-manager-learn-the-skills-get-a-job/" },
-        { title: "Measuring Product Success", provider: "Coursera", url: "https://www.coursera.org/specializations/uva-darden-digital-product-management" },
-        { title: "UX Research", provider: "NN/g", url: "https://www.nngroup.com/courses/ux-research/" },
-      ],
-      certs: ["Product Manager Certification (PMI-ACP)", "Product Analytics Micro-Cert"],
-    };
-  }
-  if (r.includes("cloud") || r.includes("devops")) {
-    return {
-      topics: ["Linux & Networking", "CI/CD", "Containers (Docker)", "Kubernetes", "IaC (Terraform)", "Monitoring"],
-      courses: [
-        { title: "Docker & Kubernetes", provider: "Udemy", url: "https://www.udemy.com/course/docker-and-kubernetes-the-complete-guide/" },
-        { title: "Introduction to DevOps", provider: "IBM", url: "https://www.coursera.org/professional-certificates/devops-and-software-engineering" },
-        { title: "HashiCorp Terraform", provider: "HashiCorp", url: "https://learn.hashicorp.com/terraform" },
-      ],
-      certs: ["CKA - Certified Kubernetes Administrator", "AWS SysOps Administrator"],
-    };
-  }
-  // default
-  return {
-    topics: ["Fundamentals", "Projects/Portfolio", "Interview Prep", "Networking", "Mentorship", "Consistent Practice"],
-    courses: [
-      { title: "Career Development Specialization", provider: "Coursera", url: "https://www.coursera.org/specializations/career-success" },
-      { title: "Effective Networking", provider: "LinkedIn Learning", url: "https://www.linkedin.com/learning/topics/networking" },
-      { title: "Projects that get you hired", provider: "Scrimba", url: "https://scrimba.com/" },
-    ],
-    certs: ["Role-specific certificate of choice", "Foundational professional badge"],
-  };
-}
-
-function buildTimeline(topics: string[], weeks: number) {
-  const items: Array<{ week: number; focus: string }> = [];
-  const per = Math.max(1, Math.floor(weeks / Math.max(1, topics.length)));
-  let week = 1;
-  for (const t of topics) {
-    const span = Math.min(per, Math.max(1, weeks - week + 1));
-    for (let i = 0; i < span && week <= weeks; i++) {
-      items.push({ week, focus: `${t}${i === 0 ? " - Foundations" : i === 1 ? " - Applied" : " - Practice"}` });
-      week++;
-    }
-  }
-  // Fill remaining weeks with revision/interview prep
-  while (week <= weeks) {
-    items.push({ week, focus: "Interview Prep & Portfolio Polish" });
-    week++;
-  }
-  return items;
-}
-
 export default function CareerGrowth() {
   const [about, setAbout] = useState("");
   const [dreamRole, setDreamRole] = useState("");
@@ -117,26 +31,32 @@ export default function CareerGrowth() {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
 
+  const generateCareerPlan = useAction(api.aiCareerGrowth.generateCareerPlan);
+
   const disabled = useMemo(() => !dreamRole.trim() && !about.trim(), [about, dreamRole]);
 
-  function generatePlan() {
+  async function generatePlan() {
+    if (!dreamRole.trim() && !about.trim()) {
+      toast.error("Please provide either your dream role or background information");
+      return;
+    }
+
     setLoading(true);
-    const preset = rolePreset(dreamRole || about);
-    const topics = preset.topics;
-    const timeline = buildTimeline(topics, weeks);
-    const summary = `Personalized roadmap for "${dreamRole || "your target role"}" over ${weeks} weeks. Focus on fundamentals first, then build real projects and demonstrate outcomes.`;
-    const p: Plan = {
-      topics,
-      courses: preset.courses,
-      certifications: preset.certs,
-      timeline,
-      summary,
-    };
-    setTimeout(() => {
-      setPlan(p);
+    try {
+      const result = await generateCareerPlan({
+        about: about.trim(),
+        dreamRole: dreamRole.trim(),
+        weeks,
+      });
+      
+      setPlan(result);
+      toast.success("AI-powered career growth plan generated!");
+    } catch (error) {
+      console.error("Error generating career plan:", error);
+      toast.error("Failed to generate career plan. Please try again.");
+    } finally {
       setLoading(false);
-      toast.success("Career Growth plan generated");
-    }, 350);
+    }
   }
 
   return (
@@ -148,9 +68,9 @@ export default function CareerGrowth() {
               <Sparkles className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Career Growth Planner</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">AI Career Growth Planner</h1>
               <p className="text-muted-foreground text-sm sm:text-base">
-                Describe yourself and your dream role. Get a clear path with topics, courses, certifications, and a weekly timeline.
+                Describe yourself and your dream role. Get an AI-powered personalized path with topics, courses, certifications, and a weekly timeline.
               </p>
             </div>
           </div>
@@ -208,7 +128,14 @@ export default function CareerGrowth() {
               </div>
               <div className="pt-2">
                 <Button disabled={disabled || loading} onClick={generatePlan} className="w-full h-11">
-                  {loading ? "Generating..." : "Generate Growth Plan"}
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Generating AI Plan...
+                    </div>
+                  ) : (
+                    "Generate AI Career Plan"
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -218,7 +145,7 @@ export default function CareerGrowth() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-primary" />
-                Recommended Courses & Certifications
+                AI-Recommended Courses & Certifications
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -258,7 +185,7 @@ export default function CareerGrowth() {
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Generate a plan to see handpicked courses and certifications tailored to your goals.
+                  Generate an AI plan to see personalized courses and certifications tailored to your specific goals and background.
                 </p>
               )}
             </CardContent>
@@ -274,7 +201,7 @@ export default function CareerGrowth() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ListChecks className="w-5 h-5 text-primary" />
-                Learning Topics
+                AI-Curated Learning Topics
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -286,7 +213,7 @@ export default function CareerGrowth() {
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Your personalized topics will appear here after generating the plan.
+                  Your AI-personalized learning topics will appear here after generating the plan.
                 </p>
               )}
             </CardContent>
@@ -296,17 +223,17 @@ export default function CareerGrowth() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" />
-                {plan ? `Weekly Timeline (${weeks} weeks)` : "Weekly Timeline"}
+                {plan ? `AI Weekly Timeline (${weeks} weeks)` : "AI Weekly Timeline"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {plan ? (
                 <>
                   <p className="text-sm text-muted-foreground">{plan.summary}</p>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
                     {plan.timeline.map((t) => (
                       <div key={t.week} className="flex items-start gap-3">
-                        <div className="mt-1 w-2 h-2 rounded-full bg-primary" />
+                        <div className="mt-1 w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                         <div>
                           <p className="text-sm font-medium">Week {t.week}</p>
                           <p className="text-sm text-muted-foreground">{t.focus}</p>
@@ -317,7 +244,7 @@ export default function CareerGrowth() {
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Generate a plan to see your week-by-week roadmap with clear milestones.
+                  Generate an AI plan to see your personalized week-by-week roadmap with clear, actionable milestones.
                 </p>
               )}
             </CardContent>
