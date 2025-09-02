@@ -17,6 +17,15 @@ import { Button } from "@/components/ui/button";
 export default function Interview() {
   const { isLoading, isAuthenticated } = useAuth();
 
+  // Selection state
+  const [mode, setMode] = useState<"existing" | "new">("existing");
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
+  const [newJobJd, setNewJobJd] = useState("");
+
+  // Load user's analyses (guarded; avoids throwing when not authenticated)
+  const analyses = useQuery(api.analyses.getUserAnalyses, isAuthenticated ? { limit: 50 } : "skip");
+
+  // Moved auth/loading guards here to avoid changing hook order between renders
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -28,18 +37,9 @@ export default function Interview() {
       </div>
     );
   }
-
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
   }
-
-  // Selection state
-  const [mode, setMode] = useState<"existing" | "new">("existing");
-  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
-  const [newJobJd, setNewJobJd] = useState("");
-
-  // Load user's analyses
-  const analyses = useQuery(api.analyses.getUserAnalyses, { limit: 50 });
 
   const selectedAnalysis = useMemo(() => {
     if (!analyses || !selectedAnalysisId) return null;
