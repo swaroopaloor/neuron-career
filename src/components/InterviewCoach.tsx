@@ -49,26 +49,32 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
-      setSupported(true);
-      const rec = new SpeechRecognition() as RecognitionType;
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.lang = "en-US";
-      rec.onresult = (e: any) => {
-        let interim = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          interim += e.results[i][0].transcript;
-        }
-        onResult(interim);
-      };
-      rec.onerror = () => {
-        toast.error("Voice recognition error");
-        setListening(false);
-      };
-      rec.onend = () => {
-        setListening(false);
-      };
-      recognitionRef.current = rec;
+      try {
+        setSupported(true);
+        const rec = new SpeechRecognition() as RecognitionType;
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-US";
+        rec.onresult = (e: any) => {
+          let interim = "";
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            interim += e.results[i][0].transcript;
+          }
+          onResult(interim);
+        };
+        rec.onerror = () => {
+          // Gracefully disable voice mode and fall back to typing
+          setListening(false);
+          setSupported(false);
+        };
+        rec.onend = () => {
+          setListening(false);
+        };
+        recognitionRef.current = rec;
+      } catch {
+        // If instantiation fails, mark as unsupported
+        setSupported(false);
+      }
     }
   }, [onResult]);
 
@@ -78,7 +84,9 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
       recognitionRef.current.start();
       setListening(true);
     } catch {
-      // ignore if already started
+      // If start fails, disable voice mode
+      setListening(false);
+      setSupported(false);
     }
   };
   const stop = () => {
