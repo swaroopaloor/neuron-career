@@ -604,14 +604,18 @@ export default function ResumeBuilder() {
       await new Promise((r) => requestAnimationFrame(() => r(null)));
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        // Improve stability and reduce memory pressure on small screens
+        scale: Math.min(2, Math.max(1, window.devicePixelRatio || 1)),
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: true,
         scrollX: 0,
         scrollY: 0,
         windowWidth: clone.scrollWidth || A4_PX_WIDTH,
-        windowHeight: clone.scrollHeight || source.scrollHeight || 1123, // ~A4 height
+        windowHeight: clone.scrollHeight || source.scrollHeight || 1123,
+        logging: false,
+        imageTimeout: 15000,
+        foreignObjectRendering: true,
       });
 
       // Clean up the offscreen clone
@@ -671,14 +675,14 @@ export default function ResumeBuilder() {
 
         setUploadedPdf({ id: storageId, name: fileName });
         setShowDefaultDialog(true);
-        toast.success("PDF exported! You can set it as your default resume.");
+        toast.success("PDF saved! You can set it as your default resume.");
       } catch (uploadErr) {
         console.error(uploadErr);
         toast.error("PDF downloaded. Upload failed — please try again later.");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to export PDF. If on mobile, switch to desktop and try again.");
+      toast.error("Failed to save PDF. If on mobile, switch to desktop and try again.");
     } finally {
       setIsExporting(false);
     }
@@ -843,12 +847,12 @@ export default function ResumeBuilder() {
               {isExporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Exporting...
+                  Saving PDF...
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4 mr-2" />
-                  Export PDF
+                  Save as PDF
                 </>
               )}
             </Button>
