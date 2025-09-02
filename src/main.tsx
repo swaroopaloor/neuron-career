@@ -20,6 +20,7 @@ import { GlobalHeader } from "@/components/GlobalHeader";
 import { CommandPalette } from "@/components/CommandPalette";
 import Analytics from "@/pages/Analytics.tsx";
 import DreamJob from "@/pages/DreamJob.tsx";
+import Interview from "@/pages/Interview.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -62,6 +63,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/dream-job" element={<DreamJob />} />
+              <Route path="/interview" element={<Interview />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/job-tracker" element={<JobTracker />} />
               <Route path="/resume-builder" element={<ResumeBuilder />} />

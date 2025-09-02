@@ -14,7 +14,8 @@ import {
   LayoutDashboard,
   Settings,
   BarChart3,
-  Heart
+  Heart,
+  Mic
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -66,6 +67,11 @@ export function GlobalHeader() {
       label: "Analytics",
       path: "/analytics",
       icon: BarChart3
+    },
+    {
+      label: "Interview",
+      path: "/interview",
+      icon: Mic
     },
     {
       label: "Dream Job",
