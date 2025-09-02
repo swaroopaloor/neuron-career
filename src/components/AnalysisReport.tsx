@@ -334,31 +334,73 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     }
   };
 
+  // Add: estimated impact helpers
+  const estimatePriorityImpact = (index: number): number => {
+    // Simple, consistent estimate: +3% each priority item
+    return 3;
+  };
+
+  const estimateGroupImpact = (textsCount: number, type: "match" | "ats"): number => {
+    // Base +2%, plus +0.5% per additional bullet, capped at +4%
+    const est = 2 + Math.max(0, textsCount - 1) * 0.5;
+    return Math.min(4, Math.round(est * 10) / 10);
+  };
+
+  const totalEstimatedPriorityImpact = (analysis.priorityImprovements || []).reduce(
+    (acc, _p, idx) => acc + estimatePriorityImpact(idx),
+    0
+  );
+
+  const totalEstimatedGroupedImpact = groupedSuggestions.reduce(
+    (acc, g) => acc + estimateGroupImpact(g.texts.length, activeTab),
+    0
+  );
+
   const getMatchBreakdown = () => {
     const total = analysis.matchScore || 0;
-    // Weights: Keywords & Skills 40%, Experience 40%, Education/Projects 20%
+    // 5-part split for clarity
     const parts = [
-      { key: "Keywords & Skills", weight: 0.4, reason: (() => {
-        const missing = (analysis.missingKeywords || []).length;
-        const skillsItems = (matchSuggestions.filter(s => s.section === "skills")).length;
-        return missing > 0
-          ? `Some role keywords are missing (${missing}); add them to Skills and relevant bullets.`
-          : skillsItems > 0
-            ? `Skills align well with the role; keep keywords prominent in bullets.`
-            : `Add more role-specific keywords to Skills and throughout experience.`;
-      })() },
-      { key: "Experience Alignment", weight: 0.4, reason: (() => {
-        const expItems = (matchSuggestions.filter(s => s.section === "experience")).length;
-        return expItems > 0
-          ? `Tighten role responsibilities and quantify outcomes in Experience.`
-          : `Experience appears aligned; quantify results and mirror job terminology.`;
-      })() },
-      { key: "Education / Projects", weight: 0.2, reason: (() => {
-        const eduItems = (matchSuggestions.filter(s => s.section === "education" || s.section === "projects")).length;
-        return eduItems > 0
-          ? `Highlight relevant education, certifications, and projects for this role.`
-          : `Education and projects look adequate; ensure relevance is clear.`;
-      })() },
+      {
+        key: "Keywords & Skills Coverage",
+        weight: 0.3,
+        reason: (() => {
+          const missing = (analysis.missingKeywords || []).length;
+          const skillsItems = matchSuggestions.filter(s => s.section === "skills").length;
+          if (missing > 0) return `Missing ${missing} relevant keywords; incorporate in Summary, Skills, and Experience.`;
+          if (skillsItems > 0) return `Good skill alignment; keep keywords prominent and role-specific.`;
+          return `Add role-specific keywords to improve coverage.`;
+        })(),
+      },
+      {
+        key: "Experience Alignment",
+        weight: 0.3,
+        reason: (() => {
+          const expItems = matchSuggestions.filter(s => s.section === "experience").length;
+          return expItems > 0
+            ? `Align responsibilities and outcomes to job requirements; mirror language from the JD.`
+            : `Experience aligns; ensure duties reflect the target role's requirements.`;
+        })(),
+      },
+      {
+        key: "Impact Quantification",
+        weight: 0.15,
+        reason: `Quantify results with metrics (%, $, time saved); prioritize outcomes over tasks.`,
+      },
+      {
+        key: "Projects / Education Relevance",
+        weight: 0.15,
+        reason: (() => {
+          const rel = matchSuggestions.filter(s => s.section === "projects" || s.section === "education").length;
+          return rel > 0
+            ? `Emphasize relevant projects/courses to strengthen perceived fit.`
+            : `Consider adding or prioritizing relevant projects/courses.`;
+        })(),
+      },
+      {
+        key: "Structure & Clarity",
+        weight: 0.1,
+        reason: `Concise, consistent bullets with strong action verbs improve readability and match perception.`,
+      },
     ] as const;
 
     return parts.map(p => ({
@@ -370,16 +412,38 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
 
   const getAtsBreakdown = () => {
     const total = analysis.atsScore || 0;
-    // Weights: Formatting 35%, Keyword Density 35%, Section Completeness 30%
+    // 5-part split for clarity
     const parts = [
-      { key: "Formatting Compliance", weight: 0.35, reason: `Use simple headings, consistent bullet style, and avoid tables/graphics for ATS.` },
-      { key: "Keyword Density", weight: 0.35, reason: (() => {
-        const missing = (analysis.missingKeywords || []).length;
-        return missing > 0
-          ? `Increase presence of missing keywords (${missing}) across Summary, Skills, and Experience.`
-          : `Good keyword coverage; keep role terms naturally throughout your resume.`;
-      })() },
-      { key: "Section Completeness", weight: 0.30, reason: `Ensure Summary, Skills, Experience, and Education are present and clearly labeled.` },
+      {
+        key: "Formatting Compliance",
+        weight: 0.3,
+        reason: `Use simple headings, consistent bullets, and avoid tables/graphics for better parsing.`,
+      },
+      {
+        key: "Keyword Density",
+        weight: 0.25,
+        reason: (() => {
+          const missing = (analysis.missingKeywords || []).length;
+          return missing > 0
+            ? `Increase presence of missing keywords (${missing}) across Summary, Skills, and Experience.`
+            : `Good coverage; keep relevant terms naturally throughout.`;
+        })(),
+      },
+      {
+        key: "Section Labels & Hierarchy",
+        weight: 0.15,
+        reason: `Ensure standard section names: Summary, Skills, Experience, Education; use clear H2-like labels.`,
+      },
+      {
+        key: "Parseability & Consistency",
+        weight: 0.2,
+        reason: `Consistent dates, bullet styles, and punctuation improve ATS extraction accuracy.`,
+      },
+      {
+        key: "Misc. Compliance",
+        weight: 0.1,
+        reason: `Avoid special characters, headers/footers, or embedded elements that can confuse ATS.`,
+      },
     ] as const;
 
     return parts.map(p => ({
@@ -457,6 +521,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
               </CardTitle>
               <CardDescription>
                 How well your resume matches the job requirements
+                <span className="ml-2 text-xs text-primary">• Tap to see details</span>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -487,6 +552,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
               </CardTitle>
               <CardDescription>
                 How likely your resume is to pass Applicant Tracking Systems
+                <span className="ml-2 text-xs text-primary">• Tap to see details</span>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -550,6 +616,9 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                                 {improvement}
                               </p>
                             </div>
+                            <Badge variant="secondary" className="flex-shrink-0 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              +{estimatePriorityImpact(index)}% est
+                            </Badge>
                             <Button
                               size="sm"
                               variant="outline"
@@ -566,15 +635,20 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                             <Star className="h-4 w-4" />
                             <span>Focus on these changes first for maximum impact</span>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleCopy(analysis.priorityImprovements?.join('\n\n') || '')}
-                            className="bg-orange-100 hover:bg-orange-200 text-orange-800 dark:bg-orange-900 dark:hover:bg-orange-800 dark:text-orange-200"
-                          >
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy All Priority Changes
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              Total +{totalEstimatedPriorityImpact}% est
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleCopy(analysis.priorityImprovements?.join('\n\n') || '')}
+                              className="bg-orange-100 hover:bg-orange-200 text-orange-800 dark:bg-orange-900 dark:hover:bg-orange-800 dark:text-orange-200"
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy All Priority Changes
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -680,6 +754,10 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                           </div>
 
                           <div className="flex gap-2">
+                            {/* Added total estimated impact for visible items */}
+                            <Badge variant="outline" className="self-center bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              Visible +{Math.round(totalEstimatedGroupedImpact * 10) / 10}% est
+                            </Badge>
                             <Button
                               size="sm"
                               variant="secondary"
@@ -714,7 +792,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                                     className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                                   />
                                   <div className="flex-1 space-y-3">
-                                    <div className="flex items-start gap-2">
+                                    <div className="flex items-start gap-2 flex-wrap">
                                       <Badge
                                         variant={activeTab === "match" ? "default" : "secondary"}
                                         className="text-xs"
@@ -723,6 +801,10 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
                                       </Badge>
                                       <Badge variant="outline" className="text-xs capitalize">
                                         {group.section}
+                                      </Badge>
+                                      {/* Estimated impact per group */}
+                                      <Badge variant="outline" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        +{estimateGroupImpact(group.texts.length, activeTab)}% est
                                       </Badge>
                                     </div>
 
