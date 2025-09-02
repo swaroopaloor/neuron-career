@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useState } from "react";
 import { useMutation } from "convex/react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AnalysisReportProps {
   analysisId: Id<"analyses">;
@@ -42,6 +43,8 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
   const [activeTab, setActiveTab] = useState<"match" | "ats">("match");
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
   const [sectionFilter, setSectionFilter] = useState<string>("all");
+  const [openMatchDialog, setOpenMatchDialog] = useState(false);
+  const [openAtsDialog, setOpenAtsDialog] = useState(false);
 
   if (!analysis) {
     return <AnalysisLoading />;
@@ -331,6 +334,61 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
     }
   };
 
+  const getMatchBreakdown = () => {
+    const total = analysis.matchScore || 0;
+    // Weights: Keywords & Skills 40%, Experience 40%, Education/Projects 20%
+    const parts = [
+      { key: "Keywords & Skills", weight: 0.4, reason: (() => {
+        const missing = (analysis.missingKeywords || []).length;
+        const skillsItems = (matchSuggestions.filter(s => s.section === "skills")).length;
+        return missing > 0
+          ? `Some role keywords are missing (${missing}); add them to Skills and relevant bullets.`
+          : skillsItems > 0
+            ? `Skills align well with the role; keep keywords prominent in bullets.`
+            : `Add more role-specific keywords to Skills and throughout experience.`;
+      })() },
+      { key: "Experience Alignment", weight: 0.4, reason: (() => {
+        const expItems = (matchSuggestions.filter(s => s.section === "experience")).length;
+        return expItems > 0
+          ? `Tighten role responsibilities and quantify outcomes in Experience.`
+          : `Experience appears aligned; quantify results and mirror job terminology.`;
+      })() },
+      { key: "Education / Projects", weight: 0.2, reason: (() => {
+        const eduItems = (matchSuggestions.filter(s => s.section === "education" || s.section === "projects")).length;
+        return eduItems > 0
+          ? `Highlight relevant education, certifications, and projects for this role.`
+          : `Education and projects look adequate; ensure relevance is clear.`;
+      })() },
+    ] as const;
+
+    return parts.map(p => ({
+      label: p.key,
+      percent: Math.round(total * p.weight),
+      reason: p.reason,
+    }));
+  };
+
+  const getAtsBreakdown = () => {
+    const total = analysis.atsScore || 0;
+    // Weights: Formatting 35%, Keyword Density 35%, Section Completeness 30%
+    const parts = [
+      { key: "Formatting Compliance", weight: 0.35, reason: `Use simple headings, consistent bullet style, and avoid tables/graphics for ATS.` },
+      { key: "Keyword Density", weight: 0.35, reason: (() => {
+        const missing = (analysis.missingKeywords || []).length;
+        return missing > 0
+          ? `Increase presence of missing keywords (${missing}) across Summary, Skills, and Experience.`
+          : `Good keyword coverage; keep role terms naturally throughout your resume.`;
+      })() },
+      { key: "Section Completeness", weight: 0.30, reason: `Ensure Summary, Skills, Experience, and Education are present and clearly labeled.` },
+    ] as const;
+
+    return parts.map(p => ({
+      label: p.key,
+      percent: Math.round(total * p.weight),
+      reason: p.reason,
+    }));
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -388,7 +446,10 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
           className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"
         >
           {/* Match Score */}
-          <Card className="elevation-2">
+          <Card
+            className="elevation-2 cursor-pointer hover:bg-accent/30 transition"
+            onClick={() => setOpenMatchDialog(true)}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
@@ -415,7 +476,10 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
           </Card>
 
           {/* ATS Score */}
-          <Card className="elevation-2">
+          <Card
+            className="elevation-2 cursor-pointer hover:bg-accent/30 transition"
+            onClick={() => setOpenAtsDialog(true)}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -712,6 +776,52 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
             </Accordion>
           </Card>
         </motion.div>
+
+        <Dialog open={openMatchDialog} onOpenChange={setOpenMatchDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Match Score Breakdown</DialogTitle>
+              <DialogDescription>
+                Why your match score is {analysis.matchScore}% and how to improve it.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {getMatchBreakdown().map((item) => (
+                <div key={item.label} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{item.label}</span>
+                    <span className="text-sm text-muted-foreground">{item.percent}%</span>
+                  </div>
+                  <Progress value={item.percent} />
+                  <p className="text-sm text-muted-foreground">{item.reason}</p>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={openAtsDialog} onOpenChange={setOpenAtsDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>ATS Score Breakdown</DialogTitle>
+              <DialogDescription>
+                Why your ATS score is {analysis.atsScore}% and how to improve it.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {getAtsBreakdown().map((item) => (
+                <div key={item.label} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{item.label}</span>
+                    <span className="text-sm text-muted-foreground">{item.percent}%</span>
+                  </div>
+                  <Progress value={item.percent} />
+                  <p className="text-sm text-muted-foreground">{item.reason}</p>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column */}
