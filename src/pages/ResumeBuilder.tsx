@@ -572,6 +572,64 @@ export default function ResumeBuilder() {
   const updateProfile = useMutation(api.users.updateProfile);
   const refineText = useAction(api.aiAnalysis.refineText);
 
+  const openPrintDialogFromPreview = async () => {
+    const source = previewRef.current;
+    if (!source) {
+      throw new Error("Preview not ready");
+    }
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      throw new Error("Failed to open print window. Please allow pop-ups for this site.");
+    }
+
+    const html = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${resumeData.personalInfo.name || "Resume"}</title>
+    <style>
+      @page { size: A4; margin: 12mm; }
+      html, body { background: #ffffff; color: #000; height: auto; }
+      /* Reset margins/paddings to avoid unexpected shifts in print */
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 0; }
+      /* Ensure the container fits nicely on A4 */
+      .print-container {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+      }
+      /* Improve print quality for text */
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    </style>
+  </head>
+  <body>
+    <div class="print-container">
+      ${source.outerHTML}
+    </div>
+    <script>
+      // Defer print slightly to allow layout to stabilize
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          window.focus();
+          window.print();
+        }, 150);
+      });
+      window.onafterprint = function () {
+        setTimeout(function(){ window.close(); }, 200);
+      };
+    </script>
+  </body>
+</html>
+    `.trim();
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   const handleExportPDF = async () => {
     const source = previewRef.current;
     if (!source) {
@@ -601,7 +659,6 @@ export default function ResumeBuilder() {
       imgs.forEach((img) => {
         try {
           (img as HTMLImageElement).crossOrigin = "anonymous";
-          // If the image has a src set, reassign to enforce crossOrigin
           if ((img as HTMLImageElement).src) {
             const src = (img as HTMLImageElement).src;
             (img as HTMLImageElement).src = src;
@@ -612,7 +669,7 @@ export default function ResumeBuilder() {
       document.body.appendChild(clone);
       await new Promise((r) => requestAnimationFrame(() => r(null)));
 
-      // Primary render attempt: favor non-tainting, controlled scale
+      // Primary render attempt
       let canvas: HTMLCanvasElement | null = null;
       let renderError: unknown = null;
       try {
@@ -620,7 +677,7 @@ export default function ResumeBuilder() {
           scale: Math.min(2, Math.max(1, window.devicePixelRatio || 1)),
           backgroundColor: "#ffffff",
           useCORS: true,
-          allowTaint: false, // prevent taint so toDataURL/toBlob work
+          allowTaint: false,
           scrollX: 0,
           scrollY: 0,
           windowWidth: clone.scrollWidth || A4_PX_WIDTH,
@@ -632,7 +689,7 @@ export default function ResumeBuilder() {
         renderError = e;
       }
 
-      // Fallback render attempt: reduced scale and without foreignObject if needed
+      // Fallback render attempt
       if (!canvas) {
         try {
           canvas = await html2canvas(clone, {
@@ -658,7 +715,7 @@ export default function ResumeBuilder() {
       // Clean up the offscreen clone
       document.body.removeChild(clone);
 
-      // Prefer toBlob to reduce memory pressure; fallback to toDataURL if needed
+      // Prefer toBlob; fallback to toDataURL
       const canvasToDataUrl = async (): Promise<string> => {
         try {
           const blob: Blob | null = await new Promise((resolve) =>
@@ -676,7 +733,6 @@ export default function ResumeBuilder() {
             });
             return dataUrl;
           }
-          // Fallback to PNG if JPEG blob failed
           return canvas!.toDataURL("image/png");
         } catch {
           return canvas!.toDataURL("image/png");
@@ -687,11 +743,11 @@ export default function ResumeBuilder() {
 
       // Create A4 PDF and paginate
       const pdf = new jsPDF("p", "pt", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth(); // ~595 pt
-      const pageHeight = pdf.internal.pageSize.getHeight(); // ~842 pt
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
       const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgHeight = (canvas!.height * imgWidth) / canvas!.width;
 
       let heightLeft = imgHeight;
       let position = 0;
@@ -719,9 +775,7 @@ export default function ResumeBuilder() {
         const uploadUrl = await generateUploadUrl({});
         const uploadRes = await fetch(uploadUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/pdf",
-          },
+          headers: { "Content-Type": "application/pdf" },
           body: blob,
         });
 
@@ -743,7 +797,14 @@ export default function ResumeBuilder() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to save PDF. Please try again.");
+      // New: last-resort print-to-PDF fallback
+      try {
+        await openPrintDialogFromPreview();
+        toast.info("Opening print dialog — select 'Save as PDF' to save your resume.");
+      } catch (e2) {
+        console.error(e2);
+        toast.error("Failed to save or print PDF. Please try again.");
+      }
     } finally {
       setIsExporting(false);
     }
