@@ -130,27 +130,51 @@ export default function Landing() {
   const features = [
     {
       icon: Sparkles,
-      title: "AI-Powered Analysis",
+      title: "AI-Powered Resume Analysis",
       description:
-        "Rigorous, role-aware analysis with prioritized, high-impact improvements you can paste directly into your resume."
-    },
-    {
-      icon: BarChart3,
-      title: "Applications Analytics",
-      description:
-        "Track every job you apply to with a centralized analytics view—see trends, response rates, and what's working."
-    },
-    {
-      icon: Target,
-      title: "Dream Job Planner",
-      description:
-        "Define your target role and get a tailored learning roadmap, courses, and milestones to close the gap."
+        "ATS-focused scoring, keyword coverage, impact metrics, and prioritized, high‑leverage edits tailored to each job description."
     },
     {
       icon: FileText,
-      title: "AI Resume Builder (Live Preview)",
+      title: "AI Resume Builder (Live Preview + PDF Export)",
       description:
-        "Create and refine resumes with AI assistance and instant live preview—optimize content, structure, and keywords in real time."
+        "Craft resumes with real-time preview, AI refinement for summary and experience, and one-click high-quality PDF export."
+    },
+    {
+      icon: BarChart3,
+      title: "Job Tracker & Applications Analytics",
+      description:
+        "Centralized tracking for applications with response rates, stages, and trend insights—know what's working and what to improve."
+    },
+    {
+      icon: Target,
+      title: "Dream Job Planner & Skill Gap Analysis",
+      description:
+        "Define your target role, identify gaps, and follow an AI-guided roadmap of skills, projects, and milestones to close the gap."
+    },
+    {
+      icon: Users,
+      title: "Interview Coach (Practice & Feedback)",
+      description:
+        "Role-specific mock interview prep with structured feedback, question banks, and guidance to improve clarity and impact."
+    },
+    {
+      icon: FileCheck,
+      title: "Outreach Automation (Email & LinkedIn)",
+      description:
+        "Generate tailored outreach messages, follow-ups, and recruiter notes—save time while staying personal and relevant."
+    },
+    {
+      icon: Star,
+      title: "Template Library",
+      description:
+        "Professional, technical, entry-level, and minimal templates—quickly start with best-practice structures and phrasing."
+    },
+    {
+      icon: Shield,
+      title: "Profile & Default Resume Storage",
+      description:
+        "Save your best resume as default for quick access across the app—secure storage with easy updates and versioning."
     },
   ];
 
@@ -164,32 +188,32 @@ export default function Landing() {
   const steps = [
     {
       step: "01",
-      title: "Upload Resume",
+      title: "Build or Upload Resume",
       description:
-        "Drag and drop your PDF resume or browse from your device. We support all standard formats including PDF, DOC, and DOCX.",
+        "Start from templates or your existing PDF—use AI to refine summary, experience bullets, and skills. Export high-quality PDFs anytime.",
       icon: FileText
     },
     {
       step: "02",
-      title: "Add Job Description",
+      title: "Tailor & Prepare",
       description:
-        "Paste the target job description. Use the AI Resume Builder with live preview to tailor content and structure instantly.",
+        "Paste the job description to get targeted improvements, keyword alignment, and generate personalized outreach and interview prep.",
       icon: Target
     },
     {
       step: "03",
-      title: "Get Analysis",
+      title: "Analyze, Apply & Track",
       description:
-        "Receive prioritized improvements, ATS ratings, and personalized recommendations. Track outcomes in your applications analytics.",
+        "Get ATS scores with prioritized fixes, apply with confidence, and track responses and trends in your applications analytics.",
       icon: FileCheck
     }
   ];
 
   const benefits = [
-    "Increase interview callbacks by 3x",
-    "Pass ATS systems with confidence", 
-    "Get personalized improvement tips",
-    "Save hours of manual optimization"
+    "3x more interview callbacks with targeted, ATS‑safe resumes",
+    "End‑to‑end workflow: build, analyze, outreach, interview, and track",
+    "Role‑aware AI refinement for summaries and experience bullets",
+    "Analytics to learn what's working and where to iterate"
   ];
 
   return (
@@ -305,10 +329,8 @@ export default function Landing() {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="text-sm sm:text-base text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
             >
-              Upload your resume and job description to get instant AI analysis,
-              ATS optimization scores, and personalized recommendations that boost your hiring chances by 3x. 
-              Now with priority improvements, a full analytics dashboard for your applications, a Dream Job planner, 
-              and an AI resume builder with live preview.
+              Upload your resume or build one from scratch, tailor it to any job with AI, get ATS-ready analysis, generate outreach, practice interviews, and track every application—all in one place. 
+              Now with a live resume builder, PDF export, templates library, analytics dashboard, outreach automation, and a guided dream‑job roadmap.
             </motion.p>
             
             <motion.div
