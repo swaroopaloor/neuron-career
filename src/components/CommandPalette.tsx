@@ -20,7 +20,10 @@ import {
   Star,
   TrendingUp,
   Bell,
-  Command
+  Command,
+  BarChart3,
+  Mic,
+  Heart
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,6 +44,9 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
+
+  // Detect platform for the shortcut hint
+  const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
   const commands: CommandItem[] = [
     // Navigation
@@ -79,6 +85,33 @@ export function CommandPalette() {
       action: () => navigate("/resume-builder"),
       category: "navigation",
       keywords: ["resume", "builder", "create", "edit"]
+    },
+    {
+      id: "nav-analytics",
+      title: "Analytics",
+      subtitle: "View insights and metrics",
+      icon: BarChart3,
+      action: () => navigate("/analytics"),
+      category: "navigation",
+      keywords: ["analytics", "insights", "metrics", "stats"],
+    },
+    {
+      id: "nav-interview",
+      title: "Interview Coach",
+      subtitle: "Practice interviews with AI",
+      icon: Mic,
+      action: () => navigate("/interview"),
+      category: "navigation",
+      keywords: ["interview", "coach", "practice", "questions"],
+    },
+    {
+      id: "nav-dream-job",
+      title: "Dream Job Planner",
+      subtitle: "Skill gaps and growth plan",
+      icon: Heart,
+      action: () => navigate("/dream-job"),
+      category: "navigation",
+      keywords: ["dream", "planner", "growth", "skills", "roadmap"],
     },
 
     // Actions
@@ -193,7 +226,7 @@ export function CommandPalette() {
             <Command className="h-3 w-3" />
             <span>Press</span>
             <Badge variant="outline" className="px-1 py-0 text-xs">
-              ⌘K
+              {isMac ? "⌘K" : "Ctrl K"}
             </Badge>
             <span>to open</span>
           </div>
