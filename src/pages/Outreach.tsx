@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Plus, Mail, MessageSquare, Rocket, Send, Calendar, Target, Users, Building2 } from "lucide-react";
+import { Loader2, Plus, Mail, MessageSquare, Rocket, Send, Calendar, Target, Users, Building2, Upload } from "lucide-react";
 
 export default function OutreachPage() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -28,6 +28,12 @@ export default function OutreachPage() {
 
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [addTargetOpen, setAddTargetOpen] = useState(false);
+
+  // ADD: CSV Importer state
+  const [importOpen, setImportOpen] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [csvDefaultCompany, setCsvDefaultCompany] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
 
   const [newContact, setNewContact] = useState({
     name: "",
@@ -84,7 +90,7 @@ export default function OutreachPage() {
           <h1 className="text-2xl font-bold tracking-tight">Outreach Engine</h1>
           <p className="text-muted-foreground">Warm intros + reverse recruiting with referral likelihood scoring.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={async () => {
             const res = await seed();
             toast(res === "already_seeded" ? "Sample data already present" : "Seeded sample contacts and a target company");
@@ -99,6 +105,14 @@ export default function OutreachPage() {
           <Button onClick={() => setAddTargetOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Target Company
+          </Button>
+          {/* ADD: Import CSV button */}
+          <Button variant="secondary" onClick={() => {
+            setCsvDefaultCompany(selectedCompany || "");
+            setImportOpen(true);
+          }}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import CSV
           </Button>
         </div>
       </div>
@@ -349,6 +363,156 @@ Happy to share a concise resume and tailored summary. Appreciate it!
               setAddTargetOpen(false);
               setNewTarget({ companyName: "", targetRole: "", priority: "high" });
             }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import CSV Dialog */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import Contacts from CSV</DialogTitle>
+            <DialogDescription>
+              Upload or paste a CSV with headers: name, email, title, company, connectionDegree (1/2/3), relationshipStrength (1-5).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <Label>Default Company (used if company is missing in rows)</Label>
+                <Input
+                  value={csvDefaultCompany}
+                  onChange={(e) => setCsvDefaultCompany(e.target.value)}
+                  placeholder="Acme Corp"
+                />
+                <div className="text-xs text-muted-foreground mt-1">
+                  Tip: This defaults to your selected target company when opening this dialog.
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Upload CSV File</Label>
+                <Input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const text = await file.text();
+                    setCsvText(text);
+                    toast("CSV loaded");
+                  }}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Or paste CSV here</Label>
+                <textarea
+                  className="w-full rounded-md border p-2 min-h-48 bg-background"
+                  placeholder="name,email,title,company,connectionDegree,relationshipStrength
+Jane Doe,jane@acme.com,Engineering Manager,Acme Corp,2,4"
+                  value={csvText}
+                  onChange={(e) => setCsvText(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              If a row is missing company, we'll use the Default Company above. If connectionDegree or relationshipStrength are missing, they default to 2 and 3.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
+            <Button
+              disabled={isImporting || !csvText.trim()}
+              onClick={async () => {
+                if (!csvText.trim()) return toast("Please upload or paste CSV");
+                // lightweight CSV parser that handles quoted values with commas
+                function parseCSV(text: string): Array<Record<string, string>> {
+                  const rows: string[][] = [];
+                  let row: string[] = [];
+                  let cell = "";
+                  let inQuotes = false;
+                  const pushCell = () => { row.push(cell); cell = ""; };
+                  for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    if (char === '"') {
+                      if (inQuotes && text[i + 1] === '"') {
+                        cell += '"';
+                        i++;
+                      } else {
+                        inQuotes = !inQuotes;
+                      }
+                    } else if (char === "," && !inQuotes) {
+                      pushCell();
+                    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+                      if (cell.length > 0 || row.length > 0) pushCell();
+                      if (row.length > 0) rows.push(row), row = [];
+                    } else {
+                      cell += char;
+                    }
+                  }
+                  if (cell.length > 0 || row.length > 0) { pushCell(); rows.push(row); }
+                  if (rows.length === 0) return [];
+                  const header = rows[0].map((h) => h.trim());
+                  const out: Array<Record<string, string>> = [];
+                  for (let i = 1; i < rows.length; i++) {
+                    const r = rows[i];
+                    if (r.every((c) => !c || c.trim() === "")) continue;
+                    const obj: Record<string, string> = {};
+                    for (let j = 0; j < header.length; j++) {
+                      obj[header[j]] = (r[j] ?? "").trim();
+                    }
+                    out.push(obj);
+                  }
+                  return out;
+                }
+
+                try {
+                  setIsImporting(true);
+                  const data = parseCSV(csvText);
+                  if (data.length === 0) {
+                    toast("No rows detected in CSV");
+                    return;
+                  }
+                  let imported = 0;
+                  for (const row of data) {
+                    const name = row.name || row.fullName || row.Name || "";
+                    const email = row.email || row.Email || "";
+                    const title = row.title || row.Title || "";
+                    const company = row.company || row.Company || csvDefaultCompany || selectedCompany || undefined;
+
+                    const cdRaw = row.connectionDegree || row.degree || row.ConnectionDegree || "";
+                    const rsRaw = row.relationshipStrength || row.RelationshipStrength || row.strength || "";
+
+                    const connectionDegree = (Number(cdRaw) as 1 | 2 | 3) || 2;
+                    const relationshipStrength = Number(rsRaw) || 3;
+
+                    if (!name) continue; // require name
+                    // email is optional in our schema
+
+                    await addContact({
+                      contact: {
+                        name,
+                        email: email || undefined,
+                        company,
+                        title: title || undefined,
+                        connectionDegree: connectionDegree >= 1 && connectionDegree <= 3 ? connectionDegree : 2,
+                        relationshipStrength: relationshipStrength >= 1 && relationshipStrength <= 5 ? relationshipStrength : 3,
+                      }
+                    });
+                    imported++;
+                  }
+                  toast(`Imported ${imported} contact${imported === 1 ? "" : "s"}`);
+                  setImportOpen(false);
+                  setCsvText("");
+                } catch (e: any) {
+                  toast(e?.message || "Failed to import CSV");
+                } finally {
+                  setIsImporting(false);
+                }
+              }}
+            >
+              {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+              Import
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
