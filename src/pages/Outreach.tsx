@@ -25,6 +25,8 @@ export default function OutreachPage() {
   const scheduleFollowUp = useMutation(api.outreach.scheduleFollowUp);
   const seed = useMutation(api.outreach.seedTestData);
   const sendEmail = useAction(api.outreachEmail.sendEmail); // add this line to get the action
+  const generateContacts = useAction(api.outreach.generateContactsForCompany);
+  const [finding, setFinding] = useState(false);
 
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [addTargetOpen, setAddTargetOpen] = useState(false);
@@ -134,7 +136,31 @@ export default function OutreachPage() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-xs text-muted-foreground">Total targets: {targets.length}</div>
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">Total targets: {targets.length}</div>
+              {selectedCompany && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={finding}
+                  onClick={async () => {
+                    try {
+                      setFinding(true);
+                      const roleHint = selectedCompanyObj?.targetRole || undefined;
+                      const res = await generateContacts({ companyName: selectedCompany, titleHint: roleHint, count: 5 } as any);
+                      toast(`Added ${res?.inserted ?? 0} contacts for ${selectedCompany}`);
+                    } catch (e: any) {
+                      toast(e?.message || "Failed to find contacts. Check OpenRouter in Integrations.");
+                    } finally {
+                      setFinding(false);
+                    }
+                  }}
+                >
+                  {finding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
+                  Find Contacts
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 

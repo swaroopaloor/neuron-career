@@ -1,6 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUser } from "./users";
+import { internalMutation } from "./_generated/server";
+import { action } from "./_generated/server";
+import { api } from "@/convex/_generated/api";
 
 // Shared validators
 const contactValidator = v.object({
@@ -168,7 +171,7 @@ export const createOutreachSequence = mutation({
       `${intro}
 
 ${contextLine}
-I’ve been working on outcomes like:
+I've been working on outcomes like:
 • [Add 1-2 quantified wins relevant to the team]
 • [Add 1-2 relevant tools/stack highlights]
 
@@ -305,5 +308,85 @@ export const seedTestData = mutation({
     await ctx.db.insert("targetCompanies", { userId: user._id, companyName: "Acme Corp", targetRole: "Senior Frontend Engineer", priority: "high", createdAt: now });
 
     return "seeded";
+  },
+});
+
+export const insertGeneratedContacts = internalMutation({
+  args: {
+    companyName: v.string(),
+    contacts: v.array(
+      v.object({
+        name: v.string(),
+        email: v.optional(v.string()),
+        title: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    // Build a set of emails for fast lookup
+    const emails = Array.from(
+      new Set(
+        args.contacts
+          .map((c) => c.email?.toLowerCase().trim())
+          .filter((e): e is string => !!e),
+      ),
+    );
+
+    // Fetch existing contacts by email for dedupe (only if we have emails)
+    const existingByEmail = new Map<string, any>();
+    if (emails.length > 0) {
+      // Query per email via index (Convex requires index field order)
+      for (const email of emails) {
+        const existing = await ctx.db
+          .query("contacts")
+          .withIndex("by_user_and_email", (q) => q.eq("userId", user._id).eq("email", email))
+          .take(1);
+        if (existing.length > 0) {
+          existingByEmail.set(email, existing[0]);
+        }
+      }
+    }
+
+    let inserted = 0;
+    const now = Date.now();
+
+    for (const c of args.contacts) {
+      const emailKey = c.email?.toLowerCase().trim();
+      if (emailKey && existingByEmail.has(emailKey)) {
+        // Already have this email—skip
+        continue;
+      }
+      await ctx.db.insert("contacts", {
+        userId: user._id,
+        name: c.name,
+        email: c.email,
+        company: args.companyName,
+        title: c.title,
+        connectionDegree: 2, // reasonable default for generated leads
+        relationshipStrength: 3, // neutral default
+        createdAt: now,
+      });
+      inserted++;
+    }
+
+    return { inserted };
+  },
+});
+
+export const generateContactsForCompany = action({
+  args: {
+    companyName: v.string(),
+    titleHint: v.optional(v.string()),
+    count: v.optional(v.number()),
+  },
+  handler: async (ctx, args): Promise<{ inserted: number }> => {
+    const result = await ctx.runAction(
+      api.outreachAuto.generateContactsForCompany,
+      args
+    ) as { inserted: number };
+    return result;
   },
 });

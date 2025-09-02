@@ -171,7 +171,9 @@ const schema = defineSchema(
       createdAt: v.number(),
     })
       .index("by_user", ["userId"])
-      .index("by_user_and_company", ["userId", "company"]),
+      .index("by_user_and_company", ["userId", "company"])
+      // ADD: Dedupe by email for generated contacts
+      .index("by_user_and_email", ["userId", "email"]),
 
     // Outreach Engine: Target Companies
     targetCompanies: defineTable({
