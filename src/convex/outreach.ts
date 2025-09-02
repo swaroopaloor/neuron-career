@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUser } from "@/convex/users";
+import { getCurrentUser } from "./users";
 
 // Shared validators
 const contactValidator = v.object({
