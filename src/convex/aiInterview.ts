@@ -5,51 +5,12 @@ import { v } from "convex/values";
 import Groq from "groq-sdk";
 
 async function callLLM(prompt: string, temperature = 0.4) {
-  // Try OpenRouter first (if configured)
-  const openrouterKey = process.env.OPENROUTER_API_KEY;
-  if (openrouterKey) {
-    try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openrouterKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
-          temperature,
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are an expert interview coach. Be concise, practical, and specific. Avoid fluff.",
-            },
-            { role: "user", content: prompt },
-          ],
-        }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const content: string = json?.choices?.[0]?.message?.content ?? "";
-        if (content.trim()) return content.trim();
-      } else {
-        const text = await res.text().catch(() => "");
-        // fall through to Groq if OpenRouter fails
-        console.warn(`OpenRouter error: ${res.status} ${text}`);
-      }
-    } catch (e) {
-      console.warn("OpenRouter request failed, falling back to Groq:", e);
-    }
+  // Groq-only implementation
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error("AI not configured. Please add GROQ_API_KEY in Integrations.");
   }
-
-  // Fallback: Groq
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) {
-    throw new Error(
-      "AI not configured. Please set OPENROUTER_API_KEY or GROQ_API_KEY in Integrations."
-    );
-  }
-  const groq = new Groq({ apiKey: groqKey });
+  const groq = new Groq({ apiKey });
   const completion = await groq.chat.completions.create({
     model: "llama-3.1-8b-instant",
     temperature,
