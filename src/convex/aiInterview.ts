@@ -36,15 +36,17 @@ export const generateQuestions = action({
   args: {
     jd: v.string(),
     count: v.optional(v.number()),
+    interviewType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const count = Math.min(Math.max(args.count ?? 50, 5), 80);
+    const typeLine = args.interviewType ? `Interview Type: ${args.interviewType}\n` : "";
     const prompt = `
-Given the following job description, generate ${count} highly relevant mock interview questions. 
-Mix behavioral, situational, technical, and role-specific strategy questions. 
+Given the following job description, generate ${count} highly relevant mock interview questions.
+Mix behavioral, situational, technical, and role-specific strategy questions, but bias toward the selected interview type.
 Number them 1..${count}. Only output the list, one per line, no extra commentary.
 
-Job Description:
+${typeLine}Job Description:
 ${args.jd}
 `;
     const raw = await callLLM(prompt, 0.5);
@@ -87,10 +89,11 @@ export const nextFollowUp = action({
     previousQuestion: v.string(),
     userAnswer: v.string(),
     jd: v.optional(v.string()),
+    interviewType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const prompt = `
-You are conducting a mock interview based on this job description: ${args.jd ?? "N/A"}.
+You are conducting a mock interview${args.interviewType ? ` (${args.interviewType} round)` : ""} based on this job description: ${args.jd ?? "N/A"}.
 Given the last question and the candidate's answer, ask ONE smart follow-up question that digs deeper into impact, decision-making, tradeoffs, or metrics. 
 Keep it under 25 words. Only output the question.
 
@@ -108,6 +111,7 @@ export const suggestAnswer = action({
     question: v.string(),
     jd: v.optional(v.string()),
     resumeFileId: v.optional(v.id("_storage")),
+    interviewType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const apiKey = process.env.GROQ_API_KEY;
@@ -135,6 +139,7 @@ Constraints:
 - Include realistic metrics where suitable
 - Align to the job description
 - If resume content is provided, tailor phrasing to that background
+${args.interviewType ? `- Match tone/content for a ${args.interviewType} round` : ""}
 
 Question: ${args.question}
 
@@ -147,6 +152,37 @@ ${resumeText ? resumeText.slice(0, 4000) : "N/A"}
 Return only the answer text, no preface.`;
 
     const out = await callLLM(prompt, 0.35);
+    return out;
+  },
+});
+
+export const sessionFeedback = action({
+  args: {
+    transcript: v.string(),
+    jd: v.optional(v.string()),
+    interviewType: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const prompt = `
+You are an experienced interviewer and coach. Analyze the candidate's full interview transcript and provide concise, actionable feedback tailored to the role and interview type.
+
+Context:
+- Interview Type: ${args.interviewType ?? "General"}
+- Job Description: ${args.jd ?? "N/A"}
+
+Transcript:
+${args.transcript.slice(0, 8000)}
+
+Output format:
+- Overall Performance (2-3 sentences)
+- Strengths (bullet points)
+- Areas to Improve (bullet points)
+- Topics to Study (bullet points, concrete and role-aligned)
+- Suggested Practice Plan (3-5 bullets, concrete next steps)
+
+Keep it compact, specific, and professional. No preamble; start directly.
+`;
+    const out = await callLLM(prompt, 0.4);
     return out;
   },
 });

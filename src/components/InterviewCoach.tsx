@@ -448,8 +448,8 @@ function VoiceMirror({
   const [polished, setPolished] = useState<string>("");
   const [polishing, setPolishing] = useState(false);
 
-  // NEW: session controls
-  const [durationMin, setDurationMin] = useState<number>(10);
+  // NEW: session controls (updated durations + interview type)
+  const [durationMin, setDurationMin] = useState<number>(30);
   const [sessionActive, setSessionActive] = useState<boolean>(false);
   const [remainingSec, setRemainingSec] = useState<number>(0);
   const [targetQuestions, setTargetQuestions] = useState<number>(0);
@@ -457,13 +457,15 @@ function VoiceMirror({
   const [metricsLog, setMetricsLog] = useState<Array<{ wpm: number; fillerPerMin: number; confidence: number }>>([]);
   const [sessionTranscript, setSessionTranscript] = useState<string>("");
   const [showSummary, setShowSummary] = useState<boolean>(false);
+  const [interviewType, setInterviewType] = useState<"Intro" | "Technical" | "HR">("Intro");
+  const [feedback, setFeedback] = useState<string>("");
+  const [feedbackLoading, setFeedbackLoading] = useState<boolean>(false);
 
-  // derive questions target from duration
+  // derive questions target from duration (approx realistic pacing)
   const deriveTargetQuestions = (mins: number) => {
-    if (mins <= 5) return 3;
-    if (mins <= 10) return 6;
-    if (mins <= 20) return 12;
-    return Math.max(12, Math.round(mins * 0.6));
+    if (mins <= 30) return 10;
+    if (mins <= 60) return 18;
+    return 25;
   };
 
   // When sharedQuestions/index change, align current question for continuity (only when not in active session)
@@ -485,7 +487,8 @@ function VoiceMirror({
   const followUp = useAction(api.aiInterview.nextFollowUp);
   const polish = useAction(api.aiInterview.polishAnswer);
   const suggest = useAction(api.aiInterview.suggestAnswer);
-  const genQs = useAction(api.aiInterview.generateQuestions); // NEW: to seed live session if needed
+  const genQs = useAction(api.aiInterview.generateQuestions);
+  const sessionFeedback = useAction(api.aiInterview.sessionFeedback);
 
   // timer tick
   useEffect(() => {
@@ -511,16 +514,11 @@ function VoiceMirror({
     }
     const target = deriveTargetQuestions(durationMin);
     setTargetQuestions(target);
-    // Seed a relevant question set if none present
     try {
-      if (!sharedQuestions || sharedQuestions.length < target) {
-        const out = await genQs({ jd: jobDescription, count: target });
-        if (out && out.length) {
-          setQuestion(out[0]);
-          onJump && onJump(0);
-        }
-      } else {
-        setQuestion(sharedQuestions[0]);
+      // Generate a tailored set for this live session using interviewType
+      const out = await genQs({ jd: jobDescription, count: target, interviewType });
+      if (out && out.length) {
+        setQuestion(out[0]);
         onJump && onJump(0);
       }
     } catch {
@@ -531,15 +529,16 @@ function VoiceMirror({
     setMetricsLog([]);
     setSessionTranscript("");
     setShowSummary(false);
+    setFeedback("");
+    setFeedbackLoading(false);
     // start timer
     setRemainingSec(durationMin * 60);
     setSessionActive(true);
     toast.success("Live interview started");
   };
 
-  // End session and compute summary
+  // End session and compute summary + AI feedback
   const endSession = () => {
-    // log last answer snippet if present
     if (transcript.trim().length) {
       setSessionTranscript((prev) => `${prev} ${transcript}`.trim());
       setMetricsLog((prev) => [...prev, metrics]);
@@ -548,6 +547,26 @@ function VoiceMirror({
     setShowSummary(true);
     if (listening) {
       try { stop(); } catch {}
+    }
+    // Kick off feedback generation
+    void generateFeedback();
+  };
+
+  const generateFeedback = async () => {
+    if (!sessionTranscript.trim().length && !transcript.trim().length) return;
+    try {
+      setFeedbackLoading(true);
+      const combined = `${sessionTranscript} ${transcript}`.trim();
+      const out = await sessionFeedback({
+        transcript: combined.slice(0, 12000),
+        jd: jobDescription,
+        interviewType,
+      });
+      setFeedback(out || "");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate feedback");
+    } finally {
+      setFeedbackLoading(false);
     }
   };
 
@@ -568,19 +587,18 @@ function VoiceMirror({
       return;
     }
 
-    // log metrics for the just-answered question
     if (transcript.trim().length) {
       setSessionTranscript((prev) => `${prev} ${transcript}`.trim());
       setMetricsLog((prev) => [...prev, metrics]);
     }
     setQuestionsAsked((n) => n + 1);
 
-    // advance or end if reached target
     if (questionsAsked + 1 >= targetQuestions) {
       endSession();
       return;
     }
 
+    // Ask AI for a follow-up or new tailored question based on type and context
     if (sharedQuestions && sharedQuestions.length) {
       const rand = Math.floor(Math.random() * sharedQuestions.length);
       setQuestion(sharedQuestions[rand]);
@@ -599,9 +617,13 @@ function VoiceMirror({
       return;
     }
     try {
-      const q = await followUp({ previousQuestion: question, userAnswer: answer, jd: jobDescription });
+      const q = await followUp({
+        previousQuestion: question,
+        userAnswer: answer,
+        jd: jobDescription,
+        interviewType,
+      });
       setQuestion(q || "Can you go deeper on the impact and tradeoffs?");
-      // reset state for the next answer; do NOT count toward target unless new question
       setTranscript("");
       setStartedAt(null);
       setFinalAnswer("");
@@ -632,7 +654,12 @@ function VoiceMirror({
 
   const handleSuggest = async () => {
     try {
-      const out = await suggest({ question, jd: jobDescription, resumeFileId: resumeFileId as any });
+      const out = await suggest({
+        question,
+        jd: jobDescription,
+        resumeFileId: resumeFileId as any,
+        interviewType,
+      });
       setFinalAnswer(out);
       toast.success("Suggested answer generated");
     } catch (e: any) {
@@ -647,7 +674,6 @@ function VoiceMirror({
     setPolished("");
   };
 
-  // Summary calculations
   const summary = useMemo(() => {
     if (!showSummary || metricsLog.length === 0) return null;
     const avg = (arr: number[]) => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
@@ -668,7 +694,7 @@ function VoiceMirror({
       <CardHeader>
         <CardTitle className="text-base">Live Interview Practice</CardTitle>
         <CardDescription className="text-sm">
-          Timed, realistic interview. Choose a duration; questions and follow-ups adapt to your JD and resume.
+          Timed, realistic interview. Choose a duration and round type; questions and follow-ups adapt to your JD and resume.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -680,27 +706,47 @@ function VoiceMirror({
               <span>Duration:</span>
               <div className="flex rounded-md border overflow-hidden">
                 <button
-                  className={`px-3 py-1.5 text-xs ${durationMin === 5 ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setDurationMin(5)}
+                  className={`px-3 py-1.5 text-xs ${durationMin === 30 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(30)}
                 >
-                  5m
+                  30m
                 </button>
                 <button
-                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 10 ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setDurationMin(10)}
+                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 60 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(60)}
                 >
-                  10m
+                  60m
                 </button>
                 <button
-                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 20 ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setDurationMin(20)}
+                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 90 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(90)}
                 >
-                  20m
+                  90m
                 </button>
               </div>
-              <span className="text-xs text-muted-foreground ml-2">
-                Target ~{deriveTargetQuestions(durationMin)} questions
-              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span>Round:</span>
+              <div className="flex rounded-md border overflow-hidden">
+                <button
+                  className={`px-3 py-1.5 text-xs ${interviewType === "Intro" ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setInterviewType("Intro")}
+                >
+                  Intro
+                </button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${interviewType === "Technical" ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setInterviewType("Technical")}
+                >
+                  Technical
+                </button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${interviewType === "HR" ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setInterviewType("HR")}
+                >
+                  HR
+                </button>
+              </div>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <Button size="sm" onClick={startSession} disabled={!jobDescription}>
@@ -722,6 +768,10 @@ function VoiceMirror({
               <div>
                 Questions: <span className="font-semibold">{questionsAsked}/{targetQuestions}</span>
               </div>
+              <div className="text-muted-foreground">•</div>
+              <div>
+                Round: <span className="font-semibold">{interviewType}</span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={endSession}>End Session</Button>
@@ -730,17 +780,35 @@ function VoiceMirror({
         )}
 
         {/* Summary */}
-        {showSummary && summary && (
+        {showSummary && (
           <div className="rounded-lg border p-3 space-y-3">
             <div className="text-sm font-semibold">Session Summary</div>
-            <div className="grid grid-cols-4 gap-2">
-              <Stat label="Avg WPM" value={summary.avgWpm} accent="text-primary" />
-              <Stat label="Avg Fillers/min" value={summary.avgFpm} />
-              <Stat label="Avg Confidence" value={`${summary.avgConf}%`} accent="text-green-600 dark:text-green-500" />
-              <Stat label="Questions" value={summary.totalQuestions} />
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Duration: ~{summary.durationMin} min • Keep practicing to improve pacing and reduce fillers.
+            {summary && (
+              <>
+                <div className="grid grid-cols-4 gap-2">
+                  <Stat label="Avg WPM" value={summary.avgWpm} accent="text-primary" />
+                  <Stat label="Avg Fillers/min" value={summary.avgFpm} />
+                  <Stat label="Avg Confidence" value={`${summary.avgConf}%`} accent="text-green-600 dark:text-green-500" />
+                  <Stat label="Questions" value={summary.totalQuestions} />
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Duration: ~{summary.durationMin} min • Round: {interviewType}
+                </div>
+              </>
+            )}
+            <div className="space-y-2">
+              <div className="text-sm font-semibold">AI Feedback</div>
+              {feedbackLoading ? (
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating feedback...
+                </div>
+              ) : feedback ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none text-sm whitespace-pre-wrap">
+                  {feedback}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">No feedback available.</div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={() => { setShowSummary(false); }}>Close Summary</Button>
