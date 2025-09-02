@@ -108,11 +108,17 @@ function SectionHeader({ title, description }: { title: string; description?: st
   );
 }
 
-export default function InterviewCoach() {
+export default function InterviewCoach({ jobDescription }: { jobDescription?: string }) {
   const [tab, setTab] = useState<"voice" | "ama">("voice");
 
   return (
     <div className="space-y-4">
+      {jobDescription && (
+        <div className="rounded-md border p-3 text-xs text-muted-foreground">
+          Using selected analysis job description for AMA and polishing.
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <Button
           size="sm"
@@ -132,12 +138,12 @@ export default function InterviewCoach() {
         </Button>
       </div>
 
-      {tab === "voice" ? <VoiceMirror /> : <AskMeAnything />}
+      {tab === "voice" ? <VoiceMirror jobDescription={jobDescription} /> : <AskMeAnything initialJd={jobDescription} jdLocked={!!jobDescription} />}
     </div>
   );
 }
 
-function VoiceMirror() {
+function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
   const [question, setQuestion] = useState<string>("Tell me about yourself.");
   const [transcript, setTranscript] = useState<string>("");
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -163,7 +169,7 @@ function VoiceMirror() {
     }
     try {
       setPolishing(true);
-      const out = await polish({ question, answer: text });
+      const out = await polish({ question, answer: text, jd: jobDescription });
       setPolished(out);
       toast.success("Polished answer generated");
     } catch (e) {
@@ -263,8 +269,12 @@ function VoiceMirror() {
   );
 }
 
-function AskMeAnything() {
-  const [jd, setJd] = useState<string>("");
+function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?: boolean }) {
+  const [jd, setJd] = useState<string>(initialJd || "");
+  useEffect(() => {
+    // keep in sync if parent changes jobDescription
+    setJd(initialJd || "");
+  }, [initialJd]);
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<string[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(-1);
@@ -364,9 +374,10 @@ function AskMeAnything() {
           onChange={(e) => setJd(e.target.value)}
           placeholder="Paste the job description here..."
           className="min-h-32"
+          disabled={jdLocked}
         />
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={handleGenerate} disabled={loading}>
+          <Button size="sm" onClick={handleGenerate} disabled={loading || (!jd.trim())}>
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Generate 50 Questions
           </Button>
