@@ -9,7 +9,7 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { createBrowserRouter, RouterProvider, Outlet, useLocation } from "react-router";
 import "./index.css";
 import Landing from "./pages/Landing.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -47,29 +47,43 @@ function RouteSyncer() {
   return null;
 }
 
+function RootLayout() {
+  return (
+    <>
+      <RouteSyncer />
+      <GlobalHeader />
+      <CommandPalette />
+      <Outlet />
+    </>
+  );
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <InstrumentationProvider>
       <ConvexAuthProvider client={convex}>
         <ThemeProvider>
-          <BrowserRouter>
-            <RouteSyncer />
-            <GlobalHeader />
-            <CommandPalette />
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/dream-job" element={<DreamJob />} />
-              <Route path="/interview" element={<Interview />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/job-tracker" element={<JobTracker />} />
-              <Route path="/resume-builder" element={<ResumeBuilder />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <RouterProvider
+            router={createBrowserRouter([
+              {
+                path: "/",
+                element: <RootLayout />,
+                children: [
+                  { index: true, element: <Landing /> },
+                  { path: "auth", element: <AuthPage redirectAfterAuth="/dashboard" /> },
+                  { path: "dashboard", element: <Dashboard /> },
+                  { path: "analytics", element: <Analytics /> },
+                  { path: "dream-job", element: <DreamJob /> },
+                  { path: "interview", element: <Interview /> },
+                  { path: "profile", element: <Profile /> },
+                  { path: "job-tracker", element: <JobTracker /> },
+                  { path: "resume-builder", element: <ResumeBuilder /> },
+                  { path: "*", element: <NotFound /> },
+                ],
+              },
+            ])}
+          />
           <Toaster />
         </ThemeProvider>
       </ConvexAuthProvider>
