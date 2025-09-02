@@ -335,10 +335,11 @@ export default function Interview() {
                 </div>
               </CardTitle>
               <CardDescription>
-                Aim for clarity, impact, and confidence. You've got this—one answer at a time.
+                Your next offer is one great answer away. Configure once, then drill with focus—swap between full-screen Q&A and Voice Mirror anytime.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 space-y-3">
+              {/* Compact setup summary moved into hero */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div className="rounded-md border p-3">
                   <div className="font-medium">1) Configure</div>
@@ -353,69 +354,60 @@ export default function Interview() {
                   <div className="text-xs text-muted-foreground">Speak it out, track metrics, and polish.</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
-        {/* Main layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Selection + Tips */}
-          <div className="space-y-6 lg:col-span-1">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle className="text-lg">Setup</CardTitle>
-                <CardDescription>Resume and JD configured in start dialog.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="rounded-md border p-3 text-xs">
-                  Resume: {sessionResumeName || user?.savedResumeName || (resumeChoice === "new" && file?.name) || "Not set"}
-                </div>
-                <div className="rounded-md border p-3 text-xs line-clamp-4">
-                  JD: {effectiveJd ? effectiveJd : "Not set"}
+              <div className="flex flex-col md:flex-row md:items-center gap-3">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-md border p-2 text-xs">
+                    <span className="font-medium mr-1">Resume:</span>
+                    {sessionResumeName || user?.savedResumeName || (resumeChoice === "new" && file?.name) || "Not set"}
+                  </div>
+                  <div className="rounded-md border p-2 text-xs line-clamp-2">
+                    <span className="font-medium mr-1">JD:</span>
+                    {effectiveJd ? effectiveJd : "Not set"}
+                  </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
                   Reconfigure
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-            <Card className="sticky top-[420px]">
-              <CardHeader>
-                <CardTitle className="text-lg">Tips</CardTitle>
-                <CardDescription>Boost your performance quickly</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="rounded-md border p-3">
-                  Speak naturally; aim for 110–150 WPM.
-                </div>
-                <div className="rounded-md border p-3">
-                  Use STAR implicitly and quantify impact.
-                </div>
-                <div className="rounded-md border p-3">
-                  Ask a follow-up to deepen your narrative.
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Main: single full-width tool area (switch inside) */}
+        <motion.div
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Practice</CardTitle>
+              <CardDescription>
+                Toggle between Q&A Drills and Voice Mirror below for a focused, full-width experience.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InterviewCoach
+                jobDescription={effectiveJd || undefined}
+                resumeFileId={sessionResumeFileId || selectedAnalysis?.resumeFileId}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Right: Interactive Coach */}
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-2"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Interview Coach</CardTitle>
-                <CardDescription>
-                  Q&A drills, Voice Mirror, and AMA—tailored to your setup.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <InterviewCoach jobDescription={effectiveJd || undefined} resumeFileId={sessionResumeFileId || selectedAnalysis?.resumeFileId} />
-              </CardContent>
-            </Card>
-          </motion.div>
+        {/* Tips moved below for breathing room */}
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Quick Tips</CardTitle>
+              <CardDescription>Boost your performance quickly</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-md border p-3">Speak naturally; aim for 110–150 WPM.</div>
+              <div className="rounded-md border p-3">Use STAR implicitly and quantify impact.</div>
+              <div className="rounded-md border p-3">Ask a follow-up to deepen your narrative.</div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

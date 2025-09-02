@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Mic, MicOff, Volume2, Sparkles, Loader2, ChevronRight, Clipboard } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type RecognitionType = any;
 
@@ -187,7 +188,7 @@ function SectionHeader({ title, description }: { title: string; description?: st
 }
 
 export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDescription?: string; resumeFileId?: string }) {
-  // Share questions and current index across Voice Mirror and Q&A Drills (side-by-side)
+  // Share questions and current index across Voice Mirror and Q&A Drills
   const [questions, setQuestions] = useState<string[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(-1);
 
@@ -199,17 +200,30 @@ export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDe
         </div>
       )}
 
-      {/* Side-by-side layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+      {/* Switchable layout with Tabs */}
+      <Tabs defaultValue="drills" className="w-full">
+        <div className="flex items-center justify-between mb-3">
+          <TabsList>
+            <TabsTrigger value="drills">Q&A Drills</TabsTrigger>
+            <TabsTrigger value="voice">Voice Mirror</TabsTrigger>
+          </TabsList>
+          {!!questions.length && currentIdx >= 0 && (
+            <Badge variant="secondary" className="text-xs">
+              Q {currentIdx + 1} of {questions.length}
+            </Badge>
+          )}
+        </div>
+
+        <TabsContent value="drills">
           <QADrills
             jobDescription={jobDescription}
             resumeFileId={resumeFileId}
             sharedQuestions={questions}
             setSharedQuestions={setQuestions}
           />
-        </div>
-        <div>
+        </TabsContent>
+
+        <TabsContent value="voice">
           <VoiceMirror
             jobDescription={jobDescription}
             resumeFileId={resumeFileId}
@@ -219,8 +233,8 @@ export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDe
             onNext={() => setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)))}
             onJump={(idx) => setCurrentIdx(idx)}
           />
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
