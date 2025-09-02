@@ -682,7 +682,7 @@ export default function ResumeBuilder() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to save PDF. If on mobile, switch to desktop and try again.");
+      toast.error("Failed to save PDF. Please try again. If the issue persists, reload the page and ensure your browser allows downloads.");
     } finally {
       setIsExporting(false);
     }
