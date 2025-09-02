@@ -150,7 +150,7 @@ export default function OutreachPage() {
                       const res = await generateContacts({ companyName: selectedCompany, titleHint: roleHint, count: 5 } as any);
                       toast(`Added ${res?.inserted ?? 0} contacts for ${selectedCompany}`);
                     } catch (e: any) {
-                      toast(e?.message || "Failed to find contacts. Check OpenRouter in Integrations.");
+                      toast(e?.message || "Failed to find contacts. Check Groq API key in Integrations.");
                     } finally {
                       setFinding(false);
                     }

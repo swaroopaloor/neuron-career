@@ -11,9 +11,9 @@ export const generateContactsForCompany = action({
     count: v.optional(v.number()), // default 5
   },
   handler: async (ctx, args): Promise<{ inserted: number }> => {
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      throw new Error("OpenRouter API key not configured. Set it in Integrations -> OpenRouter.");
+      throw new Error("Groq API key not configured. Set GROQ_API_KEY in Integrations.");
     }
 
     const count = Math.min(Math.max(args.count ?? 5, 3), 10);
@@ -35,14 +35,14 @@ Example:
 Only return valid JSON. No extra commentary.
 `.trim();
 
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openrouter/auto",
+        model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: "Return JSON only. No markdown code fences." },
           { role: "user", content: prompt },
@@ -53,12 +53,12 @@ Only return valid JSON. No extra commentary.
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`OpenRouter request failed: ${res.status} ${text}`);
+      throw new Error(`Groq request failed: ${res.status} ${text}`);
     }
 
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
-    if (!content) throw new Error("No content from OpenRouter.");
+    if (!content) throw new Error("No content from Groq.");
 
     let contacts: Array<{ name: string; title?: string; email?: string }> = [];
     try {
