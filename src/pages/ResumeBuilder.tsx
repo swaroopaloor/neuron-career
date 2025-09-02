@@ -572,14 +572,14 @@ export default function ResumeBuilder() {
   const updateProfile = useMutation(api.users.updateProfile);
   const refineText = useAction(api.aiAnalysis.refineText);
 
-  const openPrintDialogFromPreview = async () => {
+  const openPrintDialogFromPreview = async (): Promise<boolean> => {
     const source = previewRef.current;
     if (!source) {
-      throw new Error("Preview not ready");
+      return false;
     }
     const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (!printWindow) {
-      throw new Error("Failed to open print window. Please allow pop-ups for this site.");
+      return false;
     }
 
     const html = `
@@ -591,16 +591,13 @@ export default function ResumeBuilder() {
     <style>
       @page { size: A4; margin: 12mm; }
       html, body { background: #ffffff; color: #000; height: auto; }
-      /* Reset margins/paddings to avoid unexpected shifts in print */
       * { box-sizing: border-box; }
       body { margin: 0; padding: 0; }
-      /* Ensure the container fits nicely on A4 */
       .print-container {
         width: 210mm;
         min-height: 297mm;
         margin: 0 auto;
       }
-      /* Improve print quality for text */
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     </style>
@@ -610,11 +607,12 @@ export default function ResumeBuilder() {
       ${source.outerHTML}
     </div>
     <script>
-      // Defer print slightly to allow layout to stabilize
       window.addEventListener('load', function () {
         setTimeout(function () {
-          window.focus();
-          window.print();
+          try {
+            window.focus();
+            window.print();
+          } catch (_) {}
         }, 150);
       });
       window.onafterprint = function () {
@@ -625,27 +623,47 @@ export default function ResumeBuilder() {
 </html>
     `.trim();
 
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
+    try {
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      return true;
+    } catch {
+      try {
+        printWindow.close();
+      } catch {}
+      return false;
+    }
   };
 
   const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      // 1) Print-first approach: most robust and browser-native
+      const opened = await openPrintDialogFromPreview();
+      if (opened) {
+        toast.info("Opening print dialog — choose 'Save as PDF'.");
+        setIsExporting(false);
+        return;
+      }
+    } catch {
+      // Ignore and proceed to fallback
+    }
+
+    // 2) Fallback: canvas + jsPDF generation
     const source = previewRef.current;
     if (!source) {
       toast.error("Preview not ready. Try again in a moment.");
+      setIsExporting(false);
       return;
     }
 
-    setIsExporting(true);
     try {
-      // Wait for fonts if available
       const docAny = document as any;
       if (docAny?.fonts?.ready) {
         await docAny.fonts.ready;
       }
 
-      // Clone preview for stable offscreen rendering
       const clone = source.cloneNode(true) as HTMLElement;
       const A4_PX_WIDTH = 794; // ~8.27in * 96dpi
       clone.style.width = `${A4_PX_WIDTH}px`;
@@ -654,7 +672,6 @@ export default function ResumeBuilder() {
       clone.style.top = "0px";
       clone.style.background = "#ffffff";
 
-      // Ensure images are non-tainting
       const imgs = clone.querySelectorAll("img");
       imgs.forEach((img) => {
         try {
@@ -669,7 +686,6 @@ export default function ResumeBuilder() {
       document.body.appendChild(clone);
       await new Promise((r) => requestAnimationFrame(() => r(null)));
 
-      // Primary render attempt
       let canvas: HTMLCanvasElement | null = null;
       let renderError: unknown = null;
       try {
@@ -689,7 +705,6 @@ export default function ResumeBuilder() {
         renderError = e;
       }
 
-      // Fallback render attempt
       if (!canvas) {
         try {
           canvas = await html2canvas(clone, {
@@ -708,14 +723,19 @@ export default function ResumeBuilder() {
           document.body.removeChild(clone);
           console.error("Primary render error:", renderError);
           console.error("Fallback render error:", e2);
+          // Last resort: try print one more time; if fails, bubble error
+          const printOpened = await openPrintDialogFromPreview();
+          if (printOpened) {
+            toast.info("Opening print dialog — choose 'Save as PDF'.");
+            setIsExporting(false);
+            return;
+          }
           throw new Error("Failed to render resume to canvas.");
         }
       }
 
-      // Clean up the offscreen clone
       document.body.removeChild(clone);
 
-      // Prefer toBlob; fallback to toDataURL
       const canvasToDataUrl = async (): Promise<string> => {
         try {
           const blob: Blob | null = await new Promise((resolve) =>
@@ -741,7 +761,6 @@ export default function ResumeBuilder() {
 
       const imgData = await canvasToDataUrl();
 
-      // Create A4 PDF and paginate
       const pdf = new jsPDF("p", "pt", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -766,10 +785,8 @@ export default function ResumeBuilder() {
         .toISOString()
         .slice(0, 10)}.pdf`;
 
-      // Local save
       pdf.save(fileName);
 
-      // Upload to Convex in background
       try {
         const blob = pdf.output("blob");
         const uploadUrl = await generateUploadUrl({});
@@ -793,17 +810,16 @@ export default function ResumeBuilder() {
         toast.success("PDF saved! You can set it as your default resume.");
       } catch (uploadErr) {
         console.error(uploadErr);
-        toast.error("PDF downloaded. Upload failed — please try again later.");
+        toast.error("PDF saved locally. Upload failed — try again later.");
       }
     } catch (err) {
       console.error(err);
-      // New: last-resort print-to-PDF fallback
-      try {
-        await openPrintDialogFromPreview();
-        toast.info("Opening print dialog — select 'Save as PDF' to save your resume.");
-      } catch (e2) {
-        console.error(e2);
-        toast.error("Failed to save or print PDF. Please try again.");
+      // As a final attempt, try the print path
+      const finalTry = await openPrintDialogFromPreview();
+      if (finalTry) {
+        toast.info("Opening print dialog — choose 'Save as PDF'.");
+      } else {
+        toast.error("Couldn't open print or save PDF. Try another browser or disable pop-up blockers.");
       }
     } finally {
       setIsExporting(false);
