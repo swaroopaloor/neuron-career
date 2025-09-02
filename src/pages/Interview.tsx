@@ -6,7 +6,7 @@ import InterviewCoach from "@/components/InterviewCoach";
 import { Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Upload, BookOpen, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Save, Layers } from "lucide-react";
 
 export default function Interview() {
   const { isLoading, isAuthenticated, user } = useAuth();
@@ -33,8 +34,39 @@ export default function Interview() {
   const [sessionResumeFileId, setSessionResumeFileId] = useState<string | undefined>(undefined);
   const [sessionResumeName, setSessionResumeName] = useState<string | undefined>(undefined);
 
-  // Load user's analyses (guarded; avoids throwing when not authenticated)
+  // Track coach state to save
+  const [sessionQs, setSessionQs] = useState<string[]>([]);
+  const [sessionIdx, setSessionIdx] = useState<number>(-1);
+
+  // Load user's analyses (guarded)
   const analyses = useQuery(api.analyses.getUserAnalyses, isAuthenticated ? { limit: 50 } : "skip");
+
+  // Load saved session (if any)
+  const savedSession = useQuery(api.users.getInterviewSession, isAuthenticated ? {} : "skip");
+
+  // Mutations
+  const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
+  const saveInterviewSession = useMutation(api.users.saveInterviewSession);
+  const clearInterviewSession = useMutation(api.users.clearInterviewSession);
+
+  // If a saved session exists, prefill and hide setup
+  useEffect(() => {
+    if (!savedSession) return;
+    try {
+      if (savedSession?.jd && savedSession?.resumeFileId) {
+        setMode("new");
+        setNewJobJd(savedSession.jd);
+        setSessionResumeFileId(savedSession.resumeFileId);
+        setSessionResumeName(savedSession.resumeFileName || "Saved Resume");
+        setSetupOpen(false);
+        // Prefill questions/index into local trackers for passing to InterviewCoach
+        setSessionQs(savedSession.questions || []);
+        setSessionIdx(typeof savedSession.currentIdx === "number" ? savedSession.currentIdx : -1);
+      }
+    } catch {
+      // ignore bad payloads
+    }
+  }, [savedSession]);
 
   const selectedAnalysis = useMemo(() => {
     if (!analyses || !selectedAnalysisId) return null;
@@ -42,9 +74,6 @@ export default function Interview() {
   }, [analyses, selectedAnalysisId]);
 
   const effectiveJd = mode === "existing" ? (selectedAnalysis?.jobDescription || "") : newJobJd;
-
-  // Mutations
-  const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
 
   const handleFileSelect = (selectedFile: File) => {
     if (selectedFile.type !== "application/pdf") {
@@ -112,10 +141,50 @@ export default function Interview() {
       setSessionResumeFileId(resumeId);
       setSessionResumeName(resumeName);
       setSetupOpen(false);
+      // Initialize an empty session so user can save later
+      setSessionQs((prev) => prev || []);
+      setSessionIdx((prev) => (typeof prev === "number" ? prev : -1));
       toast.success("Setup complete. Happy practicing!");
     } catch (e: any) {
       toast.error(e?.message || "Setup failed");
     }
+  };
+
+  // Persist session on demand
+  const handleSaveSession = async () => {
+    try {
+      const resumeId = sessionResumeFileId || selectedAnalysis?.resumeFileId;
+      if (!resumeId || !effectiveJd.trim()) {
+        toast.error("Set resume and job description first");
+        return;
+      }
+      await saveInterviewSession({
+        jd: effectiveJd.trim(),
+        resumeFileId: resumeId as any,
+        resumeFileName: sessionResumeName || selectedAnalysis?.resumeFileName,
+        questions: sessionQs,
+        currentIdx: Math.max(-1, sessionIdx),
+      });
+      toast.success("Session saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save session");
+    }
+  };
+
+  const handlePrepareAnother = async () => {
+    try {
+      await clearInterviewSession({});
+    } catch {
+      // ignore
+    }
+    // Reset local state and reopen setup
+    setSessionQs([]);
+    setSessionIdx(-1);
+    setSelectedAnalysisId(null);
+    setNewJobJd("");
+    setMode("existing");
+    setSetupOpen(true);
+    toast.message("New setup", { description: "Choose resume and JD for another job." as any });
   };
 
   if (isLoading) {
@@ -313,45 +382,42 @@ export default function Interview() {
         </DialogContent>
       </Dialog>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
           <Card className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-primary/20">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between text-2xl">
                 <span className="flex items-center gap-2">
                   <Sparkles className="h-6 w-6 text-primary" />
-                  Interview Studio — Practice with Purpose
+                  Interview Studio — Focus, Practice, Win
                 </span>
-                <div className="hidden sm:flex items-center gap-2 text-xs">
-                  <Badge variant="secondary">Resume-tailored</Badge>
-                  <Badge variant="secondary">50 Q&A</Badge>
-                  <Badge variant="secondary">Voice Practice</Badge>
-                  <Badge variant="secondary">Polish</Badge>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={handleSaveSession}>
+                    <Save className="h-4 w-4 mr-1" /> Save Session
+                  </Button>
+                  <Button size="sm" variant="default" onClick={handlePrepareAnother}>
+                    <Layers className="h-4 w-4 mr-1" /> Prepare Another Job
+                  </Button>
                 </div>
               </CardTitle>
               <CardDescription>
-                Configure once above, then focus. Toggle between full-screen Q&A and Voice Mirror—no spoilers, real stakes, real growth.
+                Pick your resume and JD once, then toggle between Q&A Drills and Voice Mirror. Your progress can be saved and resumed anytime.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
-              {/* Compact setup summary moved into hero */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div className="rounded-md border p-3">
                   <div className="font-medium">1) Configure</div>
-                  <div className="text-xs text-muted-foreground">Pick resume + JD to tailor your session.</div>
+                  <div className="text-xs text-muted-foreground">Resume + JD for tailored practice.</div>
                 </div>
                 <div className="rounded-md border p-3">
                   <div className="font-medium">2) Drill</div>
-                  <div className="text-xs text-muted-foreground">Practice 50 curated questions with AI answers.</div>
+                  <div className="text-xs text-muted-foreground">50 curated Q&A with AI answers.</div>
                 </div>
                 <div className="rounded-md border p-3">
                   <div className="font-medium">3) Voice Mirror</div>
-                  <div className="text-xs text-muted-foreground">Speak it out, track metrics, and polish.</div>
+                  <div className="text-xs text-muted-foreground">Speak it, track metrics, polish.</div>
                 </div>
               </div>
 
@@ -366,36 +432,42 @@ export default function Interview() {
                     {effectiveJd ? effectiveJd : "Not set"}
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
-                  Reconfigure
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
+                    Reconfigure
+                  </Button>
+                  <Button size="sm" className="sm:hidden" onClick={handleSaveSession}>
+                    <Save className="h-4 w-4 mr-1" /> Save
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Main: single full-width tool area (switch inside) */}
-        <motion.div
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
+        {/* Main Practice Area brought closer to top */}
+        <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Practice</CardTitle>
-              <CardDescription>
-                Toggle between Q&A Drills and Voice Mirror below for a focused, full-width experience.
-              </CardDescription>
+              <CardDescription>Toggle between Q&A Drills and Voice Mirror below. Full-width, focused.</CardDescription>
             </CardHeader>
             <CardContent>
               <InterviewCoach
                 jobDescription={effectiveJd || undefined}
                 resumeFileId={sessionResumeFileId || selectedAnalysis?.resumeFileId}
+                initialQuestions={sessionQs}
+                initialIndex={sessionIdx}
+                onSessionUpdate={(qs, idx) => {
+                  setSessionQs(qs);
+                  setSessionIdx(idx);
+                }}
               />
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Tips moved below for breathing room */}
+        {/* Tips */}
         <div className="mt-6">
           <Card>
             <CardHeader>

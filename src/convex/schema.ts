@@ -48,6 +48,15 @@ const schema = defineSchema(
       savedResumeName: v.optional(v.string()), // name of saved resume
       theme: v.optional(v.union(v.literal("light"), v.literal("dark"))), // user theme preference
       dreamJobAnalysisId: v.optional(v.id("analyses")), // reference to dream job analysis
+      // ADD: Persist active interview session so users can resume later
+      currentInterviewSession: v.optional(v.object({
+        jd: v.string(),
+        resumeFileId: v.id("_storage"),
+        resumeFileName: v.optional(v.string()),
+        questions: v.array(v.string()),
+        currentIdx: v.number(),
+        updatedAt: v.number(),
+      })),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // Resume builder table

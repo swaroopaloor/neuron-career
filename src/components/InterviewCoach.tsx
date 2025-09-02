@@ -187,10 +187,36 @@ function SectionHeader({ title, description }: { title: string; description?: st
   );
 }
 
-export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDescription?: string; resumeFileId?: string }) {
+export default function InterviewCoach({
+  jobDescription,
+  resumeFileId,
+  initialQuestions,
+  initialIndex,
+  onSessionUpdate,
+}: {
+  jobDescription?: string;
+  resumeFileId?: string;
+  initialQuestions?: string[]; // prefill from saved session
+  initialIndex?: number;       // prefill from saved session
+  onSessionUpdate?: (qs: string[], idx: number) => void; // notify parent to persist
+}) {
   // Share questions and current index across Voice Mirror and Q&A Drills
   const [questions, setQuestions] = useState<string[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(-1);
+
+  // Initialize from saved session (once)
+  useEffect(() => {
+    if (initialQuestions && initialQuestions.length && questions.length === 0) {
+      setQuestions(initialQuestions);
+      setCurrentIdx(typeof initialIndex === "number" ? Math.max(0, Math.min(initialIndex, initialQuestions.length - 1)) : 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuestions, initialIndex]);
+
+  // Report changes upward for persistence
+  useEffect(() => {
+    if (onSessionUpdate) onSessionUpdate(questions, currentIdx);
+  }, [questions, currentIdx, onSessionUpdate]);
 
   return (
     <div className="space-y-4">

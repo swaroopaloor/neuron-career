@@ -33,6 +33,53 @@ export const getCurrentUser = async (ctx: QueryCtx) => {
   return await ctx.db.get(userId);
 };
 
+// Save or update the current interview session for the signed-in user
+export const saveInterviewSession = mutation({
+  args: {
+    jd: v.string(),
+    resumeFileId: v.id("_storage"),
+    resumeFileName: v.optional(v.string()),
+    questions: v.array(v.string()),
+    currentIdx: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("User not authenticated");
+    await ctx.db.patch(user._id, {
+      currentInterviewSession: {
+        jd: args.jd,
+        resumeFileId: args.resumeFileId,
+        resumeFileName: args.resumeFileName,
+        questions: args.questions,
+        currentIdx: args.currentIdx,
+        updatedAt: Date.now(),
+      },
+    });
+    return true;
+  },
+});
+
+// Load the saved interview session for the signed-in user (if any)
+export const getInterviewSession = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+    return user.currentInterviewSession ?? null;
+  },
+});
+
+// Clear any saved interview session
+export const clearInterviewSession = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("User not authenticated");
+    await ctx.db.patch(user._id, { currentInterviewSession: undefined });
+    return true;
+  },
+});
+
 // Update user profile
 export const updateProfile = mutation({
   args: {
