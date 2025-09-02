@@ -44,55 +44,124 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
   const [supported, setSupported] = useState<boolean>(false);
   const [listening, setListening] = useState<boolean>(false);
   const recognitionRef = useRef<any>(null);
+  const SpeechRecognitionRef = useRef<any>(null);
+  const restartTimeout = useRef<number | null>(null);
 
   useEffect(() => {
+    // Detect support on mount but don't construct the instance yet (iOS Safari quirk).
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
-      try {
-        setSupported(true);
-        const rec = new SpeechRecognition() as RecognitionType;
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.lang = "en-US";
-        rec.onresult = (e: any) => {
-          let interim = "";
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            interim += e.results[i][0].transcript;
-          }
-          onResult(interim);
-        };
-        rec.onerror = () => {
-          // Gracefully disable voice mode and fall back to typing
-          setListening(false);
-          setSupported(false);
-        };
-        rec.onend = () => {
-          setListening(false);
-        };
-        recognitionRef.current = rec;
-      } catch {
-        // If instantiation fails, mark as unsupported
-        setSupported(false);
-      }
+      SpeechRecognitionRef.current = SpeechRecognition;
+      setSupported(true);
+    } else {
+      setSupported(false);
     }
-  }, [onResult]);
+    return () => {
+      if (restartTimeout.current) {
+        window.clearTimeout(restartTimeout.current);
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onresult = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
 
-  const start = () => {
-    if (!supported || !recognitionRef.current) return;
+  const start = async () => {
+    if (!SpeechRecognitionRef.current) {
+      setSupported(false);
+      return;
+    }
+    if (listening) return;
+
+    // Lazily construct a new instance each time start is called to avoid stale handlers on iOS.
     try {
-      recognitionRef.current.start();
+      const rec = new SpeechRecognitionRef.current();
+      recognitionRef.current = rec;
+
+      // Some browsers behave better with continuous false and manual restart.
+      // We'll still collect interim results for live transcript.
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = "en-US";
+
+      rec.onresult = (e: any) => {
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          interim += e.results[i][0].transcript;
+        }
+        onResult(interim);
+      };
+
+      rec.onerror = (ev: any) => {
+        // Common errors: "no-speech", "audio-capture" (no mic), "not-allowed" (permission)
+        // Gracefully fall back to typing if persistent error
+        // But attempt a single auto-restart for transient issues
+        if (listening) {
+          try {
+            rec.stop();
+          } catch {}
+          if (restartTimeout.current) window.clearTimeout(restartTimeout.current);
+          restartTimeout.current = window.setTimeout(() => {
+            if (listening) {
+              start().catch(() => {
+                setListening(false);
+                setSupported(false);
+              });
+            }
+          }, 500);
+        } else {
+          setSupported(false);
+        }
+      };
+
+      rec.onend = () => {
+        // Auto-restart to simulate continuous mode across mobile browsers
+        if (listening) {
+          if (restartTimeout.current) window.clearTimeout(restartTimeout.current);
+          restartTimeout.current = window.setTimeout(() => {
+            if (listening) {
+              start().catch(() => {
+                setListening(false);
+                setSupported(false);
+              });
+            }
+          }, 200);
+        }
+      };
+
+      // Start after setting handlers
+      rec.start();
       setListening(true);
     } catch {
-      // If start fails, disable voice mode
+      // If construction or start fails, disable voice mode
       setListening(false);
       setSupported(false);
     }
   };
+
   const stop = () => {
-    if (!supported || !recognitionRef.current) return;
-    recognitionRef.current.stop();
-    setListening(false);
+    if (!recognitionRef.current) {
+      setListening(false);
+      return;
+    }
+    try {
+      // Stop and prevent auto-restart
+      setListening(false);
+      if (restartTimeout.current) {
+        window.clearTimeout(restartTimeout.current);
+        restartTimeout.current = null;
+      }
+      recognitionRef.current.onend = null;
+      recognitionRef.current.stop();
+    } catch {
+      // ignore
+    }
   };
 
   return { supported, listening, start, stop };
