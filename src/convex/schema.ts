@@ -156,6 +156,55 @@ const schema = defineSchema(
       interviewDate: v.optional(v.number()),
       offerDate: v.optional(v.number()),
     }).index("by_user", ["userId"]),
+
+    // Outreach Engine: Contacts
+    contacts: defineTable({
+      userId: v.id("users"),
+      name: v.string(),
+      email: v.optional(v.string()),
+      company: v.optional(v.string()),
+      title: v.optional(v.string()),
+      connectionDegree: v.union(v.literal(1), v.literal(2), v.literal(3)),
+      relationshipStrength: v.number(), // 1-5
+      lastContactedAt: v.optional(v.number()),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_and_company", ["userId", "company"]),
+
+    // Outreach Engine: Target Companies
+    targetCompanies: defineTable({
+      userId: v.id("users"),
+      companyName: v.string(),
+      targetRole: v.optional(v.string()),
+      priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]),
+
+    // Outreach Engine: Sequences
+    outreachSequences: defineTable({
+      userId: v.id("users"),
+      contactId: v.id("contacts"),
+      companyName: v.string(),
+      targetRole: v.optional(v.string()),
+      channel: v.union(v.literal("email"), v.literal("dm")),
+      messages: v.array(
+        v.object({
+          type: v.union(v.literal("email"), v.literal("dm")),
+          subject: v.optional(v.string()),
+          body: v.string(),
+          sentAt: v.optional(v.number()),
+          status: v.optional(v.union(v.literal("draft"), v.literal("queued"), v.literal("sent"), v.literal("failed"))),
+        })
+      ),
+      status: v.union(v.literal("draft"), v.literal("in_progress"), v.literal("completed"), v.literal("paused")),
+      referralLikelihood: v.number(), // 0-100
+      nextFollowUpAt: v.optional(v.number()),
+      createdAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_and_contact", ["userId", "contactId"]),
   },
   {
     schemaValidation: false,

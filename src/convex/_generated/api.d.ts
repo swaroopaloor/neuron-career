@@ -24,6 +24,8 @@ import type * as auth from "../auth.js";
 import type * as fileUpload from "../fileUpload.js";
 import type * as http from "../http.js";
 import type * as jobApplications from "../jobApplications.js";
+import type * as outreach from "../outreach.js";
+import type * as outreachEmail from "../outreachEmail.js";
 import type * as resumes from "../resumes.js";
 import type * as seedResumeData from "../seedResumeData.js";
 import type * as users from "../users.js";
@@ -48,6 +50,8 @@ declare const fullApi: ApiFromModules<{
   fileUpload: typeof fileUpload;
   http: typeof http;
   jobApplications: typeof jobApplications;
+  outreach: typeof outreach;
+  outreachEmail: typeof outreachEmail;
   resumes: typeof resumes;
   seedResumeData: typeof seedResumeData;
   users: typeof users;
