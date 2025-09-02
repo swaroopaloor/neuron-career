@@ -249,8 +249,8 @@ function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
       const out = await polish({ question, answer: text, jd: jobDescription });
       setPolished(out);
       toast.success("Polished answer generated");
-    } catch (e) {
-      toast.error("Failed to generate polished answer");
+    } catch (e: any) {
+      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to generate polished answer");
     } finally {
       setPolishing(false);
     }
@@ -412,8 +412,8 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
       setAnswer("");
       setPolished("");
       toast.success("Follow-up added");
-    } catch (e) {
-      toast.error("Failed to generate follow-up");
+    } catch (e: any) {
+      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to generate follow-up");
     } finally {
       setLoading(false);
     }
@@ -429,8 +429,8 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
       const out = await polish({ question: currentQuestion, answer, jd });
       setPolished(out);
       toast.success("Polished answer generated");
-    } catch (e) {
-      toast.error("Failed to polish answer");
+    } catch (e: any) {
+      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to polish answer");
     } finally {
       setLoading(false);
     }

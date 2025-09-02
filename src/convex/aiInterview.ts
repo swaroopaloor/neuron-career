@@ -2,38 +2,72 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
+import Groq from "groq-sdk";
 
-async function callOpenRouter(prompt: string, temperature = 0.4) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing OPENROUTER_API_KEY");
+async function callLLM(prompt: string, temperature = 0.4) {
+  // Try OpenRouter first (if configured)
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  if (openrouterKey) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openrouterKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-4o-mini",
+          temperature,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an expert interview coach. Be concise, practical, and specific. Avoid fluff.",
+            },
+            { role: "user", content: prompt },
+          ],
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const content: string = json?.choices?.[0]?.message?.content ?? "";
+        if (content.trim()) return content.trim();
+      } else {
+        const text = await res.text().catch(() => "");
+        // fall through to Groq if OpenRouter fails
+        console.warn(`OpenRouter error: ${res.status} ${text}`);
+      }
+    } catch (e) {
+      console.warn("OpenRouter request failed, falling back to Groq:", e);
+    }
   }
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
-      temperature,
-      messages: [
-        { role: "system", content: "You are an expert interview coach. Be concise, practical, and specific. Avoid fluff." },
-        { role: "user", content: prompt },
-      ],
-    }),
+  // Fallback: Groq
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) {
+    throw new Error(
+      "AI not configured. Please set OPENROUTER_API_KEY or GROQ_API_KEY in Integrations."
+    );
+  }
+  const groq = new Groq({ apiKey: groqKey });
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    temperature,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert interview coach. Be concise, practical, and specific. Avoid fluff.",
+      },
+      { role: "user", content: prompt },
+    ],
+    max_tokens: 800,
   });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`OpenRouter error: ${res.status} ${text}`);
+  const out = completion.choices?.[0]?.message?.content?.trim() ?? "";
+  if (!out) {
+    throw new Error("AI returned an empty response. Please try again.");
   }
-
-  const json = await res.json();
-  const content: string =
-    json?.choices?.[0]?.message?.content ?? "";
-  return content.trim();
+  return out;
 }
 
 export const generateQuestions = action({
@@ -51,7 +85,7 @@ Number them 1..${count}. Only output the list, one per line, no extra commentary
 Job Description:
 ${args.jd}
 `;
-    const raw = await callOpenRouter(prompt, 0.5);
+    const raw = await callLLM(prompt, 0.5);
     const lines = raw
       .split("\n")
       .map((l: string) => l.replace(/^\s*\d+[\).\s-]?\s*/, "").trim())
@@ -81,7 +115,7 @@ Question: ${args.question}
 Candidate's draft answer:
 ${args.answer}
 `;
-    const out = await callOpenRouter(prompt, 0.4);
+    const out = await callLLM(prompt, 0.4);
     return out;
   },
 });
@@ -102,7 +136,7 @@ Previous Question: ${args.previousQuestion}
 Candidate Answer:
 ${args.userAnswer}
 `;
-    const out = await callOpenRouter(prompt, 0.6);
+    const out = await callLLM(prompt, 0.6);
     return out.replace(/^\s*Q[:.\-]?\s*/i, "").trim();
   },
 });
