@@ -38,23 +38,68 @@ export const generateQuestions = action({
     jd: v.string(),
     count: v.optional(v.number()),
     interviewType: v.optional(v.string()),
+    resumeFileId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const count = Math.min(Math.max(args.count ?? 50, 5), 80);
-    const typeLine = args.interviewType ? `Interview Type: ${args.interviewType}\n` : "";
-    const prompt = `
-Given the following job description, generate ${count} highly relevant mock interview questions.
-Mix behavioral, situational, technical, and role-specific strategy questions, but bias toward the selected interview type.
-Number them 1..${count}. Only output the list, one per line, no extra commentary.
 
-${typeLine}Job Description:
-${args.jd}
+    // Pull resume text if provided
+    let resumeText = "";
+    if (args.resumeFileId) {
+      const file = await ctx.storage.get(args.resumeFileId);
+      if (file) {
+        const buf = await file.arrayBuffer();
+        const { text } = await extractText(buf);
+        resumeText = Array.isArray(text) ? text.join("\n") : (text || "");
+      }
+    }
+
+    // Strong guidance per type
+    const type = (args.interviewType || "Balanced").toLowerCase();
+    const typeGuidance =
+      type === "technical"
+        ? `Focus on role-specific technical depth:
+- Systems, algorithms, architecture, troubleshooting relevant to the JD
+- Ask about trade-offs, metrics, constraints, incident handling
+- Prefer scenario-based and past-experience technical probes`
+        : type === "hr"
+        ? `Focus on people & process:
+- Conflict resolution, stakeholder comms, cross-functional collab
+- Values fit, leadership style, motivation, feedback, change management
+- Behavioral STAR prompts grounded in resume highlights`
+        : type === "intro"
+        ? `Focus on storytelling & alignment:
+- Background narrative, impact highlights, strengths, goals, motivation
+- Why this role/company, role fit, high-level problem solving
+- Use candidate's resume to anchor examples`
+        : `Blend behavioral, situational, and technical aligned to the JD.`;
+
+    const prompt = `
+Given the Job Description and Candidate Resume, generate ${count} highly relevant interview questions.
+STRICT: Only output one question per line with no numbering or extra text.
+
+Interview Type: ${args.interviewType ?? "Balanced"}
+Guidance:
+${typeGuidance}
+
+Job Description (trimmed):
+${args.jd.slice(0, 3000)}
+
+Resume (trimmed):
+${resumeText ? resumeText.slice(0, 2500) : "N/A"}
+
+Rules:
+- Be specific to the JD's responsibilities, stack, domain, and seniority.
+- Mirror the interview type's style and depth precisely.
+- Avoid generic prompts; anchor in resume experience and JD requirements.
+- Keep each question concise (under 25 words for follow-ups, under 30 words otherwise).
 `;
-    const raw = await callLLM(prompt, 0.5);
+
+    const raw = await callLLM(prompt, 0.45);
     const lines = raw
       .split("\n")
       .map((l: string) => l.replace(/^\s*\d+[\).\s-]?\s*/, "").trim())
-      .filter((l: string) => l.length > 0);
+      .filter((l: string) => l.length > 0 && !/^q[:.\-\s]/i.test(l));
     return lines.slice(0, count);
   },
 });

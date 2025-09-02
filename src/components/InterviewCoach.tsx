@@ -297,7 +297,8 @@ function QADrills({
     }
     try {
       setLoading(true);
-      const out = await genQs({ jd: jobDescription, count: 50 });
+      // Pass resume for deeper tailoring
+      const out = await genQs({ jd: jobDescription, count: 50, resumeFileId: resumeFileId as any });
       setQuestions(out);
       setIdx(0);
       setAnswers({});
@@ -535,8 +536,8 @@ function VoiceMirror({
     const target = deriveTargetQuestions(durationMin);
     setTargetQuestions(target);
     try {
-      // Generate a tailored set for this live session using interviewType
-      const out = await genQs({ jd: jobDescription, count: target, interviewType });
+      // Generate tailored set using interviewType + resume
+      const out = await genQs({ jd: jobDescription, count: target, interviewType, resumeFileId: resumeFileId as any });
       if (out && out.length) {
         setQuestion(out[0]);
         onJump && onJump(0);
