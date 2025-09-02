@@ -2,7 +2,7 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "@/convex/_generated/api";
+import { internal } from "./_generated/api";
 
 export const generateContactsForCompany = action({
   args: {

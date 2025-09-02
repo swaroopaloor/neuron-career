@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { getCurrentUser } from "./users";
 import { internalMutation } from "./_generated/server";
 import { action } from "./_generated/server";
-import { api } from "@/convex/_generated/api";
+import { api } from "./_generated/api";
 
 // Shared validators
 const contactValidator = v.object({
