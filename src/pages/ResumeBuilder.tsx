@@ -29,6 +29,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useRef } from "react";
 import { Download } from "lucide-react";
 import { AuthRedirect } from "@/components/AuthRedirect";
+import { TemplateLibrary } from "@/components/TemplateLibrary";
 
 type ResumePersonalInfo = {
   name: string;
@@ -940,6 +941,23 @@ export default function ResumeBuilder() {
     }
   };
 
+  const applyTemplate = (template: { content: any }) => {
+    const content = template.content || {};
+    setResumeData((prev) => ({
+      ...prev,
+      ...defaultResumeData,
+      ...content,
+      personalInfo: {
+        ...defaultResumeData.personalInfo,
+        ...(content.personalInfo || {}),
+      },
+      experience: Array.isArray(content.experience) ? content.experience : [],
+      education: Array.isArray(content.education) ? content.education : [],
+      skills: Array.isArray(content.skills) ? content.skills : [],
+    }));
+    toast.success("Template applied!");
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -1012,6 +1030,7 @@ export default function ResumeBuilder() {
             </TabsList>
             
             <TabsContent value="editor" className="space-y-6">
+              <TemplateLibrary onSelectTemplate={applyTemplate} />
               <EditorPanel
                 resumeData={resumeData}
                 handlers={{
@@ -1049,6 +1068,7 @@ export default function ResumeBuilder() {
             transition={{ delay: 0.1 }}
             className="space-y-6"
           >
+            <TemplateLibrary onSelectTemplate={applyTemplate} />
             <EditorPanel
               resumeData={resumeData}
               handlers={{
