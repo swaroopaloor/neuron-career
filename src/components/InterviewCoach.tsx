@@ -187,69 +187,40 @@ function SectionHeader({ title, description }: { title: string; description?: st
 }
 
 export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDescription?: string; resumeFileId?: string }) {
-  // Share questions and current index across Voice Mirror and AMA
+  // Share questions and current index across Voice Mirror and Q&A Drills (side-by-side)
   const [questions, setQuestions] = useState<string[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(-1);
-  const [openItem, setOpenItem] = useState<string | undefined>("voice");
 
   return (
     <div className="space-y-4">
       {jobDescription && (
         <div className="rounded-md border p-3 text-xs text-muted-foreground">
-          Using selected analysis job description for AMA and polishing.
+          Using selected analysis job description for tailoring.
         </div>
       )}
 
-      <Accordion
-        type="single"
-        collapsible
-        value={openItem}
-        onValueChange={(v) => setOpenItem(v || undefined)}
-        className="w-full"
-      >
-        <AccordionItem value="qa" className="border rounded-lg px-3">
-          <AccordionTrigger className="text-base font-semibold py-3">Q&A Drills</AccordionTrigger>
-          <AccordionContent>
-            <QADrills
-              jobDescription={jobDescription}
-              resumeFileId={resumeFileId}
-              sharedQuestions={questions}
-              setSharedQuestions={setQuestions}
-            />
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="voice" className="border rounded-lg px-3">
-          <AccordionTrigger className="text-base font-semibold py-3">Voice Mirror</AccordionTrigger>
-          <AccordionContent>
-            <VoiceMirror
-              jobDescription={jobDescription}
-              resumeFileId={resumeFileId}
-              sharedQuestions={questions}
-              currentIdx={currentIdx}
-              // Use numeric updates to avoid functional setter incompatibility
-              onPrev={() => setCurrentIdx(Math.max(currentIdx - 1, 0))}
-              onNext={() => setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)))}
-              onJump={(idx) => setCurrentIdx(idx)}
-            />
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="ama" className="border rounded-lg px-3">
-          <AccordionTrigger className="text-base font-semibold py-3">Ask Me Anything</AccordionTrigger>
-          <AccordionContent>
-            <AskMeAnything
-              initialJd={jobDescription}
-              jdLocked={!!jobDescription}
-              externalQuestions={questions}
-              setExternalQuestions={setQuestions}
-              externalCurrentIdx={currentIdx}
-              setExternalCurrentIdx={setCurrentIdx}
-              onStartSession={() => { if (currentIdx === -1) setCurrentIdx(0); }}
-            />
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      {/* Side-by-side layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <QADrills
+            jobDescription={jobDescription}
+            resumeFileId={resumeFileId}
+            sharedQuestions={questions}
+            setSharedQuestions={setQuestions}
+          />
+        </div>
+        <div>
+          <VoiceMirror
+            jobDescription={jobDescription}
+            resumeFileId={resumeFileId}
+            sharedQuestions={questions}
+            currentIdx={currentIdx}
+            onPrev={() => setCurrentIdx(Math.max(currentIdx - 1, 0))}
+            onNext={() => setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)))}
+            onJump={(idx) => setCurrentIdx(idx)}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -609,268 +580,6 @@ function VoiceMirror({
           <div className="rounded-lg border p-3">
             <div className="text-sm font-semibold mb-2">Polished Answer</div>
             <p className="text-sm whitespace-pre-wrap">{polished}</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function AskMeAnything({
-  initialJd,
-  jdLocked,
-  externalQuestions,
-  setExternalQuestions,
-  externalCurrentIdx,
-  setExternalCurrentIdx,
-  onStartSession,
-}: {
-  initialJd?: string;
-  jdLocked?: boolean;
-  externalQuestions?: string[];
-  setExternalQuestions?: (qs: string[]) => void;
-  externalCurrentIdx?: number;
-  setExternalCurrentIdx?: (idx: number) => void;
-  onStartSession?: () => void;
-}) {
-  const [jd, setJd] = useState<string>(initialJd || "");
-  useEffect(() => { setJd(initialJd || ""); }, [initialJd]);
-  const [loading, setLoading] = useState(false);
-
-  // Use external or internal questions/index
-  const [localQuestions, setLocalQuestions] = useState<string[]>([]);
-  const [localIdx, setLocalIdx] = useState<number>(-1);
-
-  const questions = externalQuestions ?? localQuestions;
-  const setQuestions = setExternalQuestions ?? setLocalQuestions;
-  const currentIdx = typeof externalCurrentIdx === "number" ? externalCurrentIdx : localIdx;
-  const setCurrentIdx = setExternalCurrentIdx ?? setLocalIdx;
-
-  const [answer, setAnswer] = useState<string>("");
-  const [polished, setPolished] = useState<string>("");
-  const [sessionStarted, setSessionStarted] = useState(false);
-
-  const genQs = useAction(api.aiInterview.generateQuestions);
-  const polish = useAction(api.aiInterview.polishAnswer);
-  const followUp = useAction(api.aiInterview.nextFollowUp);
-
-  const currentQuestion = currentIdx >= 0 && currentIdx < questions.length ? questions[currentIdx] : "";
-
-  const handleGenerate = async () => {
-    if (!jd.trim()) {
-      toast.error("Paste a job description first");
-      return;
-    }
-    try {
-      setLoading(true);
-      const out = await genQs({ jd, count: 50 });
-      setQuestions(out);
-      setCurrentIdx(0);
-      setSessionStarted(true);
-      onStartSession && onStartSession();
-      toast.success("Generated 50 practice questions");
-    } catch (e) {
-      toast.error("Failed to generate questions");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNext = async () => {
-    // Advance to next base question
-    setPolished("");
-    setAnswer("");
-    setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)));
-  };
-
-  const handleFollowUp = async () => {
-    if (!currentQuestion || !answer.trim()) {
-      toast.error("Answer the current question first.");
-      return;
-    }
-    try {
-      setLoading(true);
-      const q = await followUp({
-        previousQuestion: currentQuestion,
-        userAnswer: answer,
-        jd,
-      });
-      const updated = [...questions];
-      updated.splice(currentIdx + 1, 0, q);
-      setQuestions(updated);
-      setCurrentIdx(currentIdx + 1);
-      setAnswer("");
-      setPolished("");
-      toast.success("Follow-up added");
-    } catch (e: any) {
-      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to generate follow-up");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePolish = async () => {
-    if (!currentQuestion || !answer.trim()) {
-      toast.error("Provide your answer first.");
-      return;
-    }
-    try {
-      setLoading(true);
-      const out = await polish({ question: currentQuestion, answer, jd });
-      setPolished(out);
-      toast.success("Polished answer generated");
-    } catch (e: any) {
-      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to polish answer");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Ask Me Anything</CardTitle>
-        <CardDescription className="text-sm">
-          Paste a JD to generate 50 tailored questions. Get smart follow-ups and polished answers.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <SectionHeader title="Job Description" />
-        <Textarea
-          value={jd}
-          onChange={(e) => setJd(e.target.value)}
-          placeholder="Paste the job description here..."
-          className="min-h-32"
-          disabled={jdLocked}
-        />
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={handleGenerate} disabled={loading || (!jd.trim())}>
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            Generate 50 Questions
-          </Button>
-          {sessionStarted && (
-            <Badge variant="outline" className="text-xs">Session active</Badge>
-          )}
-        </div>
-
-        {questions.length > 0 && (
-          <div className="space-y-3">
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Current Question</div>
-              <div className="text-xs text-muted-foreground">
-                {currentIdx + 1} / {questions.length}
-              </div>
-            </div>
-            <motion.div
-              key={currentIdx}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg border p-3 text-sm"
-            >
-              {currentQuestion}
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Badge variant="outline" className="w-fit">Your Answer</Badge>
-                <Textarea
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Type your answer..."
-                  className="min-h-28"
-                />
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={async () => {
-                    if (!currentQuestion || !answer.trim()) { toast.error("Answer the current question first."); return; }
-                    try {
-                      setLoading(true);
-                      const q = await followUp({ previousQuestion: currentQuestion, userAnswer: answer, jd });
-                      const updated = [...questions];
-                      updated.splice(currentIdx + 1, 0, q);
-                      setQuestions(updated);
-                      setCurrentIdx(currentIdx + 1);
-                      setAnswer("");
-                      setPolished("");
-                      toast.success("Follow-up added");
-                    } catch (e: any) {
-                      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to generate follow-up");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }} disabled={loading || !answer.trim()}>
-                    Ask Follow-up
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                  <Button size="sm" onClick={async () => {
-                    if (!currentQuestion || !answer.trim()) { toast.error("Provide your answer first."); return; }
-                    try {
-                      setLoading(true);
-                      const out = await polish({ question: currentQuestion, answer, jd });
-                      setPolished(out);
-                      toast.success("Polished answer generated");
-                    } catch (e: any) {
-                      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to polish answer");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }} disabled={loading || !answer.trim()}>
-                    {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                    Polish Answer
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Badge variant="outline" className="w-fit">Polished</Badge>
-                <div className="rounded-lg border p-3 min-h-28 text-sm whitespace-pre-wrap">
-                  {polished || <span className="text-muted-foreground">Polished answer will appear here.</span>}
-                </div>
-                {polished && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => { navigator.clipboard.writeText(polished); toast.success("Copied"); }}
-                  >
-                    <Clipboard className="h-4 w-4 mr-2" />
-                    Copy
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setCurrentIdx(Math.max(currentIdx - 1, 0))}
-                disabled={currentIdx <= 0}
-              >
-                Prev
-              </Button>
-              <Button size="sm" onClick={() => { setPolished(""); setAnswer(""); setCurrentIdx(Math.min(currentIdx + 1, questions.length - 1)); }} disabled={currentIdx >= questions.length - 1}>
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-
-            <div>
-              <SectionHeader title="All Questions" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto">
-                {questions.map((q, idx) => (
-                  <button
-                    key={`${idx}-${q.slice(0, 12)}`}
-                    onClick={() => { setCurrentIdx(idx); setAnswer(""); setPolished(""); }}
-                    className={`text-left rounded-md border p-2 text-xs hover:bg-secondary transition ${
-                      idx === currentIdx ? "border-primary" : "border-border"
-                    }`}
-                  >
-                    <span className="font-medium mr-1">{idx + 1}.</span>
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </CardContent>

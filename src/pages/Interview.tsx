@@ -322,20 +322,36 @@ export default function Interview() {
         >
           <Card className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-primary/20">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <Sparkles className="h-6 w-6 text-primary" />
-                Interview Studio
+              <CardTitle className="flex items-center justify-between text-2xl">
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                  Interview Studio
+                </span>
+                <div className="hidden sm:flex items-center gap-2 text-xs">
+                  <Badge variant="secondary">Resume-tailored</Badge>
+                  <Badge variant="secondary">50 Q&A</Badge>
+                  <Badge variant="secondary">Voice Practice</Badge>
+                  <Badge variant="secondary">Polish</Badge>
+                </div>
               </CardTitle>
               <CardDescription>
-                Practice smarter with Q&A drills, voice metrics, and polishing—tailored to your resume and JD.
+                Aim for clarity, impact, and confidence. You've got this—one answer at a time.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="flex gap-3 text-xs text-muted-foreground flex-wrap">
-                <Badge variant="secondary">Q&A drills</Badge>
-                <Badge variant="secondary">Real-time metrics</Badge>
-                <Badge variant="secondary">Follow-ups</Badge>
-                <Badge variant="secondary">AI polishing</Badge>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div className="rounded-md border p-3">
+                  <div className="font-medium">1) Configure</div>
+                  <div className="text-xs text-muted-foreground">Pick resume + JD to tailor your session.</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="font-medium">2) Drill</div>
+                  <div className="text-xs text-muted-foreground">Practice 50 curated questions with AI answers.</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="font-medium">3) Voice Mirror</div>
+                  <div className="text-xs text-muted-foreground">Speak it out, track metrics, and polish.</div>
+                </div>
               </div>
             </CardContent>
           </Card>
