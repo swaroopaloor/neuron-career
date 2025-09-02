@@ -45,6 +45,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import InterviewCoach from "@/components/InterviewCoach";
 
 export default function Dashboard() {
   const { isLoading, isAuthenticated, user, signOut } = useAuth();
@@ -56,6 +58,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDreamOpen, setConfirmDreamOpen] = useState(false);
   const [pendingDreamId, setPendingDreamId] = useState<Id<"analyses"> | null>(null);
+  const [interviewOpen, setInterviewOpen] = useState(false);
 
   const analyses = useQuery(api.analyses.getUserAnalyses, { limit: 20 });
   const toggleFavorite = useMutation(api.analyses.toggleFavorite);
@@ -322,7 +325,8 @@ export default function Dashboard() {
                         { icon: FileText, label: "Resume Creator", action: () => navigate("/resume-builder") },
                         { icon: Settings, label: "Profile Settings", action: () => navigate("/profile") },
                         { icon: Star, label: "View Favorites", action: () => setFilter("favorites") },
-                        { icon: BarChart3, label: "Analytics", action: () => navigate("/analytics") }
+                        { icon: BarChart3, label: "Analytics", action: () => navigate("/analytics") },
+                        { icon: Sparkles, label: "Interview", action: () => setInterviewOpen(true) }
                       ].map((item, index) => (
                         <motion.div
                           key={item.label}
@@ -612,6 +616,18 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Drawer open={interviewOpen} onOpenChange={setInterviewOpen}>
+        <DrawerContent className="max-h-[92vh]">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle>Interview</DrawerTitle>
+            <DrawerDescription>Voice Mirror and Ask Me Anything</DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 pb-4 overflow-y-auto">
+            <InterviewCoach />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

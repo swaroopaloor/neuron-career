@@ -16,6 +16,7 @@ import type {
 import type * as aiAnalysis from "../aiAnalysis.js";
 import type * as aiCareerGrowth from "../aiCareerGrowth.js";
 import type * as aiCareerGrowthData from "../aiCareerGrowthData.js";
+import type * as aiInterview from "../aiInterview.js";
 import type * as aiResumeProcessor from "../aiResumeProcessor.js";
 import type * as analyses from "../analyses.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   aiAnalysis: typeof aiAnalysis;
   aiCareerGrowth: typeof aiCareerGrowth;
   aiCareerGrowthData: typeof aiCareerGrowthData;
+  aiInterview: typeof aiInterview;
   aiResumeProcessor: typeof aiResumeProcessor;
   analyses: typeof analyses;
   "auth/emailOtp": typeof auth_emailOtp;
