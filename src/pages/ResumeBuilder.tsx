@@ -579,27 +579,45 @@ export default function ResumeBuilder() {
     }
     setIsExporting(true);
     try {
-      // Render preview to canvas
-      const scale = Math.min(3, (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 2);
-      const canvas = await html2canvas(previewRef.current, {
-        scale,
+      // High-quality canvas with stable dimensions and CORS enabled
+      const element = previewRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2, // crisp output
         backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
       });
       const imgData = canvas.toDataURL("image/png");
 
-      // Create PDF and fit the page
+      // Create A4 PDF and paginate content
       const pdf = new jsPDF("p", "pt", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
-      const finalWidth = canvas.width * ratio;
-      const finalHeight = canvas.height * ratio;
-      const x = (pageWidth - finalWidth) / 2;
-      const y = 0;
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 595.28
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 841.89
 
-      pdf.addImage(imgData, "PNG", x, y, finalWidth, finalHeight, undefined, "FAST");
+      const imgWidth = pageWidth; // fit width
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      const fileName = `${resumeData.personalInfo.name || "Resume"}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        pdf.addPage();
+        // shift image up by the amount already printed to simulate next slice
+        position = heightLeft - imgHeight;
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+        heightLeft -= pageHeight;
+      }
+
+      const fileName = `${resumeData.personalInfo.name || "Resume"}-${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf`;
 
       // Prompt user to download locally
       pdf.save(fileName);
