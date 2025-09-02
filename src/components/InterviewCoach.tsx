@@ -422,7 +422,6 @@ function VoiceMirror({
   const [polished, setPolished] = useState<string>("");
   const [polishing, setPolishing] = useState(false);
 
-  // If shared questions provided, sync current question
   useEffect(() => {
     if (sharedQuestions && typeof currentIdx === "number" && currentIdx >= 0 && currentIdx < sharedQuestions.length) {
       setQuestion(sharedQuestions[currentIdx]);
@@ -437,6 +436,7 @@ function VoiceMirror({
   const { supported, listening, start, stop } = useSpeechRecognition(onResult);
   const metrics = useMemo(() => computeMetrics(transcript, startedAt), [transcript, startedAt]);
 
+  const followUp = useAction(api.aiInterview.nextFollowUp);
   const polish = useAction(api.aiInterview.polishAnswer);
   const suggest = useAction(api.aiInterview.suggestAnswer);
 
@@ -468,6 +468,41 @@ function VoiceMirror({
     }
   };
 
+  const handleFollowUp = async () => {
+    const answer = (finalAnswer || transcript).trim();
+    if (!answer) {
+      toast.error("Answer first (speak or type), then ask for a follow-up.");
+      return;
+    }
+    try {
+      const q = await followUp({ previousQuestion: question, userAnswer: answer, jd: jobDescription });
+      setQuestion(q || "Can you go deeper on the impact and tradeoffs?");
+      // reset state for the next answer
+      setTranscript("");
+      setStartedAt(null);
+      setFinalAnswer("");
+      setPolished("");
+      toast.success("Follow-up loaded");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate follow-up");
+    }
+  };
+
+  const handleNewQuestion = () => {
+    // pick a fresh question if we have a generated set; otherwise keep default
+    if (sharedQuestions && sharedQuestions.length) {
+      const rand = Math.floor(Math.random() * sharedQuestions.length);
+      setQuestion(sharedQuestions[rand]);
+      setTranscript("");
+      setStartedAt(null);
+      setFinalAnswer("");
+      setPolished("");
+      toast.success("New question loaded");
+    } else {
+      toast.message("Tip", { description: "Generate 50 Q&A in Drills to diversify questions." as any });
+    }
+  };
+
   const resetRecording = () => {
     setTranscript("");
     setStartedAt(null);
@@ -480,58 +515,22 @@ function VoiceMirror({
       <CardHeader>
         <CardTitle className="text-base">Voice Mirror</CardTitle>
         <CardDescription className="text-sm">
-          Real-time filler counter, pacing, and confidence. Generate a polished answer.
+          Interview mode: no previews. Speak confidently, then request a smart follow-up.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <SectionHeader title="Question" description={sharedQuestions?.length ? "Using current question from 50 Questions" : undefined} />
+        <SectionHeader title="Question" />
         <div className="flex items-center gap-2">
           <Input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Enter the interview question"
           />
-          {typeof currentIdx === "number" && sharedQuestions && sharedQuestions.length > 0 && (
-            <Badge variant="outline" className="whitespace-nowrap">
-              {currentIdx + 1} / {sharedQuestions.length}
-            </Badge>
-          )}
         </div>
-
-        {sharedQuestions && sharedQuestions.length > 0 && typeof currentIdx === "number" && (
-          <div className="flex items-center justify-between">
-            <Button size="sm" variant="outline" onClick={onPrev} disabled={currentIdx <= 0}>
-              Prev
-            </Button>
-            <div className="text-xs text-muted-foreground">
-              Pick from the generated list below
-            </div>
-            <Button size="sm" onClick={onNext} disabled={currentIdx >= sharedQuestions.length - 1}>
-              Next <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        )}
-
-        {sharedQuestions && sharedQuestions.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-            {sharedQuestions.map((q, idx) => (
-              <button
-                key={`${idx}-${q.slice(0, 12)}`}
-                onClick={() => onJump && onJump(idx)}
-                className={`text-left rounded-md border p-2 text-xs hover:bg-secondary transition ${
-                  typeof currentIdx === "number" && idx === currentIdx ? "border-primary" : "border-border"
-                }`}
-              >
-                <span className="font-medium mr-1">{idx + 1}.</span>
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
 
         <Separator />
         <SectionHeader title="Record or type your answer" description="Use your mic or type. Metrics update in real-time." />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             size="sm"
             onClick={() => (listening ? stop() : start())}
@@ -542,6 +541,13 @@ function VoiceMirror({
           </Button>
           <Button size="sm" variant="outline" onClick={resetRecording}>
             Reset
+          </Button>
+          <div className="mx-2 h-5 w-px bg-border" />
+          <Button size="sm" variant="outline" onClick={handleNewQuestion}>
+            New Question
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleFollowUp}>
+            Follow-up
           </Button>
         </div>
 
@@ -573,7 +579,7 @@ function VoiceMirror({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button size="sm" onClick={handlePolish} disabled={polishing}>
             {polishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Generate Polished Answer

@@ -325,7 +325,7 @@ export default function Interview() {
               <CardTitle className="flex items-center justify-between text-2xl">
                 <span className="flex items-center gap-2">
                   <Sparkles className="h-6 w-6 text-primary" />
-                  Interview Studio
+                  Interview Studio — Practice with Purpose
                 </span>
                 <div className="hidden sm:flex items-center gap-2 text-xs">
                   <Badge variant="secondary">Resume-tailored</Badge>
@@ -335,7 +335,7 @@ export default function Interview() {
                 </div>
               </CardTitle>
               <CardDescription>
-                Your next offer is one great answer away. Configure once, then drill with focus—swap between full-screen Q&A and Voice Mirror anytime.
+                Configure once above, then focus. Toggle between full-screen Q&A and Voice Mirror—no spoilers, real stakes, real growth.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
