@@ -141,3 +141,74 @@ Return JSON like:
     return [];
   },
 });
+
+export const generateOutreachEmail = action({
+  args: {
+    resumeContent: v.string(),
+    targetRole: v.string(),
+    companyName: v.string(),
+    contactFirstName: v.optional(v.string()),
+    channel: v.union(v.literal("email"), v.literal("dm")),
+  },
+  handler: async (ctx, args) => {
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey) {
+      throw new Error("GROQ API key not configured");
+    }
+    const groq = new Groq({ apiKey: groqApiKey });
+
+    const system = `You are a concise professional outreach writer.
+- Use the user's resume highlights to tailor a short, credible message.
+- Avoid generic placeholders and avoid asking the user to "add" bullets.
+- Keep it warm, specific, and respectful. No fluff.
+- If channel is "email", return both subject and body. If "dm", return only body.
+- Body should be 5–8 sentences max. Prefer a single short paragraph + 1 compact bullet block if truly helpful.
+- No markdown code fences.`;
+
+    const user = `Resume:
+${args.resumeContent}
+
+Write a ${
+      args.channel === "email" ? "professional email" : "short DM"
+    } to ${args.contactFirstName || "a contact"} at ${args.companyName} for the role "${args.targetRole}".
+Requirements:
+- Reference 1–2 concrete strengths from the resume (skills, achievements) relevant to ${args.targetRole}.
+- Ask for a quick intro/referral or brief chat (pick one).
+- Keep tone friendly and respectful, no hype.
+- For email: include a crisp subject line.
+- Return JSON only:
+${
+  args.channel === "email"
+    ? `{"subject": "...", "body": "..." }`
+    : `{"body": "..." }`
+}`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+
+    const content = completion.choices?.[0]?.message?.content ?? "";
+    try {
+      const parsed = JSON.parse(content);
+      if (args.channel === "email") {
+        const subject = String(parsed.subject || "").trim();
+        const body = String(parsed.body || "").trim();
+        if (!subject || !body) throw new Error("Model returned empty subject/body");
+        return { subject, body };
+      } else {
+        const body = String(parsed.body || "").trim();
+        if (!body) throw new Error("Model returned empty body");
+        return { body };
+      }
+    } catch {
+      throw new Error("Failed to generate outreach content. Please try again.");
+    }
+  },
+});

@@ -28,6 +28,7 @@ export default function OutreachPage() {
   const getResumeTextFromFile = useAction(api.aiAnalysis.getResumeTextFromFile);
   const suggestTargetRoles = useAction(api.aiResumeProcessor.suggestTargetRoles);
   const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
+  const generateOutreachEmail = useAction(api.aiResumeProcessor.generateOutreachEmail);
   const [finding, setFinding] = useState(false);
 
   const [addContactOpen, setAddContactOpen] = useState(false);
@@ -102,6 +103,8 @@ export default function OutreachPage() {
       const text = await getResumeTextFromFile({ fileId } as any);
       setResumeText(text);
       toast("Saved resume loaded");
+      // Auto-run analysis
+      await analyzeResumeForRoles();
     } catch (e: any) {
       toast(e?.message || "Failed to read saved resume");
     } finally {
@@ -128,6 +131,8 @@ export default function OutreachPage() {
       const text = await getResumeTextFromFile({ fileId: storageId } as any);
       setResumeText(text);
       toast("Resume uploaded and parsed");
+      // Auto-run analysis
+      await analyzeResumeForRoles();
     } catch (e: any) {
       toast(e?.message || "Failed to upload/parse resume");
     } finally {
@@ -214,7 +219,10 @@ export default function OutreachPage() {
           )}
 
           <div className="flex items-center gap-3">
-            <Button onClick={analyzeResumeForRoles} disabled={rolesLoading || (!resumeText.trim() && resumeSource === "paste")}>
+            <Button
+              onClick={analyzeResumeForRoles}
+              disabled={rolesLoading || (resumeSource !== "paste" && !resumeText.trim())}
+            >
               {rolesLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Analyze Resume
             </Button>
@@ -332,48 +340,49 @@ export default function OutreachPage() {
                     <Button
                       size="sm"
                       onClick={async () => {
-                        // Require a role selected from resume analysis
                         if (!selectedRole) {
                           toast("Analyze your resume and select a target role first");
                           return;
                         }
-                        const id = await createSequence({
-                          contactId: s.contact._id,
-                          companyName: selectedCompany,
-                          targetRole: selectedRole,
-                          channel: s.contact.email ? "email" : "dm",
-                        });
-                        toast("Outreach drafted");
-
+                        if (!resumeText.trim()) {
+                          toast("Please load or upload a resume first");
+                          return;
+                        }
                         const channel: "email" | "dm" = s.contact.email ? "email" : "dm";
-                        const subject = channel === "email" ? `[Warm Intro] ${selectedRole} @ ${selectedCompany}` : undefined;
-
-                        const firstName = s.contact.name?.split(" ")[0] || "there";
-                        const messageBody =
-                          channel === "email"
-                            ? `Hi ${firstName},
-
-Noticed you're at ${selectedCompany} — I'm exploring ${selectedRole} opportunities there.
-Recent highlights:
-- Delivered projects with measurable impact in relevant areas
-- Strong experience across tools matching the team's stack
-
-Would you be open to a quick 10-min chat or a referral if it seems like a fit?
-Happy to share a concise, tailored resume.
-
-— you`
-                            : `Hi ${firstName}, I'm exploring ${selectedRole} at ${selectedCompany}. Would appreciate a quick pointer or intro to the right person — can share a tight one-pager. — you`;
-
-                        setComposer({
-                          open: true,
-                          contact: s.contact,
-                          message: {
-                            subject,
-                            body: messageBody,
+                        try {
+                          setSending(true);
+                          // Create sequence first (keeps tracking, no placeholder message content required here)
+                          const id = await createSequence({
+                            contactId: s.contact._id,
+                            companyName: selectedCompany,
+                            targetRole: selectedRole,
                             channel,
-                            sequenceId: id as any,
-                          },
-                        });
+                          });
+                          // Generate outreach content based on resume, role, company
+                          const firstName = s.contact.name?.split(" ")[0] || "there";
+                          const result = await generateOutreachEmail({
+                            resumeContent: resumeText,
+                            targetRole: selectedRole,
+                            companyName: selectedCompany,
+                            contactFirstName: firstName,
+                            channel,
+                          } as any);
+                          setComposer({
+                            open: true,
+                            contact: s.contact,
+                            message: {
+                              subject: channel === "email" ? (result as any).subject : undefined,
+                              body: (result as any).body,
+                              channel,
+                              sequenceId: id as any,
+                            },
+                          });
+                          toast("Draft generated from your resume");
+                        } catch (e: any) {
+                          toast(e?.message || "Failed to generate outreach draft");
+                        } finally {
+                          setSending(false);
+                        }
                       }}
                     >
                       Draft
