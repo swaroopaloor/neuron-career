@@ -231,7 +231,7 @@ export default function InterviewCoach({
         <div className="flex items-center justify-between mb-3">
           <TabsList>
             <TabsTrigger value="drills">Q&A Drills</TabsTrigger>
-            <TabsTrigger value="voice">Voice Mirror</TabsTrigger>
+            <TabsTrigger value="voice">Live Interview</TabsTrigger>
           </TabsList>
           {!!questions.length && currentIdx >= 0 && (
             <Badge variant="secondary" className="text-xs">
@@ -448,11 +448,31 @@ function VoiceMirror({
   const [polished, setPolished] = useState<string>("");
   const [polishing, setPolishing] = useState(false);
 
+  // NEW: session controls
+  const [durationMin, setDurationMin] = useState<number>(10);
+  const [sessionActive, setSessionActive] = useState<boolean>(false);
+  const [remainingSec, setRemainingSec] = useState<number>(0);
+  const [targetQuestions, setTargetQuestions] = useState<number>(0);
+  const [questionsAsked, setQuestionsAsked] = useState<number>(0);
+  const [metricsLog, setMetricsLog] = useState<Array<{ wpm: number; fillerPerMin: number; confidence: number }>>([]);
+  const [sessionTranscript, setSessionTranscript] = useState<string>("");
+  const [showSummary, setShowSummary] = useState<boolean>(false);
+
+  // derive questions target from duration
+  const deriveTargetQuestions = (mins: number) => {
+    if (mins <= 5) return 3;
+    if (mins <= 10) return 6;
+    if (mins <= 20) return 12;
+    return Math.max(12, Math.round(mins * 0.6));
+  };
+
+  // When sharedQuestions/index change, align current question for continuity (only when not in active session)
   useEffect(() => {
+    if (sessionActive) return;
     if (sharedQuestions && typeof currentIdx === "number" && currentIdx >= 0 && currentIdx < sharedQuestions.length) {
       setQuestion(sharedQuestions[currentIdx]);
     }
-  }, [sharedQuestions, currentIdx]);
+  }, [sharedQuestions, currentIdx, sessionActive]);
 
   const onResult = (partial: string) => {
     if (!startedAt) setStartedAt(Date.now());
@@ -465,6 +485,132 @@ function VoiceMirror({
   const followUp = useAction(api.aiInterview.nextFollowUp);
   const polish = useAction(api.aiInterview.polishAnswer);
   const suggest = useAction(api.aiInterview.suggestAnswer);
+  const genQs = useAction(api.aiInterview.generateQuestions); // NEW: to seed live session if needed
+
+  // timer tick
+  useEffect(() => {
+    if (!sessionActive || remainingSec <= 0) return;
+    const id = window.setInterval(() => {
+      setRemainingSec((s) => {
+        if (s <= 1) {
+          window.clearInterval(id);
+          endSession();
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [sessionActive, remainingSec]);
+
+  // Start session
+  const startSession = async () => {
+    if (!jobDescription) {
+      toast.error("Provide or select a job description first in setup.");
+      return;
+    }
+    const target = deriveTargetQuestions(durationMin);
+    setTargetQuestions(target);
+    // Seed a relevant question set if none present
+    try {
+      if (!sharedQuestions || sharedQuestions.length < target) {
+        const out = await genQs({ jd: jobDescription, count: target });
+        if (out && out.length) {
+          setQuestion(out[0]);
+          onJump && onJump(0);
+        }
+      } else {
+        setQuestion(sharedQuestions[0]);
+        onJump && onJump(0);
+      }
+    } catch {
+      // fallback to existing/default question if generation fails
+    }
+    // reset session stats
+    setQuestionsAsked(0);
+    setMetricsLog([]);
+    setSessionTranscript("");
+    setShowSummary(false);
+    // start timer
+    setRemainingSec(durationMin * 60);
+    setSessionActive(true);
+    toast.success("Live interview started");
+  };
+
+  // End session and compute summary
+  const endSession = () => {
+    // log last answer snippet if present
+    if (transcript.trim().length) {
+      setSessionTranscript((prev) => `${prev} ${transcript}`.trim());
+      setMetricsLog((prev) => [...prev, metrics]);
+    }
+    setSessionActive(false);
+    setShowSummary(true);
+    if (listening) {
+      try { stop(); } catch {}
+    }
+  };
+
+  // Move to a new fresh question (counts toward quota)
+  const handleNewQuestion = () => {
+    if (!sessionActive) {
+      if (sharedQuestions && sharedQuestions.length) {
+        const rand = Math.floor(Math.random() * sharedQuestions.length);
+        setQuestion(sharedQuestions[rand]);
+        setTranscript("");
+        setStartedAt(null);
+        setFinalAnswer("");
+        setPolished("");
+        toast.success("New question loaded");
+      } else {
+        toast.message("Tip", { description: "Generate 50 Q&A in Drills to diversify questions." as any });
+      }
+      return;
+    }
+
+    // log metrics for the just-answered question
+    if (transcript.trim().length) {
+      setSessionTranscript((prev) => `${prev} ${transcript}`.trim());
+      setMetricsLog((prev) => [...prev, metrics]);
+    }
+    setQuestionsAsked((n) => n + 1);
+
+    // advance or end if reached target
+    if (questionsAsked + 1 >= targetQuestions) {
+      endSession();
+      return;
+    }
+
+    if (sharedQuestions && sharedQuestions.length) {
+      const rand = Math.floor(Math.random() * sharedQuestions.length);
+      setQuestion(sharedQuestions[rand]);
+    }
+    setTranscript("");
+    setStartedAt(null);
+    setFinalAnswer("");
+    setPolished("");
+    toast.success("Next question");
+  };
+
+  const handleFollowUp = async () => {
+    const answer = (finalAnswer || transcript).trim();
+    if (!answer) {
+      toast.error("Answer first (speak or type), then ask for a follow-up.");
+      return;
+    }
+    try {
+      const q = await followUp({ previousQuestion: question, userAnswer: answer, jd: jobDescription });
+      setQuestion(q || "Can you go deeper on the impact and tradeoffs?");
+      // reset state for the next answer; do NOT count toward target unless new question
+      setTranscript("");
+      setStartedAt(null);
+      setFinalAnswer("");
+      setPolished("");
+      toast.success("Follow-up loaded");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate follow-up");
+    }
+  };
 
   const handlePolish = async () => {
     const text = (finalAnswer || transcript).trim();
@@ -494,41 +640,6 @@ function VoiceMirror({
     }
   };
 
-  const handleFollowUp = async () => {
-    const answer = (finalAnswer || transcript).trim();
-    if (!answer) {
-      toast.error("Answer first (speak or type), then ask for a follow-up.");
-      return;
-    }
-    try {
-      const q = await followUp({ previousQuestion: question, userAnswer: answer, jd: jobDescription });
-      setQuestion(q || "Can you go deeper on the impact and tradeoffs?");
-      // reset state for the next answer
-      setTranscript("");
-      setStartedAt(null);
-      setFinalAnswer("");
-      setPolished("");
-      toast.success("Follow-up loaded");
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to generate follow-up");
-    }
-  };
-
-  const handleNewQuestion = () => {
-    // pick a fresh question if we have a generated set; otherwise keep default
-    if (sharedQuestions && sharedQuestions.length) {
-      const rand = Math.floor(Math.random() * sharedQuestions.length);
-      setQuestion(sharedQuestions[rand]);
-      setTranscript("");
-      setStartedAt(null);
-      setFinalAnswer("");
-      setPolished("");
-      toast.success("New question loaded");
-    } else {
-      toast.message("Tip", { description: "Generate 50 Q&A in Drills to diversify questions." as any });
-    }
-  };
-
   const resetRecording = () => {
     setTranscript("");
     setStartedAt(null);
@@ -536,15 +647,108 @@ function VoiceMirror({
     setPolished("");
   };
 
+  // Summary calculations
+  const summary = useMemo(() => {
+    if (!showSummary || metricsLog.length === 0) return null;
+    const avg = (arr: number[]) => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+    const avgWpm = avg(metricsLog.map((m) => m.wpm));
+    const avgFpm = avg(metricsLog.map((m) => m.fillerPerMin));
+    const avgConf = avg(metricsLog.map((m) => m.confidence));
+    return {
+      avgWpm,
+      avgFpm,
+      avgConf,
+      totalQuestions: metricsLog.length,
+      durationMin,
+    };
+  }, [showSummary, metricsLog, durationMin]);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Voice Mirror</CardTitle>
+        <CardTitle className="text-base">Live Interview Practice</CardTitle>
         <CardDescription className="text-sm">
-          Interview mode: no previews. Speak confidently, then request a smart follow-up.
+          Timed, realistic interview. Choose a duration; questions and follow-ups adapt to your JD and resume.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Session controls */}
+        {!sessionActive && !showSummary && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <Badge variant="outline" className="w-fit">Session setup</Badge>
+            <div className="flex items-center gap-2 text-sm">
+              <span>Duration:</span>
+              <div className="flex rounded-md border overflow-hidden">
+                <button
+                  className={`px-3 py-1.5 text-xs ${durationMin === 5 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(5)}
+                >
+                  5m
+                </button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 10 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(10)}
+                >
+                  10m
+                </button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 20 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(20)}
+                >
+                  20m
+                </button>
+              </div>
+              <span className="text-xs text-muted-foreground ml-2">
+                Target ~{deriveTargetQuestions(durationMin)} questions
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <Button size="sm" onClick={startSession} disabled={!jobDescription}>
+                Start Live Interview
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Timer & counters */}
+        {sessionActive && (
+          <div className="flex items-center justify-between rounded-md border p-2 text-sm">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="text-xs">Live</Badge>
+              <div>
+                Time left: <span className="font-semibold">{Math.floor(remainingSec / 60)}:{String(remainingSec % 60).padStart(2, "0")}</span>
+              </div>
+              <div className="text-muted-foreground">•</div>
+              <div>
+                Questions: <span className="font-semibold">{questionsAsked}/{targetQuestions}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={endSession}>End Session</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Summary */}
+        {showSummary && summary && (
+          <div className="rounded-lg border p-3 space-y-3">
+            <div className="text-sm font-semibold">Session Summary</div>
+            <div className="grid grid-cols-4 gap-2">
+              <Stat label="Avg WPM" value={summary.avgWpm} accent="text-primary" />
+              <Stat label="Avg Fillers/min" value={summary.avgFpm} />
+              <Stat label="Avg Confidence" value={`${summary.avgConf}%`} accent="text-green-600 dark:text-green-500" />
+              <Stat label="Questions" value={summary.totalQuestions} />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Duration: ~{summary.durationMin} min • Keep practicing to improve pacing and reduce fillers.
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={() => { setShowSummary(false); }}>Close Summary</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Question */}
         <SectionHeader title="Question" />
         <div className="flex items-center gap-2">
           <Input

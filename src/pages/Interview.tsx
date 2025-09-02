@@ -416,8 +416,8 @@ export default function Interview() {
                   <div className="text-xs text-muted-foreground">50 curated Q&A with AI answers.</div>
                 </div>
                 <div className="rounded-md border p-3">
-                  <div className="font-medium">3) Voice Mirror</div>
-                  <div className="text-xs text-muted-foreground">Speak it, track metrics, polish.</div>
+                  <div className="font-medium">3) Live Interview</div>
+                  <div className="text-xs text-muted-foreground">Timed practice with real interview flow.</div>
                 </div>
               </div>
 
@@ -450,7 +450,7 @@ export default function Interview() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Practice</CardTitle>
-              <CardDescription>Toggle between Q&A Drills and Voice Mirror below. Full-width, focused.</CardDescription>
+              <CardDescription>Toggle between Q&A Drills and Live Interview below. Full-width, focused.</CardDescription>
             </CardHeader>
             <CardContent>
               <InterviewCoach
