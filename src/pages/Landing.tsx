@@ -22,7 +22,10 @@ import {
   FileCheck,
   Rocket,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  BookOpen,
+  Newspaper,
+  PenSquare
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -216,6 +219,51 @@ export default function Landing() {
     "Analytics to learn what's working and where to iterate"
   ];
 
+  const blogs = [
+    {
+      icon: BookOpen,
+      title: "How to Make Your Resume ATS-Friendly (With Examples)",
+      description:
+        "A practical guide to formatting, keywords, and structure that gets your resume past automated screening.",
+      tag: "Resume Tips"
+    },
+    {
+      icon: Newspaper,
+      title: "Cracking Product-Based Companies in India",
+      description:
+        "From DSA to system design: a structured roadmap for top Indian tech companies and startups.",
+      tag: "Career Roadmap"
+    },
+    {
+      icon: PenSquare,
+      title: "Perfecting Your Resume Summary and Experience Bullets",
+      description:
+        "Impact-focused writing, quantifiable metrics, and role-relevant phrasing that stands out.",
+      tag: "Writing"
+    },
+    {
+      icon: BookOpen,
+      title: "Fresher Resume: Projects, Internships, and Skills That Matter",
+      description:
+        "A fresher-friendly blueprint with templates for projects, hackathons, and academic work.",
+      tag: "Fresher Guide"
+    },
+    {
+      icon: Newspaper,
+      title: "Salary Negotiation in India: Scripts and Market Benchmarks",
+      description:
+        "City-wise benchmarks, timing the conversation, and culturally aware negotiation scripts.",
+      tag: "Negotiation"
+    },
+    {
+      icon: PenSquare,
+      title: "LinkedIn Optimization for the Indian Job Market",
+      description:
+        "Headline, About, keywords, and networking tactics to increase recruiter responses.",
+      tag: "LinkedIn"
+    },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -246,6 +294,12 @@ export default function Landing() {
                 className="text-muted-foreground hover:text-foreground transition-colors font-medium no-underline"
               >
                 How it Works
+              </a>
+              <a
+                href="#blogs"
+                className="text-muted-foreground hover:text-foreground transition-colors font-medium no-underline"
+              >
+                Blogs
               </a>
               <Button
                 variant="ghost"
@@ -281,6 +335,11 @@ export default function Landing() {
                     <SheetClose asChild>
                       <a href="#how-it-works" className="text-xl font-medium hover:text-primary transition-colors">
                         How it Works
+                      </a>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <a href="#blogs" className="text-xl font-medium hover:text-primary transition-colors">
+                        Blogs
                       </a>
                     </SheetClose>
                   </div>
@@ -509,6 +568,58 @@ export default function Landing() {
                 <p className="text-muted-foreground leading-relaxed text-base">
                   {step.description}
                 </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Blogs Section */}
+      <section id="blogs" className="py-16 md:py-20">
+        <div className="container-responsive">
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6 text-balance">
+              Blogs & Guides
+            </h2>
+            <p className="text-base text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Deep dives on resumes, interviews, negotiation, and job search strategies for India's job market
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-10">
+            {blogs.map((post, idx) => (
+              <motion.div
+                key={post.title}
+                initial={{ y: 30, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.05, duration: 0.6 }}
+                whileHover={{ y: -6, scale: 1.02 }}
+              >
+                <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
+                        <post.icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {post.tag}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-lg">{post.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-sm leading-relaxed text-muted-foreground">
+                      {post.description}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
               </motion.div>
             ))}
           </div>
