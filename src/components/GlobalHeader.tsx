@@ -15,8 +15,7 @@ import {
   Settings,
   BarChart3,
   Heart,
-  Mic,
-  Mail
+  Mic
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -83,11 +82,6 @@ export function GlobalHeader() {
       label: "Resume Builder",
       path: "/resume-builder",
       icon: FileText
-    },
-    {
-      label: "Outreach",
-      path: "/outreach",
-      icon: Mail
     },
     {
       label: "Profile",
