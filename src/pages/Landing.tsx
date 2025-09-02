@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // Animated numeric counter for stats
 function AnimatedCounter({ value }: { value: string }) {
@@ -121,6 +122,7 @@ export default function Landing() {
   const { theme, toggleTheme } = useTheme();
   const reduceMotion = useReducedMotion();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeBlog, setActiveBlog] = useState<number | null>(null);
 
   if (isLoading) {
     return (
@@ -225,42 +227,80 @@ export default function Landing() {
       title: "How to Make Your Resume ATS-Friendly (With Examples)",
       description:
         "A practical guide to formatting, keywords, and structure that gets your resume past automated screening.",
-      tag: "Resume Tips"
+      tag: "Resume Tips",
+      content: [
+        "Applicant Tracking Systems (ATS) parse your resume to extract structured data—if your formatting is complex, content can be lost. Keep a clean, single-column layout with consistent section headers.",
+        "Use standard fonts (Inter, Arial, Times) and avoid text inside images or tables. Bulleted lists are fine. Save as PDF unless the job portal explicitly requests DOCX.",
+        "Match keywords from the job description naturally in your summary, skills, and experience bullets. Use exact phrasing where possible (e.g., 'React', not just 'frontend framework').",
+        "Quantify achievements: 'Improved API performance by 35%', 'Reduced onboarding time by 2 weeks', 'Shipped 8 features/quarter'.",
+        "Sections to include: Summary, Skills, Experience, Education, Projects (optional), Certifications (optional)."
+      ],
     },
     {
       icon: Newspaper,
       title: "Cracking Product-Based Companies in India",
       description:
         "From DSA to system design: a structured roadmap for top Indian tech companies and startups.",
-      tag: "Career Roadmap"
+      tag: "Career Roadmap",
+      content: [
+        "Phase 1: Fundamentals — Master data structures (arrays, strings, hashmaps, stacks/queues, trees, graphs) and algorithms (sorting, searching, two pointers, DP).",
+        "Phase 2: Projects — Build 2–3 solid, resume-worthy projects: auth, payments, dashboards, file uploads, pagination, caching, and testing.",
+        "Phase 3: Interviews — Mix of DSA + low-level design + behavioral. For mid/senior roles: system design (scalability, databases, queues, caching, consistency).",
+        "Phase 4: India-specific preparation — Be ready for timed platforms (HackerRank, CodeSignal), and strong fundamentals in SQL and OOP.",
+        "Tip: Keep a brag document of achievements and quantify impact for easy recall during interviews."
+      ],
     },
     {
       icon: PenSquare,
       title: "Perfecting Your Resume Summary and Experience Bullets",
       description:
         "Impact-focused writing, quantifiable metrics, and role-relevant phrasing that stands out.",
-      tag: "Writing"
+      tag: "Writing",
+      content: [
+        "Summary: 2–3 lines highlighting role, years of experience, core stack, and 1–2 quantified achievements.",
+        "Bullets: Start with action verbs (Built, Optimized, Led, Automated), include the what/why/how, and end with numbers (%, x, time saved, revenue, users).",
+        "Example: 'Optimized React rendering pipeline and reduced bundle size by 28%, improving Time-to-Interactive by 1.3s across 200k MAUs.'",
+        "Tailor bullets to the job description by aligning keywords and outcomes to the role's priorities.",
+      ],
     },
     {
       icon: BookOpen,
       title: "Fresher Resume: Projects, Internships, and Skills That Matter",
       description:
         "A fresher-friendly blueprint with templates for projects, hackathons, and academic work.",
-      tag: "Fresher Guide"
+      tag: "Fresher Guide",
+      content: [
+        "Lead with Education, then Projects, then Internships/Training, then Skills. Use concise summaries for each project.",
+        "Pick projects that show real-world workflows: auth, dashboards, APIs, pagination, file storage, caching, and testing.",
+        "Add measurable results: users, performance, accuracy, and improvements shipped.",
+        "Avoid listing too many skills; keep 8–12 high-confidence skills grouped by category (Languages, Frontend, Backend, Tools).",
+      ],
     },
     {
       icon: Newspaper,
       title: "Salary Negotiation in India: Scripts and Market Benchmarks",
       description:
         "City-wise benchmarks, timing the conversation, and culturally aware negotiation scripts.",
-      tag: "Negotiation"
+      tag: "Negotiation",
+      content: [
+        "Do market research: check levels.fyi, AmbitionBox, and peers in your city/level. Factor in benefits (ESOPs, WFH, allowances).",
+        "Script: 'Based on market benchmarks and my experience leading X projects with Y impact, I'm targeting a total compensation of ₹[X]. Is there room in the budget to meet that?'",
+        "Never volunteer your current CTC first. Anchor with total compensation and keep trade-offs ready (joining bonus, variable pay, ESOPs).",
+        "Time it right: after the final round and a strong signal, but before accepting the offer.",
+      ],
     },
     {
       icon: PenSquare,
       title: "LinkedIn Optimization for the Indian Job Market",
       description:
         "Headline, About, keywords, and networking tactics to increase recruiter responses.",
-      tag: "LinkedIn"
+      tag: "LinkedIn",
+      content: [
+        "Headline: Role + Stack + Impact metric (e.g., 'Frontend Engineer | React/Next.js | Performance +28%').",
+        "About: 3–4 short paragraphs—summary, core skills, achievements with numbers, and what you're looking for.",
+        "Add featured: resume PDF, projects, demos, or blog posts. Keep your profile image professional and background relevant.",
+        "Daily habit: 10–15 mins—comment thoughtfully on posts, connect with recruiters/hiring managers with a short, respectful note.",
+      ],
     },
   ];
 
@@ -602,7 +642,18 @@ export default function Landing() {
                 transition={{ delay: idx * 0.05, duration: 0.6 }}
                 whileHover={{ y: -6, scale: 1.02 }}
               >
-                <Card className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group">
+                <Card 
+                  className="h-full border shadow-lg hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                  onClick={() => setActiveBlog(idx)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveBlog(idx);
+                    }
+                  }}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
@@ -675,6 +726,38 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      <Dialog open={activeBlog !== null} onOpenChange={(open) => !open && setActiveBlog(null)}>
+        <DialogContent className="max-w-2xl">
+          {activeBlog !== null && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+                    {(() => {
+                      const Icon = blogs[activeBlog].icon;
+                      return <Icon className="h-5 w-5 text-primary" />;
+                    })()}
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl">{blogs[activeBlog].title}</DialogTitle>
+                    <DialogDescription className="mt-1">
+                      <span className="inline-block px-2 py-0.5 rounded bg-secondary text-secondary-foreground text-xs">
+                        {blogs[activeBlog].tag}
+                      </span>
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="space-y-4 text-muted-foreground leading-relaxed">
+                {blogs[activeBlog].content.map((para: string, i: number) => (
+                  <p key={i} className="text-sm">{para}</p>
+                ))}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
