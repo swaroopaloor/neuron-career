@@ -3,6 +3,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import Groq from "groq-sdk";
+import { extractText } from "unpdf";
 
 async function callLLM(prompt: string, temperature = 0.4) {
   // Groq-only implementation
@@ -99,5 +100,53 @@ ${args.userAnswer}
 `;
     const out = await callLLM(prompt, 0.6);
     return out.replace(/^\s*Q[:.\-]?\s*/i, "").trim();
+  },
+});
+
+export const suggestAnswer = action({
+  args: {
+    question: v.string(),
+    jd: v.optional(v.string()),
+    resumeFileId: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error("AI not configured. Please add GROQ_API_KEY in Integrations.");
+    }
+
+    // Pull resume text if provided
+    let resumeText = "";
+    if (args.resumeFileId) {
+      const file = await ctx.storage.get(args.resumeFileId);
+      if (file) {
+        const buf = await file.arrayBuffer();
+        const { text } = await extractText(buf);
+        resumeText = Array.isArray(text) ? text.join("\n") : (text || "");
+      }
+    }
+
+    const prompt = `
+You are a world-class interview coach. Craft a strong sample answer to the following interview question.
+
+Constraints:
+- 120–180 words, crisp, professional, confident
+- Implicitly follow STAR where relevant
+- Include realistic metrics where suitable
+- Align to the job description
+- If resume content is provided, tailor phrasing to that background
+
+Question: ${args.question}
+
+Job Description:
+${args.jd ?? "N/A"}
+
+Resume (optional):
+${resumeText ? resumeText.slice(0, 4000) : "N/A"}
+
+Return only the answer text, no preface.`;
+
+    const out = await callLLM(prompt, 0.35);
+    return out;
   },
 });

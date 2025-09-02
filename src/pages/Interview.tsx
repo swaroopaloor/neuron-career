@@ -220,7 +220,7 @@ export default function Interview() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <InterviewCoach jobDescription={effectiveJd || undefined} />
+                <InterviewCoach jobDescription={effectiveJd || undefined} resumeFileId={selectedAnalysis?.resumeFileId} />
               </CardContent>
             </Card>
           </motion.div>

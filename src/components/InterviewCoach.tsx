@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Mic, MicOff, Volume2, Sparkles, Loader2, ChevronRight, Clipboard } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type RecognitionType = any;
 
@@ -185,8 +186,11 @@ function SectionHeader({ title, description }: { title: string; description?: st
   );
 }
 
-export default function InterviewCoach({ jobDescription }: { jobDescription?: string }) {
-  const [tab, setTab] = useState<"voice" | "ama">("voice");
+export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDescription?: string; resumeFileId?: string }) {
+  // Share questions and current index across Voice Mirror and AMA
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [currentIdx, setCurrentIdx] = useState<number>(-1);
+  const [openItem, setOpenItem] = useState<string | undefined>("voice");
 
   return (
     <div className="space-y-4">
@@ -196,37 +200,78 @@ export default function InterviewCoach({ jobDescription }: { jobDescription?: st
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant={tab === "voice" ? "default" : "outline"}
-          onClick={() => setTab("voice")}
-        >
-          <Volume2 className="h-4 w-4 mr-2" />
-          Voice Mirror
-        </Button>
-        <Button
-          size="sm"
-          variant={tab === "ama" ? "default" : "outline"}
-          onClick={() => setTab("ama")}
-        >
-          <Sparkles className="h-4 w-4 mr-2" />
-          Ask Me Anything
-        </Button>
-      </div>
+      <Accordion
+        type="single"
+        collapsible
+        value={openItem}
+        onValueChange={(v) => setOpenItem(v || undefined)}
+        className="w-full"
+      >
+        <AccordionItem value="voice" className="border rounded-lg px-3">
+          <AccordionTrigger className="text-base font-semibold py-3">Voice Mirror</AccordionTrigger>
+          <AccordionContent>
+            <VoiceMirror
+              jobDescription={jobDescription}
+              resumeFileId={resumeFileId}
+              sharedQuestions={questions}
+              currentIdx={currentIdx}
+              // Use numeric updates to avoid functional setter incompatibility
+              onPrev={() => setCurrentIdx(Math.max(currentIdx - 1, 0))}
+              onNext={() => setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)))}
+              onJump={(idx) => setCurrentIdx(idx)}
+            />
+          </AccordionContent>
+        </AccordionItem>
 
-      {tab === "voice" ? <VoiceMirror jobDescription={jobDescription} /> : <AskMeAnything initialJd={jobDescription} jdLocked={!!jobDescription} />}
+        <AccordionItem value="ama" className="border rounded-lg px-3">
+          <AccordionTrigger className="text-base font-semibold py-3">Ask Me Anything</AccordionTrigger>
+          <AccordionContent>
+            <AskMeAnything
+              initialJd={jobDescription}
+              jdLocked={!!jobDescription}
+              externalQuestions={questions}
+              setExternalQuestions={setQuestions}
+              externalCurrentIdx={currentIdx}
+              setExternalCurrentIdx={setCurrentIdx}
+              onStartSession={() => { if (currentIdx === -1) setCurrentIdx(0); }}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
 
-function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
+function VoiceMirror({
+  jobDescription,
+  resumeFileId,
+  sharedQuestions,
+  currentIdx,
+  onPrev,
+  onNext,
+  onJump,
+}: {
+  jobDescription?: string;
+  resumeFileId?: string;
+  sharedQuestions?: string[];
+  currentIdx?: number;
+  onPrev?: () => void;
+  onNext?: () => void;
+  onJump?: (idx: number) => void;
+}) {
   const [question, setQuestion] = useState<string>("Tell me about yourself.");
   const [transcript, setTranscript] = useState<string>("");
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [finalAnswer, setFinalAnswer] = useState<string>("");
   const [polished, setPolished] = useState<string>("");
   const [polishing, setPolishing] = useState(false);
+
+  // If shared questions provided, sync current question
+  useEffect(() => {
+    if (sharedQuestions && typeof currentIdx === "number" && currentIdx >= 0 && currentIdx < sharedQuestions.length) {
+      setQuestion(sharedQuestions[currentIdx]);
+    }
+  }, [sharedQuestions, currentIdx]);
 
   const onResult = (partial: string) => {
     if (!startedAt) setStartedAt(Date.now());
@@ -237,6 +282,7 @@ function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
   const metrics = useMemo(() => computeMetrics(transcript, startedAt), [transcript, startedAt]);
 
   const polish = useAction(api.aiInterview.polishAnswer);
+  const suggest = useAction(api.aiInterview.suggestAnswer);
 
   const handlePolish = async () => {
     const text = (finalAnswer || transcript).trim();
@@ -256,6 +302,16 @@ function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
     }
   };
 
+  const handleSuggest = async () => {
+    try {
+      const out = await suggest({ question, jd: jobDescription, resumeFileId: resumeFileId as any });
+      setFinalAnswer(out);
+      toast.success("Suggested answer generated");
+    } catch (e: any) {
+      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to suggest answer");
+    }
+  };
+
   const resetRecording = () => {
     setTranscript("");
     setStartedAt(null);
@@ -272,14 +328,53 @@ function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <SectionHeader title="Question" />
-        <Input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Enter the interview question"
-        />
+        <SectionHeader title="Question" description={sharedQuestions?.length ? "Using current question from 50 Questions" : undefined} />
+        <div className="flex items-center gap-2">
+          <Input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Enter the interview question"
+          />
+          {typeof currentIdx === "number" && sharedQuestions && sharedQuestions.length > 0 && (
+            <Badge variant="outline" className="whitespace-nowrap">
+              {currentIdx + 1} / {sharedQuestions.length}
+            </Badge>
+          )}
+        </div>
+
+        {sharedQuestions && sharedQuestions.length > 0 && typeof currentIdx === "number" && (
+          <div className="flex items-center justify-between">
+            <Button size="sm" variant="outline" onClick={onPrev} disabled={currentIdx <= 0}>
+              Prev
+            </Button>
+            <div className="text-xs text-muted-foreground">
+              Pick from the generated list below
+            </div>
+            <Button size="sm" onClick={onNext} disabled={currentIdx >= sharedQuestions.length - 1}>
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
+
+        {sharedQuestions && sharedQuestions.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+            {sharedQuestions.map((q, idx) => (
+              <button
+                key={`${idx}-${q.slice(0, 12)}`}
+                onClick={() => onJump && onJump(idx)}
+                className={`text-left rounded-md border p-2 text-xs hover:bg-secondary transition ${
+                  typeof currentIdx === "number" && idx === currentIdx ? "border-primary" : "border-border"
+                }`}
+              >
+                <span className="font-medium mr-1">{idx + 1}.</span>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+
         <Separator />
-        <SectionHeader title="Record or type your answer" description={supported ? "Use your mic or type below. Metrics update in real-time." : "Speech recognition not supported in this browser. Type your answer below."} />
+        <SectionHeader title="Record or type your answer" description="Use your mic or type. Metrics update in real-time." />
         <div className="flex items-center gap-2">
           <Button
             size="sm"
@@ -327,6 +422,10 @@ function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
             {polishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Generate Polished Answer
           </Button>
+          <Button size="sm" variant="outline" onClick={handleSuggest}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Suggest Answer (AI)
+          </Button>
           {polished && (
             <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(polished); toast.success("Copied polished answer"); }}>
               <Clipboard className="h-4 w-4 mr-2" />
@@ -346,15 +445,36 @@ function VoiceMirror({ jobDescription }: { jobDescription?: string }) {
   );
 }
 
-function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?: boolean }) {
+function AskMeAnything({
+  initialJd,
+  jdLocked,
+  externalQuestions,
+  setExternalQuestions,
+  externalCurrentIdx,
+  setExternalCurrentIdx,
+  onStartSession,
+}: {
+  initialJd?: string;
+  jdLocked?: boolean;
+  externalQuestions?: string[];
+  setExternalQuestions?: (qs: string[]) => void;
+  externalCurrentIdx?: number;
+  setExternalCurrentIdx?: (idx: number) => void;
+  onStartSession?: () => void;
+}) {
   const [jd, setJd] = useState<string>(initialJd || "");
-  useEffect(() => {
-    // keep in sync if parent changes jobDescription
-    setJd(initialJd || "");
-  }, [initialJd]);
+  useEffect(() => { setJd(initialJd || ""); }, [initialJd]);
   const [loading, setLoading] = useState(false);
-  const [questions, setQuestions] = useState<string[]>([]);
-  const [currentIdx, setCurrentIdx] = useState<number>(-1);
+
+  // Use external or internal questions/index
+  const [localQuestions, setLocalQuestions] = useState<string[]>([]);
+  const [localIdx, setLocalIdx] = useState<number>(-1);
+
+  const questions = externalQuestions ?? localQuestions;
+  const setQuestions = setExternalQuestions ?? setLocalQuestions;
+  const currentIdx = typeof externalCurrentIdx === "number" ? externalCurrentIdx : localIdx;
+  const setCurrentIdx = setExternalCurrentIdx ?? setLocalIdx;
+
   const [answer, setAnswer] = useState<string>("");
   const [polished, setPolished] = useState<string>("");
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -376,6 +496,7 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
       setQuestions(out);
       setCurrentIdx(0);
       setSessionStarted(true);
+      onStartSession && onStartSession();
       toast.success("Generated 50 practice questions");
     } catch (e) {
       toast.error("Failed to generate questions");
@@ -388,7 +509,7 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
     // Advance to next base question
     setPolished("");
     setAnswer("");
-    setCurrentIdx((i) => Math.min(i + 1, questions.length - 1));
+    setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)));
   };
 
   const handleFollowUp = async () => {
@@ -403,12 +524,10 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
         userAnswer: answer,
         jd,
       });
-      setQuestions((prev) => {
-        const arr = [...prev];
-        arr.splice(currentIdx + 1, 0, q);
-        return arr;
-      });
-      setCurrentIdx((i) => i + 1);
+      const updated = [...questions];
+      updated.splice(currentIdx + 1, 0, q);
+      setQuestions(updated);
+      setCurrentIdx(currentIdx + 1);
       setAnswer("");
       setPolished("");
       toast.success("Follow-up added");
@@ -463,7 +582,7 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
           )}
         </div>
 
-        {sessionStarted && (
+        {questions.length > 0 && (
           <div className="space-y-3">
             <Separator />
             <div className="flex items-center justify-between">
@@ -491,11 +610,40 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
                   className="min-h-28"
                 />
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={handleFollowUp} disabled={loading || !answer.trim()}>
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    if (!currentQuestion || !answer.trim()) { toast.error("Answer the current question first."); return; }
+                    try {
+                      setLoading(true);
+                      const q = await followUp({ previousQuestion: currentQuestion, userAnswer: answer, jd });
+                      const updated = [...questions];
+                      updated.splice(currentIdx + 1, 0, q);
+                      setQuestions(updated);
+                      setCurrentIdx(currentIdx + 1);
+                      setAnswer("");
+                      setPolished("");
+                      toast.success("Follow-up added");
+                    } catch (e: any) {
+                      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to generate follow-up");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }} disabled={loading || !answer.trim()}>
                     Ask Follow-up
                     <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
-                  <Button size="sm" onClick={handlePolish} disabled={loading || !answer.trim()}>
+                  <Button size="sm" onClick={async () => {
+                    if (!currentQuestion || !answer.trim()) { toast.error("Provide your answer first."); return; }
+                    try {
+                      setLoading(true);
+                      const out = await polish({ question: currentQuestion, answer, jd });
+                      setPolished(out);
+                      toast.success("Polished answer generated");
+                    } catch (e: any) {
+                      toast.error(e?.message ? `Failed: ${e.message}` : "Failed to polish answer");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }} disabled={loading || !answer.trim()}>
                     {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                     Polish Answer
                   </Button>
@@ -524,12 +672,12 @@ function AskMeAnything({ initialJd, jdLocked }: { initialJd?: string; jdLocked?:
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setCurrentIdx((i) => Math.max(i - 1, 0))}
+                onClick={() => setCurrentIdx(Math.max(currentIdx - 1, 0))}
                 disabled={currentIdx <= 0}
               >
                 Prev
               </Button>
-              <Button size="sm" onClick={handleNext} disabled={currentIdx >= questions.length - 1}>
+              <Button size="sm" onClick={() => { setPolished(""); setAnswer(""); setCurrentIdx(Math.min(currentIdx + 1, questions.length - 1)); }} disabled={currentIdx >= questions.length - 1}>
                 Next
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
