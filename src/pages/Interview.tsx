@@ -25,7 +25,13 @@ export default function Interview() {
   // Load user's analyses (guarded; avoids throwing when not authenticated)
   const analyses = useQuery(api.analyses.getUserAnalyses, isAuthenticated ? { limit: 50 } : "skip");
 
-  // Moved auth/loading guards here to avoid changing hook order between renders
+  const selectedAnalysis = useMemo(() => {
+    if (!analyses || !selectedAnalysisId) return null;
+    return analyses.find((a: any) => a._id === selectedAnalysisId) || null;
+  }, [analyses, selectedAnalysisId]);
+
+  const effectiveJd = mode === "existing" ? (selectedAnalysis?.jobDescription || "") : newJobJd;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -40,13 +46,6 @@ export default function Interview() {
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
   }
-
-  const selectedAnalysis = useMemo(() => {
-    if (!analyses || !selectedAnalysisId) return null;
-    return analyses.find((a: any) => a._id === selectedAnalysisId) || null;
-  }, [analyses, selectedAnalysisId]);
-
-  const effectiveJd = mode === "existing" ? (selectedAnalysis?.jobDescription || "") : newJobJd;
 
   return (
     <div className="min-h-screen bg-background">
