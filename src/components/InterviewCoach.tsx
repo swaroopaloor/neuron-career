@@ -207,6 +207,18 @@ export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDe
         onValueChange={(v) => setOpenItem(v || undefined)}
         className="w-full"
       >
+        <AccordionItem value="qa" className="border rounded-lg px-3">
+          <AccordionTrigger className="text-base font-semibold py-3">Q&A Drills</AccordionTrigger>
+          <AccordionContent>
+            <QADrills
+              jobDescription={jobDescription}
+              resumeFileId={resumeFileId}
+              sharedQuestions={questions}
+              setSharedQuestions={setQuestions}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
         <AccordionItem value="voice" className="border rounded-lg px-3">
           <AccordionTrigger className="text-base font-semibold py-3">Voice Mirror</AccordionTrigger>
           <AccordionContent>
@@ -239,6 +251,165 @@ export default function InterviewCoach({ jobDescription, resumeFileId }: { jobDe
         </AccordionItem>
       </Accordion>
     </div>
+  );
+}
+
+function QADrills({
+  jobDescription,
+  resumeFileId,
+  sharedQuestions,
+  setSharedQuestions,
+}: {
+  jobDescription?: string;
+  resumeFileId?: string;
+  sharedQuestions?: string[];
+  setSharedQuestions?: (qs: string[]) => void;
+}) {
+  const [localQs, setLocalQs] = useState<string[]>([]);
+  const questions = sharedQuestions ?? localQs;
+  const setQuestions = setSharedQuestions ?? setLocalQs;
+
+  const [idx, setIdx] = useState<number>(-1);
+  const [loading, setLoading] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answerLoading, setAnswerLoading] = useState(false);
+
+  const genQs = useAction(api.aiInterview.generateQuestions);
+  const suggest = useAction(api.aiInterview.suggestAnswer);
+
+  const currentQuestion = idx >= 0 && idx < questions.length ? questions[idx] : "";
+
+  const start = async () => {
+    if (!jobDescription) {
+      toast.error("Provide or select a job description first in setup.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const out = await genQs({ jd: jobDescription, count: 50 });
+      setQuestions(out);
+      setIdx(0);
+      setAnswers({});
+      toast.success("Generated 50 Q&A prompts");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate questions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const ensureAnswer = async (at: number) => {
+    if (answers[at] || !questions[at]) return;
+    try {
+      setAnswerLoading(true);
+      const a = await suggest({
+        question: questions[at],
+        jd: jobDescription,
+        resumeFileId: resumeFileId as any,
+      });
+      setAnswers((prev) => ({ ...prev, [at]: a }));
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate suggested answer");
+    } finally {
+      setAnswerLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (idx >= 0) {
+      void ensureAnswer(idx);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, questions.length]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Q&A Drills</CardTitle>
+        <CardDescription className="text-sm">
+          50 tailored questions with AI-suggested answers based on your resume and JD.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!questions.length ? (
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={start} disabled={loading || !jobDescription}>
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              Start Drills
+            </Button>
+            {!jobDescription && (
+              <div className="text-xs text-muted-foreground">
+                Select or paste a job description in setup first.
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Current</div>
+              <div className="text-xs text-muted-foreground">
+                {idx + 1} / {questions.length}
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-3 text-sm">
+              <span className="font-semibold mr-1">Q:</span>
+              {currentQuestion}
+            </div>
+
+            <div className="rounded-lg border p-3 min-h-24 text-sm whitespace-pre-wrap bg-muted/30">
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="text-xs">Suggested Answer</Badge>
+                {answerLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+              {answers[idx] ? answers[idx] : (
+                <span className="text-muted-foreground">Generating answer...</span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIdx(Math.max(idx - 1, 0))}
+                disabled={idx <= 0}
+              >
+                Prev
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                Answers are auto-tailored using your resume & JD.
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setIdx(Math.min(idx + 1, questions.length - 1))}
+                disabled={idx >= questions.length - 1}
+              >
+                Next <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+
+            <Separator />
+            <div>
+              <SectionHeader title="All Questions" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto">
+                {questions.map((q, i) => (
+                  <button
+                    key={`${i}-${q.slice(0, 12)}`}
+                    onClick={() => setIdx(i)}
+                    className={`text-left rounded-md border p-2 text-xs hover:bg-secondary transition ${
+                      i === idx ? "border-primary" : "border-border"
+                    }`}
+                  >
+                    <span className="font-medium mr-1">{i + 1}.</span>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
