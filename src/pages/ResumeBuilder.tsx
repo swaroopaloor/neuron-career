@@ -77,18 +77,78 @@ const defaultResumeData: ResumeData = {
   skills: [],
 };
 
-function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement> }) {
+function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement>; variant?: "classic" | "modern" | "minimal" | "technical" }) {
+  // Style presets by variant
+  const containerVariant =
+    variant === "modern"
+      ? "bg-white text-black p-10 shadow-xl rounded-xl border border-gray-200"
+      : variant === "minimal"
+      ? "bg-white text-black p-10 shadow-lg rounded-lg"
+      : variant === "technical"
+      ? "bg-white text-black p-10 shadow-lg rounded-lg"
+      : "bg-white text-black p-10 shadow-lg rounded-lg";
+
+  const headerBorderClass =
+    variant === "modern"
+      ? "border-b-4 border-primary/70"
+      : variant === "minimal"
+      ? "border-b border-gray-200"
+      : variant === "technical"
+      ? "border-b-2 border-gray-800"
+      : "border-b-2 border-gray-300";
+
+  const nameClass =
+    variant === "modern"
+      ? "text-[30px] font-extrabold tracking-tight text-gray-900"
+      : variant === "minimal"
+      ? "text-[26px] font-semibold text-gray-900"
+      : variant === "technical"
+      ? "text-[26px] font-bold text-gray-900 font-mono"
+      : "text-[28px] font-bold text-gray-900";
+
+  const infoTextClass =
+    variant === "technical" ? "text-[12px] text-gray-700 font-mono" : "text-[12px] text-gray-700";
+
+  const sectionTitleClass =
+    variant === "modern"
+      ? "text-[13px] font-bold uppercase tracking-[0.16em] text-gray-900 border-b-2 border-primary/50 pb-1 mb-3"
+      : variant === "minimal"
+      ? "text-[13px] font-semibold tracking-wide text-gray-800 pb-1 mb-3"
+      : variant === "technical"
+      ? "text-[13px] font-bold uppercase tracking-[0.18em] text-gray-900 border-b border-gray-800 pb-1 mb-3 font-mono"
+      : "text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3";
+
+  const jobTitleClass =
+    variant === "technical" ? "text-[14px] font-bold text-gray-900 font-mono" : "text-[14px] font-semibold text-gray-900";
+
+  const companyClass = "text-[13px] font-medium text-gray-800";
+
+  const durationClass =
+    variant === "modern" ? "text-[12px] text-primary/80" : variant === "technical" ? "text-[12px] text-gray-700 font-mono" : "text-[12px] text-gray-600";
+
+  const bodyTextClass =
+    variant === "technical" ? "text-[13px] text-gray-800 leading-[1.6] font-mono" : "text-[13px] text-gray-800 leading-[1.6]";
+
+  const skillTagClass =
+    variant === "modern"
+      ? "bg-primary/10 text-primary px-2.5 py-1 rounded-full text-[12px] border border-primary/20"
+      : variant === "minimal"
+      ? "bg-gray-100 text-gray-800 px-2.5 py-1 rounded-md text-[12px]"
+      : variant === "technical"
+      ? "bg-black text-white px-2 py-0.5 rounded text-[11px] font-mono"
+      : "bg-gray-200 text-gray-800 px-2.5 py-1 rounded-full text-[12px]";
+
   return (
     <div
       ref={containerRef}
-      className="bg-white text-black p-10 shadow-lg rounded-lg min-h-[1000px] max-w-[8.5in] mx-auto antialiased"
+      className={`${containerVariant} min-h-[1000px] max-w-[8.5in] mx-auto antialiased`}
     >
       {/* Header */}
-      <div className="text-center border-b-2 border-gray-300 pb-4 mb-6">
-        <h1 className="text-[28px] font-bold text-gray-900 leading-[1.1] tracking-tight mb-1">
+      <div className={`text-center ${headerBorderClass} pb-4 mb-6`}>
+        <h1 className={`${nameClass} leading-[1.1] mb-1`}>
           {resumeData.personalInfo.name || "Your Name"}
         </h1>
-        <div className="text-[12px] text-gray-700 space-y-1">
+        <div className={`${infoTextClass} space-y-1`}>
           {/* Line 1: email • phone • location */}
           <div className="flex items-center justify-center">
             {(() => {
@@ -126,31 +186,31 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
       {/* Summary */}
       {resumeData.summary && (
         <div className="mb-6">
-          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className={sectionTitleClass}>
             Professional Summary
           </h2>
-          <p className="text-[13px] text-gray-800 leading-[1.6]">{resumeData.summary}</p>
+          <p className={bodyTextClass}>{resumeData.summary}</p>
         </div>
       )}
 
       {/* Experience */}
       {resumeData.experience.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className={sectionTitleClass}>
             Work Experience
           </h2>
           <div className="space-y-4">
             {resumeData.experience.map((exp, index) => (
               <div key={index}>
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-[14px] font-semibold text-gray-900">{exp.title || "Job Title"}</h3>
-                  <span className="text-[12px] text-gray-600">{exp.duration}</span>
+                  <h3 className={jobTitleClass}>{exp.title || "Job Title"}</h3>
+                  <span className={durationClass}>{exp.duration}</span>
                 </div>
-                <p className="text-[13px] font-medium text-gray-800 mb-1">
+                <p className={companyClass}>
                   {exp.company || "Company Name"}
                 </p>
                 {exp.description && (
-                  <p className="text-[13px] text-gray-800 leading-[1.6] whitespace-pre-line">{exp.description}</p>
+                  <p className={`${bodyTextClass} whitespace-pre-line`}>{exp.description}</p>
                 )}
               </div>
             ))}
@@ -161,7 +221,7 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
       {/* Education */}
       {resumeData.education.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className={sectionTitleClass}>
             Education
           </h2>
           <div className="space-y-3">
@@ -169,11 +229,11 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
               <div key={index}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-[14px] font-semibold text-gray-900">{edu.degree || "Degree"}</h3>
-                    <p className="text-[13px] text-gray-800">{edu.school || "School Name"}</p>
+                    <h3 className={jobTitleClass}>{edu.degree || "Degree"}</h3>
+                    <p className={bodyTextClass.replace("leading-[1.6]", "")}>{edu.school || "School Name"}</p>
                     {edu.gpa && <p className="text-[12px] text-gray-600">GPA: {edu.gpa}</p>}
                   </div>
-                  <span className="text-[12px] text-gray-600">{edu.year}</span>
+                  <span className={durationClass}>{edu.year}</span>
                 </div>
               </div>
             ))}
@@ -184,14 +244,14 @@ function PreviewPanel({ resumeData, containerRef }: { resumeData: ResumeData; co
       {/* Skills */}
       {resumeData.skills.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3">
+          <h2 className={sectionTitleClass}>
             Skills
           </h2>
           <div className="flex flex-wrap gap-2">
             {resumeData.skills.map((skill, index) => (
               <span
                 key={index}
-                className="bg-gray-200 text-gray-800 px-2.5 py-1 rounded-full text-[12px]"
+                className={skillTagClass}
               >
                 {skill}
               </span>
@@ -568,6 +628,7 @@ export default function ResumeBuilder() {
   const [uploadedPdf, setUploadedPdf] = useState<{ id: string; name: string } | null>(null);
   const [isRefiningSummary, setIsRefiningSummary] = useState(false);
   const [refiningExpIndex, setRefiningExpIndex] = useState<number | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<"classic" | "modern" | "minimal" | "technical">("classic");
 
   const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
   const updateProfile = useMutation(api.users.updateProfile);
@@ -941,21 +1002,9 @@ export default function ResumeBuilder() {
     }
   };
 
-  const applyTemplate = (template: { content: any }) => {
-    const content = template.content || {};
-    setResumeData((prev) => ({
-      ...prev,
-      ...defaultResumeData,
-      ...content,
-      personalInfo: {
-        ...defaultResumeData.personalInfo,
-        ...(content.personalInfo || {}),
-      },
-      experience: Array.isArray(content.experience) ? content.experience : [],
-      education: Array.isArray(content.education) ? content.education : [],
-      skills: Array.isArray(content.skills) ? content.skills : [],
-    }));
-    toast.success("Template applied!");
+  const applyStyle = (styleId: "classic" | "modern" | "minimal" | "technical") => {
+    setSelectedStyle(styleId);
+    toast.success("Style applied!");
   };
 
   if (isLoading) {
@@ -1030,7 +1079,7 @@ export default function ResumeBuilder() {
             </TabsList>
             
             <TabsContent value="editor" className="space-y-6">
-              <TemplateLibrary onSelectTemplate={applyTemplate} />
+              <TemplateLibrary onSelectStyle={applyStyle} />
               <EditorPanel
                 resumeData={resumeData}
                 handlers={{
@@ -1055,7 +1104,7 @@ export default function ResumeBuilder() {
             </TabsContent>
             
             <TabsContent value="preview">
-              <PreviewPanel resumeData={resumeData} containerRef={previewRef} />
+              <PreviewPanel resumeData={resumeData} containerRef={previewRef} variant={selectedStyle} />
             </TabsContent>
           </Tabs>
         </div>
@@ -1068,7 +1117,7 @@ export default function ResumeBuilder() {
             transition={{ delay: 0.1 }}
             className="space-y-6"
           >
-            <TemplateLibrary onSelectTemplate={applyTemplate} />
+            <TemplateLibrary onSelectStyle={applyStyle} />
             <EditorPanel
               resumeData={resumeData}
               handlers={{
@@ -1108,7 +1157,7 @@ export default function ResumeBuilder() {
               </p>
             </div>
             <div className="border rounded-lg overflow-hidden bg-white">
-              <PreviewPanel resumeData={resumeData} containerRef={previewRef} />
+              <PreviewPanel resumeData={resumeData} containerRef={previewRef} variant={selectedStyle} />
             </div>
           </motion.div>
         </div>
