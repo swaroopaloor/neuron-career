@@ -188,7 +188,7 @@ export function GlobalHeader() {
                 <Sparkles className="h-5 w-5 text-primary-foreground" />
               </motion.div>
               <span className="text-lg font-bold text-foreground hidden sm:block">
-                Resume Analyzer
+                Neuron AI
               </span>
             </Link>
           </div>

@@ -313,7 +313,7 @@ export default function Landing() {
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Sparkles className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-2xl font-bold text-foreground">Resume Analyzer</span>
+              <span className="text-2xl font-bold text-foreground">Neuron AI</span>
             </Link>
             
             <div className="hidden md:flex items-center gap-8">
@@ -711,7 +711,7 @@ export default function Landing() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Sparkles className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-foreground">Resume Analyzer</span>
+              <span className="text-xl font-bold text-foreground">Neuron AI</span>
             </Link>
             <div className="text-muted-foreground text-sm">
               &copy; {new Date().getFullYear()} Copyrights belong to ALOOR SAI SWAROOP
