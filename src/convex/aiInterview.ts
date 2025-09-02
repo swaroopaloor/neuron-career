@@ -23,7 +23,8 @@ async function callLLM(prompt: string, temperature = 0.4) {
       },
       { role: "user", content: prompt },
     ],
-    max_tokens: 800,
+    // Reduce tokens to lower latency and avoid timeouts
+    max_tokens: 500,
   });
   const out = completion.choices?.[0]?.message?.content?.trim() ?? "";
   if (!out) {
@@ -134,7 +135,7 @@ export const suggestAnswer = action({
 You are a world-class interview coach. Craft a strong sample answer to the following interview question.
 
 Constraints:
-- 120–180 words, crisp, professional, confident
+- 120–170 words, crisp, professional, confident
 - Implicitly follow STAR where relevant
 - Include realistic metrics where suitable
 - Align to the job description
@@ -144,10 +145,10 @@ ${args.interviewType ? `- Match tone/content for a ${args.interviewType} round` 
 Question: ${args.question}
 
 Job Description:
-${args.jd ?? "N/A"}
+${(args.jd ?? "N/A").slice(0, 3000)}
 
 Resume (optional):
-${resumeText ? resumeText.slice(0, 4000) : "N/A"}
+${resumeText ? resumeText.slice(0, 2500) : "N/A"}
 
 Return only the answer text, no preface.`;
 

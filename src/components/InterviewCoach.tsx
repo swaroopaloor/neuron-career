@@ -447,6 +447,7 @@ function VoiceMirror({
   const [finalAnswer, setFinalAnswer] = useState<string>("");
   const [polished, setPolished] = useState<string>("");
   const [polishing, setPolishing] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
 
   // NEW: session controls (updated durations + interview type)
   const [durationMin, setDurationMin] = useState<number>(30);
@@ -489,6 +490,25 @@ function VoiceMirror({
   const suggest = useAction(api.aiInterview.suggestAnswer);
   const genQs = useAction(api.aiInterview.generateQuestions);
   const sessionFeedback = useAction(api.aiInterview.sessionFeedback);
+
+  // Small helper: retry wrapper for transient network issues
+  const withRetry = async <T,>(fn: () => Promise<T>): Promise<T> => {
+    try {
+      return await fn();
+    } catch (e: any) {
+      const msg = String(e?.message || "");
+      const transient =
+        msg.includes("Connection lost while action was in flight") ||
+        msg.includes("network") ||
+        msg.includes("fetch") ||
+        msg.includes("timeout");
+      if (transient) {
+        // single retry
+        return await fn();
+      }
+      throw e;
+    }
+  };
 
   // timer tick
   useEffect(() => {
@@ -654,16 +674,21 @@ function VoiceMirror({
 
   const handleSuggest = async () => {
     try {
-      const out = await suggest({
-        question,
-        jd: jobDescription,
-        resumeFileId: resumeFileId as any,
-        interviewType,
-      });
+      setSuggesting(true);
+      const out = await withRetry(() =>
+        suggest({
+          question,
+          jd: jobDescription,
+          resumeFileId: resumeFileId as any,
+          interviewType,
+        })
+      );
       setFinalAnswer(out);
       toast.success("Suggested answer generated");
     } catch (e: any) {
       toast.error(e?.message ? `Failed: ${e.message}` : "Failed to suggest answer");
+    } finally {
+      setSuggesting(false);
     }
   };
 
@@ -882,8 +907,8 @@ function VoiceMirror({
             {polishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Generate Polished Answer
           </Button>
-          <Button size="sm" variant="outline" onClick={handleSuggest}>
-            <Sparkles className="h-4 w-4 mr-2" />
+          <Button size="sm" variant="outline" onClick={handleSuggest} disabled={suggesting}>
+            {suggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Suggest Answer (AI)
           </Button>
           {polished && (
