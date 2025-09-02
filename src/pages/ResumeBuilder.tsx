@@ -573,7 +573,6 @@ export default function ResumeBuilder() {
   const refineText = useAction(api.aiAnalysis.refineText);
 
   const handleExportPDF = async () => {
-    // Ensure preview exists in DOM
     const source = previewRef.current;
     if (!source) {
       toast.error("Preview not ready. Try again in a moment.");
@@ -582,66 +581,128 @@ export default function ResumeBuilder() {
 
     setIsExporting(true);
     try {
-      // Wait for fonts to be ready to avoid layout shifts in canvas
-      // Wait for fonts to be ready to avoid layout shifts in canvas (guarded, no ts-expect-error)
+      // Wait for fonts if available
       const docAny = document as any;
       if (docAny?.fonts?.ready) {
         await docAny.fonts.ready;
       }
 
-      // Clone the preview into an offscreen container for stable rendering
+      // Clone preview for stable offscreen rendering
       const clone = source.cloneNode(true) as HTMLElement;
-      // A4 width at ~96 DPI for html2canvas stability
-      const A4_PX_WIDTH = 794; // approx 8.27in * 96
+      const A4_PX_WIDTH = 794; // ~8.27in * 96dpi
       clone.style.width = `${A4_PX_WIDTH}px`;
       clone.style.position = "fixed";
       clone.style.left = "-10000px";
       clone.style.top = "0px";
       clone.style.background = "#ffffff";
-      document.body.appendChild(clone);
 
-      // Ensure the clone is fully laid out before rendering
+      // Ensure images are non-tainting
+      const imgs = clone.querySelectorAll("img");
+      imgs.forEach((img) => {
+        try {
+          (img as HTMLImageElement).crossOrigin = "anonymous";
+          // If the image has a src set, reassign to enforce crossOrigin
+          if ((img as HTMLImageElement).src) {
+            const src = (img as HTMLImageElement).src;
+            (img as HTMLImageElement).src = src;
+          }
+        } catch {}
+      });
+
+      document.body.appendChild(clone);
       await new Promise((r) => requestAnimationFrame(() => r(null)));
 
-      const canvas = await html2canvas(clone, {
-        // Improve stability and reduce memory pressure on small screens
-        scale: Math.min(2, Math.max(1, window.devicePixelRatio || 1)),
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        allowTaint: true,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: clone.scrollWidth || A4_PX_WIDTH,
-        windowHeight: clone.scrollHeight || source.scrollHeight || 1123,
-        logging: false,
-        imageTimeout: 15000,
-        foreignObjectRendering: true,
-      });
+      // Primary render attempt: favor non-tainting, controlled scale
+      let canvas: HTMLCanvasElement | null = null;
+      let renderError: unknown = null;
+      try {
+        canvas = await html2canvas(clone, {
+          scale: Math.min(2, Math.max(1, window.devicePixelRatio || 1)),
+          backgroundColor: "#ffffff",
+          useCORS: true,
+          allowTaint: false, // prevent taint so toDataURL/toBlob work
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: clone.scrollWidth || A4_PX_WIDTH,
+          windowHeight: clone.scrollHeight || source.scrollHeight || 1123,
+          logging: false,
+          foreignObjectRendering: true,
+        });
+      } catch (e) {
+        renderError = e;
+      }
+
+      // Fallback render attempt: reduced scale and without foreignObject if needed
+      if (!canvas) {
+        try {
+          canvas = await html2canvas(clone, {
+            scale: 1.5,
+            backgroundColor: "#ffffff",
+            useCORS: true,
+            allowTaint: false,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: clone.scrollWidth || A4_PX_WIDTH,
+            windowHeight: clone.scrollHeight || source.scrollHeight || 1123,
+            logging: false,
+            foreignObjectRendering: false,
+          });
+        } catch (e2) {
+          document.body.removeChild(clone);
+          console.error("Primary render error:", renderError);
+          console.error("Fallback render error:", e2);
+          throw new Error("Failed to render resume to canvas.");
+        }
+      }
 
       // Clean up the offscreen clone
       document.body.removeChild(clone);
 
-      const imgData = canvas.toDataURL("image/png");
+      // Prefer toBlob to reduce memory pressure; fallback to toDataURL if needed
+      const canvasToDataUrl = async (): Promise<string> => {
+        try {
+          const blob: Blob | null = await new Promise((resolve) =>
+            canvas!.toBlob((b) => resolve(b), "image/jpeg", 0.95)
+          );
+          if (blob) {
+            const reader = new FileReader();
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              reader.onloadend = () => {
+                if (typeof reader.result === "string") resolve(reader.result);
+                else reject(new Error("Failed to read blob."));
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            return dataUrl;
+          }
+          // Fallback to PNG if JPEG blob failed
+          return canvas!.toDataURL("image/png");
+        } catch {
+          return canvas!.toDataURL("image/png");
+        }
+      };
 
-      // Create A4 PDF and paginate content
+      const imgData = await canvasToDataUrl();
+
+      // Create A4 PDF and paginate
       const pdf = new jsPDF("p", "pt", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth(); // ~595 pt
       const pageHeight = pdf.internal.pageSize.getHeight(); // ~842 pt
 
-      // Scale the image to page width
       const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       let heightLeft = imgHeight;
       let position = 0;
 
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
       heightLeft -= pageHeight;
 
       while (heightLeft > 0) {
         pdf.addPage();
         position = heightLeft - imgHeight;
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
         heightLeft -= pageHeight;
       }
 
@@ -649,10 +710,10 @@ export default function ResumeBuilder() {
         .toISOString()
         .slice(0, 10)}.pdf`;
 
-      // Trigger a local download so the user always gets a copy
+      // Local save
       pdf.save(fileName);
 
-      // Also upload to Convex storage in background
+      // Upload to Convex in background
       try {
         const blob = pdf.output("blob");
         const uploadUrl = await generateUploadUrl({});
@@ -667,8 +728,8 @@ export default function ResumeBuilder() {
         if (!uploadRes.ok) {
           throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.statusText}`);
         }
-        const json = await uploadRes.json().catch(() => ({}));
-        const storageId = json?.storageId;
+        const json = await uploadRes.json().catch(() => ({} as any));
+        const storageId = (json as any)?.storageId;
         if (!storageId) {
           throw new Error("Upload succeeded but missing storageId in response.");
         }
@@ -682,7 +743,7 @@ export default function ResumeBuilder() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to save PDF. Please try again. If the issue persists, reload the page and ensure your browser allows downloads.");
+      toast.error("Failed to save PDF. Please try again.");
     } finally {
       setIsExporting(false);
     }
