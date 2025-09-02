@@ -462,6 +462,7 @@ function VoiceMirror({
   const [interviewType, setInterviewType] = useState<"Intro" | "Technical" | "HR">("Intro");
   const [feedback, setFeedback] = useState<string>("");
   const [feedbackLoading, setFeedbackLoading] = useState<boolean>(false);
+  const [sessionQuestions, setSessionQuestions] = useState<string[]>([]); // Add: store generated questions for the live session
 
   // derive questions target from duration (approx realistic pacing)
   const deriveTargetQuestions = (mins: number) => {
@@ -539,6 +540,7 @@ function VoiceMirror({
       // Generate tailored set using interviewType + resume
       const out = await genQs({ jd: jobDescription, count: target, interviewType, resumeFileId: resumeFileId as any });
       if (out && out.length) {
+        setSessionQuestions(out); // Add: persist questions for this session
         setQuestion(out[0]);
         onJump && onJump(0);
       }
@@ -619,11 +621,18 @@ function VoiceMirror({
       return;
     }
 
-    // Ask AI for a follow-up or new tailored question based on type and context
-    if (sharedQuestions && sharedQuestions.length) {
-      const rand = Math.floor(Math.random() * sharedQuestions.length);
-      setQuestion(sharedQuestions[rand]);
+    // Choose next question from sessionQuestions first, then fallback to sharedQuestions
+    const pool = sessionQuestions.length ? sessionQuestions : (sharedQuestions || []);
+    if (pool.length > 0) {
+      // Try to pick a different question than current
+      const attempts = Math.min(pool.length, 5);
+      let next = pool[Math.floor(Math.random() * pool.length)];
+      for (let i = 0; i < attempts && next === question && pool.length > 1; i++) {
+        next = pool[Math.floor(Math.random() * pool.length)];
+      }
+      setQuestion(next);
     }
+
     setTranscript("");
     setStartedAt(null);
     setFinalAnswer("");
