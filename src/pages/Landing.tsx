@@ -164,12 +164,6 @@ export default function Landing() {
         "Role-specific mock interview prep with structured feedback, question banks, and guidance to improve clarity and impact."
     },
     {
-      icon: FileCheck,
-      title: "Outreach Automation (Email & LinkedIn)",
-      description:
-        "Generate tailored outreach messages, follow-ups, and recruiter notes—save time while staying personal and relevant."
-    },
-    {
       icon: Star,
       title: "Template Library",
       description:
@@ -184,10 +178,10 @@ export default function Landing() {
   ];
 
   const stats = [
-    { icon: Users, value: "50,000+", label: "Resumes Analyzed" },
-    { icon: Award, value: "98%", label: "Success Rate" },
-    { icon: Star, value: "4.9/5", label: "User Rating" },
-    { icon: Clock, value: "< 30s", label: "Analysis Time" }
+    { icon: Clock, value: "7 sec", label: "Avg recruiter scan time" },
+    { icon: Target, value: "2x", label: "Interviews with role-specific keywords" },
+    { icon: FileCheck, value: "3x", label: "More callbacks with tailored resumes" },
+    { icon: Zap, value: "80%", label: "Companies using ATS filters" }
   ];
 
   const steps = [
@@ -202,7 +196,7 @@ export default function Landing() {
       step: "02",
       title: "Tailor & Prepare",
       description:
-        "Paste the job description to get targeted improvements, keyword alignment, and generate personalized outreach and interview prep.",
+        "Paste the job description to get targeted improvements, keyword alignment, and personalized interview prep.",
       icon: Target
     },
     {
@@ -216,7 +210,7 @@ export default function Landing() {
 
   const benefits = [
     "3x more interview callbacks with targeted, ATS‑safe resumes",
-    "End‑to‑end workflow: build, analyze, outreach, interview, and track",
+    "End‑to‑end workflow: build, analyze, interview, and track",
     "Role‑aware AI refinement for summaries and experience bullets",
     "Analytics to learn what's working and where to iterate"
   ];
@@ -428,8 +422,8 @@ export default function Landing() {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="text-sm sm:text-base text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
             >
-              Upload your resume or build one from scratch, tailor it to any job with AI, get ATS-ready analysis, generate outreach, practice interviews, and track every application—all in one place. 
-              Now with a live resume builder, PDF export, templates library, analytics dashboard, outreach automation, and a guided dream‑job roadmap.
+              Upload your resume or build one from scratch, tailor it to any job with AI, get ATS-ready analysis, practice interviews, and track every application—all in one place. 
+              Now with a live resume builder, PDF export, templates library, analytics dashboard, and a guided dream‑job roadmap.
             </motion.p>
             
             <motion.div
