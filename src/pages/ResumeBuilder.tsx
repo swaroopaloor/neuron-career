@@ -573,32 +573,59 @@ export default function ResumeBuilder() {
   const refineText = useAction(api.aiAnalysis.refineText);
 
   const handleExportPDF = async () => {
-    if (!previewRef.current) {
+    // Ensure preview exists in DOM
+    const source = previewRef.current;
+    if (!source) {
       toast.error("Preview not ready. Try again in a moment.");
       return;
     }
+
     setIsExporting(true);
     try {
-      // High-quality canvas with stable dimensions and CORS enabled
-      const element = previewRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2, // crisp output
+      // Wait for fonts to be ready to avoid layout shifts in canvas
+      // Wait for fonts to be ready to avoid layout shifts in canvas (guarded, no ts-expect-error)
+      const docAny = document as any;
+      if (docAny?.fonts?.ready) {
+        await docAny.fonts.ready;
+      }
+
+      // Clone the preview into an offscreen container for stable rendering
+      const clone = source.cloneNode(true) as HTMLElement;
+      // A4 width at ~96 DPI for html2canvas stability
+      const A4_PX_WIDTH = 794; // approx 8.27in * 96
+      clone.style.width = `${A4_PX_WIDTH}px`;
+      clone.style.position = "fixed";
+      clone.style.left = "-10000px";
+      clone.style.top = "0px";
+      clone.style.background = "#ffffff";
+      document.body.appendChild(clone);
+
+      // Ensure the clone is fully laid out before rendering
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: true,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
+        windowWidth: clone.scrollWidth || A4_PX_WIDTH,
+        windowHeight: clone.scrollHeight || source.scrollHeight || 1123, // ~A4 height
       });
+
+      // Clean up the offscreen clone
+      document.body.removeChild(clone);
+
       const imgData = canvas.toDataURL("image/png");
 
       // Create A4 PDF and paginate content
       const pdf = new jsPDF("p", "pt", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth(); // 595.28
-      const pageHeight = pdf.internal.pageSize.getHeight(); // 841.89
+      const pageWidth = pdf.internal.pageSize.getWidth(); // ~595 pt
+      const pageHeight = pdf.internal.pageSize.getHeight(); // ~842 pt
 
-      const imgWidth = pageWidth; // fit width
+      // Scale the image to page width
+      const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       let heightLeft = imgHeight;
@@ -609,7 +636,6 @@ export default function ResumeBuilder() {
 
       while (heightLeft > 0) {
         pdf.addPage();
-        // shift image up by the amount already printed to simulate next slice
         position = heightLeft - imgHeight;
         pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight, undefined, "FAST");
         heightLeft -= pageHeight;
@@ -619,28 +645,40 @@ export default function ResumeBuilder() {
         .toISOString()
         .slice(0, 10)}.pdf`;
 
-      // Prompt user to download locally
+      // Trigger a local download so the user always gets a copy
       pdf.save(fileName);
 
-      // Upload to Convex storage
-      const blob = pdf.output("blob");
-      const uploadUrl = await generateUploadUrl({});
-      const uploadRes = await fetch(uploadUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/pdf",
-          "x-file-name": fileName,
-        },
-        body: blob,
-      });
-      const { storageId } = await uploadRes.json();
+      // Also upload to Convex storage in background
+      try {
+        const blob = pdf.output("blob");
+        const uploadUrl = await generateUploadUrl({});
+        const uploadRes = await fetch(uploadUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/pdf",
+          },
+          body: blob,
+        });
 
-      setUploadedPdf({ id: storageId, name: fileName });
-      setShowDefaultDialog(true);
-      toast.success("PDF exported! You can set it as your default resume.");
+        if (!uploadRes.ok) {
+          throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.statusText}`);
+        }
+        const json = await uploadRes.json().catch(() => ({}));
+        const storageId = json?.storageId;
+        if (!storageId) {
+          throw new Error("Upload succeeded but missing storageId in response.");
+        }
+
+        setUploadedPdf({ id: storageId, name: fileName });
+        setShowDefaultDialog(true);
+        toast.success("PDF exported! You can set it as your default resume.");
+      } catch (uploadErr) {
+        console.error(uploadErr);
+        toast.error("PDF downloaded. Upload failed — please try again later.");
+      }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to export PDF.");
+      toast.error("Failed to export PDF. If on mobile, switch to desktop and try again.");
     } finally {
       setIsExporting(false);
     }
