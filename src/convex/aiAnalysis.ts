@@ -280,3 +280,21 @@ export const groqHealthCheck = action({
     return { ok: true };
   },
 });
+
+export const getResumeTextFromFile = action({
+  args: { fileId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    const file = await ctx.storage.get(args.fileId);
+    if (!file) {
+      throw new Error("File not found");
+    }
+    const buffer = await file.arrayBuffer();
+    const extraction = await extractText(buffer);
+    const raw = (extraction as any).text;
+    const text = Array.isArray(raw) ? raw.join("\n") : String(raw ?? "");
+    if (!text.trim()) {
+      throw new Error("Could not extract text from file");
+    }
+    return text;
+  },
+});

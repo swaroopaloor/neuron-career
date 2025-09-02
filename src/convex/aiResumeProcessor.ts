@@ -99,3 +99,45 @@ Focus on:
     }
   },
 });
+
+export const suggestTargetRoles = action({
+  args: { resumeContent: v.string() },
+  handler: async (ctx, args) => {
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey) {
+      throw new Error("GROQ API key not configured");
+    }
+    const groq = new Groq({ apiKey: groqApiKey });
+    const prompt = `You are a career coach. Read the resume text below and return ONLY a JSON array (no markdown) of 3-7 concise target roles that are realistic next steps based on skills and experiences. Avoid seniority inflation; keep roles specific and aligned to the resume.
+
+Resume:
+${args.resumeContent}
+
+Return JSON like:
+["Backend Engineer", "Full Stack Developer (TypeScript/React)", "Platform Engineer"]`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: "Return JSON only. No extra text." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.2,
+    });
+
+    const content = completion.choices?.[0]?.message?.content ?? "[]";
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        const roles: string[] = parsed
+          .map((r) => (typeof r === "string" ? r.trim() : ""))
+          .filter(Boolean)
+          .slice(0, 7);
+        return roles;
+      }
+    } catch {
+      // no-op, fall through
+    }
+    return [];
+  },
+});

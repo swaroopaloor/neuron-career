@@ -26,6 +26,9 @@ export default function OutreachPage() {
   const seed = useMutation(api.outreach.seedTestData);
   const sendEmail = useAction(api.outreachEmail.sendEmail); // add this line to get the action
   const generateContacts = useAction(api.outreach.generateContactsForCompany);
+  const getResumeTextFromFile = useAction(api.aiAnalysis.getResumeTextFromFile);
+  const suggestTargetRoles = useAction(api.aiResumeProcessor.suggestTargetRoles);
+  const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
   const [finding, setFinding] = useState(false);
 
   const [addContactOpen, setAddContactOpen] = useState(false);
@@ -65,6 +68,15 @@ export default function OutreachPage() {
 
   const selectedCompanyObj = useMemo(() => targets.find((t: any) => t.companyName === selectedCompany), [targets, selectedCompany]);
 
+  // Resume-driven targeting state
+  const { user } = useAuth();
+  const [resumeSource, setResumeSource] = useState<"saved" | "upload" | "paste">("saved");
+  const [resumeText, setResumeText] = useState("");
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+
   if (isLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -85,8 +97,159 @@ export default function OutreachPage() {
     );
   }
 
+  // Helper to load text from saved resume (PDF in storage via savedResumeId)
+  const loadSavedResumeText = async () => {
+    const fileId = (user as any)?.savedResumeId;
+    if (!fileId) {
+      toast("No saved resume found in Profile");
+      return;
+    }
+    try {
+      setRolesLoading(true);
+      const text = await getResumeTextFromFile({ fileId } as any);
+      setResumeText(text);
+      toast("Saved resume loaded");
+    } catch (e: any) {
+      toast(e?.message || "Failed to read saved resume");
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+
+  const handleUploadResume = async (file: File | null) => {
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast("Please upload a PDF");
+      return;
+    }
+    if (file.size > 7 * 1024 * 1024) {
+      toast("PDF must be < 7MB");
+      return;
+    }
+    try {
+      setResumeUploading(true);
+      const url = await generateUploadUrl();
+      const res = await fetch(url, { method: "POST", body: file });
+      if (!res.ok) throw new Error("Upload failed");
+      const { storageId } = await res.json();
+      const text = await getResumeTextFromFile({ fileId: storageId } as any);
+      setResumeText(text);
+      toast("Resume uploaded and parsed");
+    } catch (e: any) {
+      toast(e?.message || "Failed to upload/parse resume");
+    } finally {
+      setResumeUploading(false);
+    }
+  };
+
+  const analyzeResumeForRoles = async () => {
+    if (!resumeText.trim()) {
+      toast("Please provide resume text");
+      return;
+    }
+    try {
+      setRolesLoading(true);
+      const roles = await suggestTargetRoles({ resumeContent: resumeText });
+      setRoleSuggestions(roles || []);
+      if (roles && roles.length > 0) {
+        setSelectedRole(roles[0]);
+      }
+      toast(roles?.length ? `Found ${roles.length} target role${roles.length > 1 ? "s" : ""}` : "No roles suggested");
+    } catch (e: any) {
+      toast(e?.message || "Failed to suggest roles. Check Groq API key in Integrations.");
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+
   return (
     <div className="container-responsive py-8 space-y-8">
+      {/* Resume Source + Role Suggestions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Resume-driven Targeting</CardTitle>
+          <CardDescription>
+            Choose a resume source to tailor roles and outreach content.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button variant={resumeSource === "saved" ? "default" : "outline"} onClick={() => setResumeSource("saved")}>
+              Use Saved Resume
+            </Button>
+            <Button variant={resumeSource === "upload" ? "default" : "outline"} onClick={() => setResumeSource("upload")}>
+              Upload PDF
+            </Button>
+            <Button variant={resumeSource === "paste" ? "default" : "outline"} onClick={() => setResumeSource("paste")}>
+              Paste Text
+            </Button>
+          </div>
+
+          {resumeSource === "saved" && (
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={loadSavedResumeText} disabled={rolesLoading}>
+                {rolesLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Load Saved Resume
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                {user?.savedResumeName ? `Using: ${user.savedResumeName}` : "No saved resume yet (add one in Profile)"}
+              </div>
+            </div>
+          )}
+
+          {resumeSource === "upload" && (
+            <div className="flex items-center gap-3">
+              <Input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => handleUploadResume(e.target.files?.[0] || null)}
+              />
+              {resumeUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
+          )}
+
+          {resumeSource === "paste" && (
+            <div className="space-y-2">
+              <Label>Paste Resume Text</Label>
+              <textarea
+                className="w-full rounded-md border p-2 min-h-40 bg-background"
+                placeholder="Paste your resume text here..."
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button onClick={analyzeResumeForRoles} disabled={rolesLoading || (!resumeText.trim() && resumeSource === "paste")}>
+              {rolesLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Analyze Resume
+            </Button>
+            <div className="text-xs text-muted-foreground">
+              Suggests 3–7 target roles using your resume.
+            </div>
+          </div>
+
+          {roleSuggestions.length > 0 && (
+            <div className="space-y-2">
+              <Label>Select Target Role</Label>
+              <div className="flex flex-wrap gap-2">
+                {roleSuggestions.map((r) => (
+                  <Button
+                    key={r}
+                    size="sm"
+                    variant={selectedRole === r ? "default" : "outline"}
+                    onClick={() => setSelectedRole(r)}
+                  >
+                    {r}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Outreach Engine</h1>
@@ -203,7 +366,7 @@ export default function OutreachPage() {
                         const channel: "email" | "dm" = s.contact.email ? "email" : "dm";
                         const subject =
                           channel === "email"
-                            ? `[Warm Intro] ${selectedCompanyObj?.targetRole || "a role"} @ ${selectedCompany}`
+                            ? `[Warm Intro] ${selectedRole || selectedCompanyObj?.targetRole || "a role"} @ ${selectedCompany}`
                             : undefined;
 
                         const firstName = s.contact.name?.split(" ")[0] || "there";
@@ -212,19 +375,17 @@ export default function OutreachPage() {
                             ? `Hi ${firstName},
 
 Noticed you're at ${selectedCompany} — I'm exploring ${
-                              selectedCompanyObj?.targetRole || "a role"
+                              selectedRole || selectedCompanyObj?.targetRole || "a role"
                             } opportunities there.
-I've been working on outcomes like:
-- [Add 1-2 quantified wins relevant to the team]
-- [Add 1-2 relevant tools/stack highlights]
+Recent highlights:
+- Delivered projects with measurable impact in relevant areas
+- Strong experience across tools matching the team's stack
 
-Would you be open to a quick 10-min chat or a referral if it feels like a fit?
-Happy to share a concise resume and tailored summary. Appreciate it!
+Would you be open to a quick 10-min chat or a referral if it seems like a fit?
+Happy to share a concise, tailored resume.
 
 — you`
-                            : `Hi ${firstName}, Noticed you're connected with folks at ${selectedCompany}. I'm exploring ${
-                              selectedCompanyObj?.targetRole || "a role"
-                            } there — could you point me to the right person for context or a quick intro? — you`;
+                            : `Hi ${firstName}, I'm exploring ${selectedRole || selectedCompanyObj?.targetRole || "a role"} at ${selectedCompany}. Would appreciate a quick pointer or intro to the right person — can share a tight one-pager. — you`;
 
                         setComposer({
                           open: true,
