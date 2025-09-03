@@ -49,17 +49,21 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
   const recognitionRef = useRef<any>(null);
   const SpeechRecognitionRef = useRef<any>(null);
   const restartTimeout = useRef<number | null>(null);
+  const isStartingRef = useRef<boolean>(false);
 
   useEffect(() => {
-    // Detect support on mount but don't construct the instance yet (iOS Safari quirk).
+    // Check for speech recognition support
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
     if (SpeechRecognition) {
       SpeechRecognitionRef.current = SpeechRecognition;
       setSupported(true);
     } else {
       setSupported(false);
+      console.warn("Speech recognition not supported in this browser");
     }
+
     return () => {
       if (restartTimeout.current) {
         window.clearTimeout(restartTimeout.current);
@@ -70,7 +74,9 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
           recognitionRef.current.onresult = null;
           recognitionRef.current.onerror = null;
           recognitionRef.current.stop();
-        } catch {}
+        } catch (e) {
+          console.warn("Error cleaning up speech recognition:", e);
+        }
       }
     };
   }, []);
@@ -80,90 +86,139 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
       setSupported(false);
       return;
     }
-    if (listening) return;
+    
+    if (listening || isStartingRef.current) {
+      return;
+    }
 
-    // Lazily construct a new instance each time start is called to avoid stale handlers on iOS.
+    isStartingRef.current = true;
+
     try {
+      // Request microphone permission first
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (permissionError) {
+          console.error("Microphone permission denied:", permissionError);
+          setSupported(false);
+          isStartingRef.current = false;
+          return;
+        }
+      }
+
       const rec = new SpeechRecognitionRef.current();
       recognitionRef.current = rec;
 
-      // Some browsers behave better with continuous false and manual restart.
-      // We'll still collect interim results for live transcript.
-      rec.continuous = false;
+      // Configure recognition
+      rec.continuous = true;
       rec.interimResults = true;
       rec.lang = "en-US";
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        setListening(true);
+        isStartingRef.current = false;
+        console.log("Speech recognition started");
+      };
 
       rec.onresult = (e: any) => {
-        let interim = "";
+        let transcript = "";
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          interim += e.results[i][0].transcript;
+          transcript += e.results[i][0].transcript;
         }
-        onResult(interim);
+        onResult(transcript);
       };
 
       rec.onerror = (ev: any) => {
-        // Common errors: "no-speech", "audio-capture" (no mic), "not-allowed" (permission)
-        // Gracefully fall back to typing if persistent error
-        // But attempt a single auto-restart for transient issues
-        if (listening) {
-          try {
-            rec.stop();
-          } catch {}
-          if (restartTimeout.current) window.clearTimeout(restartTimeout.current);
-          restartTimeout.current = window.setTimeout(() => {
+        console.error("Speech recognition error:", ev.error);
+        
+        // Handle specific error types
+        switch (ev.error) {
+          case "not-allowed":
+          case "service-not-allowed":
+            setSupported(false);
+            setListening(false);
+            break;
+          case "no-speech":
+            // Don't restart for no-speech, just continue listening
+            break;
+          case "audio-capture":
+            setSupported(false);
+            setListening(false);
+            break;
+          case "network":
+            // Try to restart after network error
             if (listening) {
-              start().catch(() => {
-                setListening(false);
-                setSupported(false);
-              });
+              setTimeout(() => {
+                if (listening) {
+                  start().catch(() => {
+                    setListening(false);
+                  });
+                }
+              }, 1000);
             }
-          }, 500);
-        } else {
-          setSupported(false);
+            break;
+          default:
+            // For other errors, try one restart
+            if (listening && !restartTimeout.current) {
+              restartTimeout.current = window.setTimeout(() => {
+                restartTimeout.current = null;
+                if (listening) {
+                  start().catch(() => {
+                    setListening(false);
+                  });
+                }
+              }, 500);
+            }
         }
+        isStartingRef.current = false;
       };
 
       rec.onend = () => {
-        // Auto-restart to simulate continuous mode across mobile browsers
-        if (listening) {
-          if (restartTimeout.current) window.clearTimeout(restartTimeout.current);
+        console.log("Speech recognition ended");
+        // Only restart if we're still supposed to be listening
+        if (listening && !isStartingRef.current) {
+          if (restartTimeout.current) {
+            window.clearTimeout(restartTimeout.current);
+          }
           restartTimeout.current = window.setTimeout(() => {
+            restartTimeout.current = null;
             if (listening) {
               start().catch(() => {
                 setListening(false);
-                setSupported(false);
               });
             }
-          }, 200);
+          }, 100);
         }
       };
 
-      // Start after setting handlers
+      // Start recognition
       rec.start();
-      setListening(true);
-    } catch {
-      // If construction or start fails, disable voice mode
+    } catch (error) {
+      console.error("Failed to start speech recognition:", error);
       setListening(false);
       setSupported(false);
+      isStartingRef.current = false;
     }
   };
 
   const stop = () => {
-    if (!recognitionRef.current) {
-      setListening(false);
-      return;
+    console.log("Stopping speech recognition");
+    setListening(false);
+    isStartingRef.current = false;
+    
+    if (restartTimeout.current) {
+      window.clearTimeout(restartTimeout.current);
+      restartTimeout.current = null;
     }
-    try {
-      // Stop and prevent auto-restart
-      setListening(false);
-      if (restartTimeout.current) {
-        window.clearTimeout(restartTimeout.current);
-        restartTimeout.current = null;
+    
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null; // Prevent restart
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.warn("Error stopping speech recognition:", error);
       }
-      recognitionRef.current.onend = null;
-      recognitionRef.current.stop();
-    } catch {
-      // ignore
     }
   };
 
@@ -873,10 +928,16 @@ function VoiceMirror({
         <Separator />
         <SectionHeader title="Record or type your answer" description="Use your mic or type. Metrics update in real-time." />
         <div className="flex items-center gap-2 flex-wrap">
+          {!supported && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded px-2 py-1">
+              Voice not supported. Please use a modern browser like Chrome, Edge, or Safari.
+            </div>
+          )}
           <Button
             size="sm"
             onClick={() => (listening ? stop() : start())}
             variant={listening ? "destructive" : "default"}
+            disabled={!supported}
           >
             {listening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}
             {listening ? "Stop" : "Start"} Recording
@@ -884,6 +945,12 @@ function VoiceMirror({
           <Button size="sm" variant="outline" onClick={resetRecording}>
             Reset
           </Button>
+          {listening && (
+            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              Listening...
+            </div>
+          )}
           <div className="mx-2 h-5 w-px bg-border" />
           <Button size="sm" variant="outline" onClick={handleNewQuestion}>
             New Question
