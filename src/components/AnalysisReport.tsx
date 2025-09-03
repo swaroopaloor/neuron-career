@@ -313,16 +313,52 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
 
   const handleExport = () => {
     const content = buildExportText();
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `analysis-${String(analysisId)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    toast("Exported analysis as text file");
+
+    const printWindow = window.open("", "_blank", "width=900,height=1000");
+    if (!printWindow) {
+      toast.error("Popup blocked. Please allow popups and try again.");
+      return;
+    }
+
+    // Basic print stylesheet for better readability
+    const html = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Resume Analysis Report</title>
+          <style>
+            * { box-sizing: border-box; }
+            body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; color: #111827; }
+            h1 { font-size: 20px; margin: 0 0 12px; }
+            .meta { color: #6B7280; font-size: 12px; margin-bottom: 16px; }
+            pre { white-space: pre-wrap; word-wrap: break-word; font-size: 12px; line-height: 1.5; padding: 16px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; }
+            @media print {
+              body { margin: 0.5in; }
+              pre { background: transparent; border-color: #E5E7EB; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Resume Analysis Report</h1>
+          <div class="meta">Match: ${analysis.matchScore}% • ATS: ${analysis.atsScore}%</div>
+          <pre>${content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+          <script>
+            // Wait a tick for rendering, then print
+            setTimeout(() => {
+              window.focus();
+              window.print();
+            }, 200);
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    toast("Opening print preview… Choose 'Save as PDF'.");
   };
 
   const handleSetDreamJob = async () => {
@@ -495,7 +531,7 @@ export default function AnalysisReport({ analysisId, onBack }: AnalysisReportPro
               </Button>
               <Button variant="outline" size="sm" className="px-2 sm:px-3" onClick={handleExport}>
                 <Download className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Export</span>
+                <span className="hidden sm:inline">Export PDF</span>
               </Button>
             </div>
           </div>
