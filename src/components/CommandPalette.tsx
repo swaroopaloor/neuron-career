@@ -234,30 +234,30 @@ export function CommandPalette() {
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="p-0 max-w-2xl bg-card/95 backdrop-blur">
+        <DialogContent className="p-0 max-w-2xl bg-card/95 backdrop-blur max-h-[80vh] overflow-hidden">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="flex flex-col max-h-96"
+            className="flex flex-col h-full"
           >
             {/* Search Input */}
-            <div className="flex items-center gap-3 p-4 border-b">
-              <Search className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-3 p-4 border-b shrink-0">
+              <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <Input
                 placeholder="Type a command or search..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="border-0 focus-visible:ring-0 text-sm"
+                className="border-0 focus-visible:ring-0 text-sm flex-1"
                 autoFocus
               />
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs flex-shrink-0">
                 ESC
               </Badge>
             </div>
 
             {/* Commands List */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
               <div className="p-2">
                 <AnimatePresence>
                   {Object.entries(groupedCommands).map(([category, items]) => (
