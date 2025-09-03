@@ -232,3 +232,100 @@ Keep it compact, specific, and professional. No preamble; start directly.
     return out;
   },
 });
+
+export const salaryCoach = action({
+  args: {
+    jd: v.string(),
+    resumeFileId: v.optional(v.id("_storage")),
+    roleTitle: v.optional(v.string()),
+    location: v.optional(v.string()),
+    experienceYears: v.optional(v.number()),
+    currentBase: v.optional(v.number()),
+    currentBonus: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Pull resume text if provided
+    let resumeText = "";
+    if (args.resumeFileId) {
+      const file = await ctx.storage.get(args.resumeFileId);
+      if (file) {
+        const buf = await file.arrayBuffer();
+        const { text } = await extractText(buf);
+        resumeText = Array.isArray(text) ? text.join("\n") : (text || "");
+      }
+    }
+
+    const prompt = `
+You are a concise salary intel and negotiation coach. Given the candidate background and a target role, produce:
+- Market bands (Base/Total Comp) with short justification and likely range for the candidate.
+- Scripts: initial outreach, post-offer negotiation, competing offer leverage.
+- Tips: crisp bullets for timing, anchors, risks, and phrases to avoid.
+Return STRICT JSON only with this shape:
+{
+  "marketBands": [
+    { "label": "Typical", "base": "₹X - ₹Y", "tc": "₹X - ₹Y", "note": "short note" },
+    { "label": "Top-tier", "base": "₹X - ₹Y", "tc": "₹X - ₹Y", "note": "short note" }
+  ],
+  "scripts": {
+    "initialReachout": "text...",
+    "postOfferNegotiation": "text...",
+    "competingOfferLeverage": "text..."
+  },
+  "tips": [ "tip1", "tip2", "tip3", "tip4" ]
+}
+
+Context:
+- Role Title: ${args.roleTitle || "N/A"}
+- Location: ${args.location || "N/A"}
+- Experience: ${typeof args.experienceYears === "number" ? args.experienceYears : "N/A"} years
+- Current Base: ${typeof args.currentBase === "number" ? `₹${args.currentBase}` : "N/A"}
+- Current Bonus: ${typeof args.currentBonus === "number" ? `₹${args.currentBonus}` : "N/A"}
+
+Job Description (trimmed):
+${args.jd.slice(0, 2800)}
+
+Resume (trimmed):
+${resumeText ? resumeText.slice(0, 2400) : "N/A"}
+
+Rules:
+- Prefer INR (₹) if role appears India-based; otherwise keep generic currency symbols if not sure.
+- Be realistic, cite short justification in notes (company tier, city, seniority).
+- Keep scripts crisp, polite, and professional. No markdown fences, plain text only.
+`;
+
+    // Ask for structured JSON; parse robustly
+    const raw = await callLLM(prompt, 0.35);
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (m) {
+        try {
+          parsed = JSON.parse(m[0]);
+        } catch {
+          // fallthrough
+        }
+      }
+    }
+    if (!parsed) {
+      // Minimal safe fallback
+      return {
+        marketBands: [
+          { label: "Typical", base: "—", tc: "—", note: "Could not fetch ranges. Try again." },
+        ],
+        scripts: {
+          initialReachout: "Hi [Name], I'm exploring opportunities for [Role]. Based on my experience in [skill/impact], I'd love to discuss fit and compensation expectations.",
+          postOfferNegotiation: "Thanks for the offer—very excited about the role. Given scope and market data for [city/level], is there room to move base to [target] or increase sign-on?",
+          competingOfferLeverage: "I wanted to be transparent: I have another offer at [comp]. Your role is my top choice—if we can align closer to [target], I'm ready to sign.",
+        },
+        tips: [
+          "Anchor on total comp; negotiate components (base, sign-on, bonus).",
+          "Stay positive and collaborative; avoid ultimatums.",
+          "Use ranges, not single numbers; justify with impact and market.",
+        ],
+      };
+    }
+    return parsed;
+  },
+});

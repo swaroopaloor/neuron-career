@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Mic, MicOff, Volume2, Sparkles, Loader2, ChevronRight, Clipboard } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type RecognitionType = any;
 
@@ -232,6 +233,7 @@ export default function InterviewCoach({
           <TabsList>
             <TabsTrigger value="drills">Q&A Drills</TabsTrigger>
             <TabsTrigger value="voice">Live Interview</TabsTrigger>
+            <TabsTrigger value="salary">Salary Coach</TabsTrigger>
           </TabsList>
           {!!questions.length && currentIdx >= 0 && (
             <Badge variant="secondary" className="text-xs">
@@ -258,6 +260,13 @@ export default function InterviewCoach({
             onPrev={() => setCurrentIdx(Math.max(currentIdx - 1, 0))}
             onNext={() => setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)))}
             onJump={(idx) => setCurrentIdx(idx)}
+          />
+        </TabsContent>
+
+        <TabsContent value="salary">
+          <SalaryCoach
+            jobDescription={jobDescription}
+            resumeFileId={resumeFileId}
           />
         </TabsContent>
       </Tabs>
@@ -933,6 +942,183 @@ function VoiceMirror({
           <div className="rounded-lg border p-3">
             <div className="text-sm font-semibold mb-2">Polished Answer</div>
             <p className="text-sm whitespace-pre-wrap">{polished}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SalaryCoach({
+  jobDescription,
+  resumeFileId,
+}: {
+  jobDescription?: string;
+  resumeFileId?: string;
+}) {
+  const runCoach = useAction(api.aiInterview.salaryCoach);
+
+  const [roleTitle, setRoleTitle] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
+  const [experienceYears, setExperienceYears] = useState<number | undefined>(undefined);
+  const [currentBase, setCurrentBase] = useState<number | undefined>(undefined);
+  const [currentBonus, setCurrentBonus] = useState<number | undefined>(undefined);
+
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{
+    marketBands: Array<{ label: string; base: string; tc: string; note?: string }>;
+    scripts: { initialReachout: string; postOfferNegotiation: string; competingOfferLeverage: string };
+    tips: string[];
+  } | null>(null);
+
+  const analyze = async () => {
+    if (!jobDescription) {
+      toast.error("Provide or select a job description first in setup.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const out = await runCoach({
+        jd: jobDescription,
+        resumeFileId: (resumeFileId as any) || undefined,
+        roleTitle: roleTitle || undefined,
+        location: location || undefined,
+        experienceYears: typeof experienceYears === "number" ? experienceYears : undefined,
+        currentBase: typeof currentBase === "number" ? currentBase : undefined,
+        currentBonus: typeof currentBonus === "number" ? currentBonus : undefined,
+      });
+      setResult(out as any);
+      toast.success("Salary intel generated");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate salary intel");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyText = async (text: string, label = "Copied") => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(label);
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Salary Negotiation Coach</CardTitle>
+        <CardDescription className="text-sm">
+          Market bands and ready-to-use scripts tailored to your resume and JD. Powered by Groq.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input
+            value={roleTitle}
+            onChange={(e) => setRoleTitle(e.target.value)}
+            placeholder="Target role (e.g., Frontend Engineer)"
+          />
+          <Input
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Location (e.g., Bangalore, Remote)"
+          />
+          <Input
+            value={experienceYears ?? ""}
+            onChange={(e) => setExperienceYears(e.target.value ? Number(e.target.value) : undefined)}
+            placeholder="Years of experience"
+            type="number"
+            min={0}
+          />
+          <Input
+            value={currentBase ?? ""}
+            onChange={(e) => setCurrentBase(e.target.value ? Number(e.target.value) : undefined)}
+            placeholder="Current base (₹)"
+            type="number"
+            min={0}
+          />
+          <Input
+            value={currentBonus ?? ""}
+            onChange={(e) => setCurrentBonus(e.target.value ? Number(e.target.value) : undefined)}
+            placeholder="Current bonus/sign-on (₹)"
+            type="number"
+            min={0}
+          />
+          <div className="flex items-center">
+            <Button size="sm" onClick={analyze} disabled={loading || !jobDescription}>
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              Analyze
+            </Button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="space-y-4">
+            <div>
+              <SectionHeader title="Market Bands" description="Estimated ranges based on role, location, and background." />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {result.marketBands?.map((band, i) => (
+                  <div key={i} className="rounded-lg border p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold">{band.label}</div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyText(`${band.label}: Base ${band.base}, TC ${band.tc}. ${band.note || ""}`.trim(), "Copied band")}
+                      >
+                        <Clipboard className="h-3 w-3 mr-1" /> Copy
+                      </Button>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">Base: {band.base}</div>
+                    <div className="text-xs text-muted-foreground">Total Comp: {band.tc}</div>
+                    {band.note && <div className="mt-1 text-xs">{band.note}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-lg border p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline" className="text-xs">Initial outreach</Badge>
+                  <Button variant="outline" size="sm" onClick={() => copyText(result.scripts.initialReachout, "Copied script")}>
+                    <Clipboard className="h-3 w-3 mr-1" /> Copy
+                  </Button>
+                </div>
+                <div className="text-sm whitespace-pre-wrap">{result.scripts.initialReachout}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline" className="text-xs">Post-offer negotiation</Badge>
+                  <Button variant="outline" size="sm" onClick={() => copyText(result.scripts.postOfferNegotiation, "Copied script")}>
+                    <Clipboard className="h-3 w-3 mr-1" /> Copy
+                  </Button>
+                </div>
+                <div className="text-sm whitespace-pre-wrap">{result.scripts.postOfferNegotiation}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline" className="text-xs">Competing offer leverage</Badge>
+                  <Button variant="outline" size="sm" onClick={() => copyText(result.scripts.competingOfferLeverage, "Copied script")}>
+                    <Clipboard className="h-3 w-3 mr-1" /> Copy
+                  </Button>
+                </div>
+                <div className="text-sm whitespace-pre-wrap">{result.scripts.competingOfferLeverage}</div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <SectionHeader title="Tips" description="Crisp pointers to negotiate confidently." />
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                {result.tips?.map((t, i) => <li key={i}>{t}</li>)}
+              </ul>
+            </div>
           </div>
         )}
       </CardContent>
