@@ -234,7 +234,7 @@ export function CommandPalette() {
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="p-0 max-w-2xl bg-card/95 backdrop-blur max-h-[80vh] flex flex-col">
+        <DialogContent className="p-0 max-w-2xl bg-card/95 backdrop-blur max-h-[60vh] flex flex-col">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -258,7 +258,7 @@ export function CommandPalette() {
 
             {/* Commands List */}
             <ScrollArea className="flex-1 overflow-y-auto">
-              <div className="p-2">
+              <div className="p-2 max-h-[45vh]">
                 <AnimatePresence>
                   {Object.entries(groupedCommands).map(([category, items]) => (
                     <motion.div
