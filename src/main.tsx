@@ -60,7 +60,6 @@ function RootLayout() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <VlyToolbar />
     <InstrumentationProvider>
       <ConvexAuthProvider client={convex}>
         <ThemeProvider>
