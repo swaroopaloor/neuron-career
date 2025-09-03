@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation, useAction } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,15 +21,11 @@ import {
   GraduationCap,
   Award
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useRef } from "react";
-import { Download } from "lucide-react";
 import { AuthRedirect } from "@/components/AuthRedirect";
 import { TemplateLibrary } from "@/components/TemplateLibrary";
+import { Download } from "lucide-react";
 
 type ResumePersonalInfo = {
   name: string;
@@ -76,6 +72,11 @@ const defaultResumeData: ResumeData = {
   education: [],
   skills: [],
 };
+
+export async function refineText({ text }: { text: string }): Promise<string> {
+  // No-op refinement to avoid blocking the UI; returns the original text
+  return text;
+}
 
 function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement>; variant?: "classic" | "modern" | "minimal" | "technical" }) {
   // Style presets by variant
@@ -624,51 +625,48 @@ export default function ResumeBuilder() {
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [showDefaultDialog, setShowDefaultDialog] = useState(false);
-  const [uploadedPdf, setUploadedPdf] = useState<{ id: string; name: string } | null>(null);
   const [isRefiningSummary, setIsRefiningSummary] = useState(false);
   const [refiningExpIndex, setRefiningExpIndex] = useState<number | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<"classic" | "modern" | "minimal" | "technical">("classic");
 
-  const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
-  const updateProfile = useMutation(api.users.updateProfile);
-  const refineText = useAction(api.aiAnalysis.refineText);
-
   const openPrintDialogFromPreview = async (): Promise<boolean> => {
     const source = previewRef.current;
-    if (!source) {
-      return false;
-    }
+    if (!source) return false;
 
-    // Collect current document styles (Tailwind/shadcn output) so preview prints exactly as styled
-    const cssLinks = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style')
-    )
+    // Collect styles from current document
+    const headHtml = Array.from(document.head.children)
       .map((el) => (el as HTMLElement).outerHTML)
       .join("\n");
 
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
+    // Create hidden iframe
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    // Write print document
+    const doc = iframe.contentDocument;
+    if (!doc) {
+      document.body.removeChild(iframe);
       return false;
     }
 
     const html = `
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>${resumeData.personalInfo.name || "Resume"}</title>
-    ${cssLinks}
+    ${headHtml}
     <style>
       @page { size: A4; margin: 12mm; }
       html, body { background: #ffffff; color: #000; height: auto; }
       * { box-sizing: border-box; }
       body { margin: 0; padding: 0; }
-      .print-container {
-        width: 210mm;
-        min-height: 297mm;
-        margin: 0 auto;
-      }
+      .print-container { width: 210mm; min-height: 297mm; margin: 0 auto; }
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     </style>
@@ -680,29 +678,27 @@ export default function ResumeBuilder() {
     <script>
       window.addEventListener('load', function () {
         setTimeout(function () {
-          try {
-            window.focus();
-            window.print();
-          } catch (_) {}
-        }, 200);
+          try { window.focus(); window.print(); } catch (_) {}
+        }, 50);
       });
       window.onafterprint = function () {
-        setTimeout(function(){ window.close(); }, 200);
+        setTimeout(function(){ window.close && window.close(); }, 100);
       };
     </script>
   </body>
-</html>
-    `.trim();
+</html>`.trim();
 
     try {
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
+      doc.open();
+      doc.write(html);
+      doc.close();
+      // Clean up iframe after some delay (post-print)
+      setTimeout(() => {
+        try { document.body.removeChild(iframe); } catch {}
+      }, 2000);
       return true;
     } catch {
-      try {
-        printWindow.close();
-      } catch {}
+      try { document.body.removeChild(iframe); } catch {}
       return false;
     }
   };
@@ -710,188 +706,15 @@ export default function ResumeBuilder() {
   const handleExportPDF = async () => {
     setIsExporting(true);
     try {
-      // 1) Print-first approach: most robust and browser-native
       const opened = await openPrintDialogFromPreview();
       if (opened) {
         toast.info("Opening print dialog — choose 'Save as PDF'.");
-        setIsExporting(false);
-        return;
-      }
-    } catch {
-      // Ignore and proceed to fallback
-    }
-
-    // 2) Fallback: canvas + jsPDF generation
-    const source = previewRef.current;
-    if (!source) {
-      toast.error("Preview not ready. Try again in a moment.");
-      setIsExporting(false);
-      return;
-    }
-
-    try {
-      const docAny = document as any;
-      if (docAny?.fonts?.ready) {
-        await docAny.fonts.ready;
-      }
-
-      const clone = source.cloneNode(true) as HTMLElement;
-      const A4_PX_WIDTH = 794; // ~8.27in * 96dpi
-      clone.style.width = `${A4_PX_WIDTH}px`;
-      clone.style.position = "fixed";
-      clone.style.left = "-10000px";
-      clone.style.top = "0px";
-      clone.style.background = "#ffffff";
-
-      const imgs = clone.querySelectorAll("img");
-      imgs.forEach((img) => {
-        try {
-          (img as HTMLImageElement).crossOrigin = "anonymous";
-          if ((img as HTMLImageElement).src) {
-            const src = (img as HTMLImageElement).src;
-            (img as HTMLImageElement).src = src;
-          }
-        } catch {}
-      });
-
-      document.body.appendChild(clone);
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-
-      let canvas: HTMLCanvasElement | null = null;
-      let renderError: unknown = null;
-      try {
-        canvas = await html2canvas(clone, {
-          scale: Math.min(2, Math.max(1, window.devicePixelRatio || 1)),
-          backgroundColor: "#ffffff",
-          useCORS: true,
-          allowTaint: false,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: clone.scrollWidth || A4_PX_WIDTH,
-          windowHeight: clone.scrollHeight || source.scrollHeight || 1123,
-          logging: false,
-          foreignObjectRendering: true,
-        });
-      } catch (e) {
-        renderError = e;
-      }
-
-      if (!canvas) {
-        try {
-          canvas = await html2canvas(clone, {
-            scale: 1.5,
-            backgroundColor: "#ffffff",
-            useCORS: true,
-            allowTaint: false,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: clone.scrollWidth || A4_PX_WIDTH,
-            windowHeight: clone.scrollHeight || source.scrollHeight || 1123,
-            logging: false,
-            foreignObjectRendering: false,
-          });
-        } catch (e2) {
-          document.body.removeChild(clone);
-          console.error("Primary render error:", renderError);
-          console.error("Fallback render error:", e2);
-          // Last resort: try print one more time; if fails, bubble error
-          const printOpened = await openPrintDialogFromPreview();
-          if (printOpened) {
-            toast.info("Opening print dialog — choose 'Save as PDF'.");
-            setIsExporting(false);
-            return;
-          }
-          throw new Error("Failed to render resume to canvas.");
-        }
-      }
-
-      document.body.removeChild(clone);
-
-      const canvasToDataUrl = async (): Promise<string> => {
-        try {
-          const blob: Blob | null = await new Promise((resolve) =>
-            canvas!.toBlob((b) => resolve(b), "image/jpeg", 0.95)
-          );
-          if (blob) {
-            const reader = new FileReader();
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-              reader.onloadend = () => {
-                if (typeof reader.result === "string") resolve(reader.result);
-                else reject(new Error("Failed to read blob."));
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-            return dataUrl;
-          }
-          return canvas!.toDataURL("image/png");
-        } catch {
-          return canvas!.toDataURL("image/png");
-        }
-      };
-
-      const imgData = await canvasToDataUrl();
-
-      const pdf = new jsPDF("p", "pt", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas!.height * imgWidth) / canvas!.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
-      heightLeft -= pageHeight;
-
-      while (heightLeft > 0) {
-        pdf.addPage();
-        position = heightLeft - imgHeight;
-        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
-        heightLeft -= pageHeight;
-      }
-
-      const fileName = `${resumeData.personalInfo.name || "Resume"}-${new Date()
-        .toISOString()
-        .slice(0, 10)}.pdf`;
-
-      pdf.save(fileName);
-
-      try {
-        const blob = pdf.output("blob");
-        const uploadUrl = await generateUploadUrl({});
-        const uploadRes = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/pdf" },
-          body: blob,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.statusText}`);
-        }
-        const json = await uploadRes.json().catch(() => ({} as any));
-        const storageId = (json as any)?.storageId;
-        if (!storageId) {
-          throw new Error("Upload succeeded but missing storageId in response.");
-        }
-
-        setUploadedPdf({ id: storageId, name: fileName });
-        setShowDefaultDialog(true);
-        toast.success("PDF saved! You can set it as your default resume.");
-      } catch (uploadErr) {
-        console.error(uploadErr);
-        toast.error("PDF saved locally. Upload failed — try again later.");
-      }
-    } catch (err) {
-      console.error(err);
-      // As a final attempt, try the print path
-      const finalTry = await openPrintDialogFromPreview();
-      if (finalTry) {
-        toast.info("Opening print dialog — choose 'Save as PDF'.");
       } else {
-        toast.error("Couldn't open print or save PDF. Try another browser or disable pop-up blockers.");
+        toast.error("Unable to open print dialog. Please try again.");
       }
+    } catch (e) {
+      console.error(e);
+      toast.error("Unable to open print dialog. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -1170,39 +993,6 @@ export default function ResumeBuilder() {
             </div>
           </motion.div>
         </div>
-
-        <AlertDialog open={showDefaultDialog} onOpenChange={setShowDefaultDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Set this PDF as your default resume?</AlertDialogTitle>
-              <AlertDialogDescription>
-                We've exported your resume as a PDF. You can set this file as your default resume so it's used for uploads and quick access across the app.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Not now</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={async () => {
-                  if (!uploadedPdf) return;
-                  try {
-                    await updateProfile({
-                      savedResumeId: uploadedPdf.id as any,
-                      savedResumeName: uploadedPdf.name,
-                    });
-                    toast.success("Default resume updated!");
-                  } catch (e) {
-                    console.error(e);
-                    toast.error("Failed to set default resume.");
-                  } finally {
-                    setShowDefaultDialog(false);
-                  }
-                }}
-              >
-                Set as Default
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </div>
   );
