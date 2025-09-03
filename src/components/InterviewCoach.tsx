@@ -75,8 +75,13 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
           recognitionRef.current.onresult = null;
           recognitionRef.current.onerror = null;
           recognitionRef.current.stop();
+          if (typeof recognitionRef.current.abort === "function") {
+            recognitionRef.current.abort();
+          }
         } catch (e) {
-          console.warn("Error cleaning up speech recognition:", e);
+          // ignore
+        } finally {
+          recognitionRef.current = null;
         }
       }
     };
@@ -107,6 +112,23 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
         }
       }
 
+      // Hard-stop any previous instance before starting a new one (prevents silent failures)
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onresult = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.stop();
+          if (typeof recognitionRef.current.abort === "function") {
+            recognitionRef.current.abort();
+          }
+        } catch (e) {
+          // ignore
+        } finally {
+          recognitionRef.current = null;
+        }
+      }
+
       const rec = new SpeechRecognitionRef.current();
       recognitionRef.current = rec;
 
@@ -119,6 +141,8 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
       rec.onstart = () => {
         // RESET buffer on start to avoid stale text
         finalBufferRef.current = "";
+        // Force clear UI instantly so new words show immediately
+        try { onResult(""); } catch {}
         setListening(true);
         isStartingRef.current = false;
         console.log("Speech recognition started");
@@ -140,49 +164,41 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
         }
         // Emit combined text instantly for live feel
         const combined = (finalBufferRef.current + " " + interim).trim();
-        onResult(combined);
+        // Use rAF to make UI paint immediately on hot result streams
+        window.requestAnimationFrame(() => onResult(combined));
       };
 
       rec.onerror = (ev: any) => {
         console.error("Speech recognition error:", ev.error);
-        
+
+        // Always consider recognition stopped at this point (prevents stuck states)
+        setListening(false);
+
         // Handle specific error types
         switch (ev.error) {
           case "not-allowed":
           case "service-not-allowed":
-            setSupported(false);
-            setListening(false);
-            break;
-          case "no-speech":
-            // Don't restart for no-speech, just continue listening
-            break;
           case "audio-capture":
             setSupported(false);
-            setListening(false);
             break;
+          case "no-speech":
           case "network":
-            // Try to restart after network error
-            if (listening) {
-              setTimeout(() => {
-                if (listening) {
-                  start().catch(() => {
-                    setListening(false);
-                  });
-                }
-              }, 1000);
-            }
-            break;
           default:
-            // For other errors, try one restart
-            if (listening && !restartTimeout.current) {
+            // Fast auto-restart for transient issues (if user still expects listening)
+            if (!isStartingRef.current) {
+              if (restartTimeout.current) {
+                window.clearTimeout(restartTimeout.current);
+              }
               restartTimeout.current = window.setTimeout(() => {
                 restartTimeout.current = null;
-                if (listening) {
+                // Only restart if user hasn't toggled it off
+                if (!listening) {
+                  // attempt to start fresh
                   start().catch(() => {
                     setListening(false);
                   });
                 }
-              }, 500);
+              }, 50);
             }
         }
         isStartingRef.current = false;
@@ -190,7 +206,7 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
 
       rec.onend = () => {
         console.log("Speech recognition ended");
-        // Only restart if we're still supposed to be listening
+        // Immediate restart if we are still in listening mode expectation
         if (listening && !isStartingRef.current) {
           if (restartTimeout.current) {
             window.clearTimeout(restartTimeout.current);
@@ -202,8 +218,17 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
                 setListening(false);
               });
             }
-          }, 100);
+          }, 50);
         }
+      };
+
+      // Optional: signal-level events can help certain browsers keep the session alive
+      rec.onaudiostart = () => {
+        // ensure UI stays responsive
+        try { onResult((finalBufferRef.current || "").trim()); } catch {}
+      };
+      rec.onspeechstart = () => {
+        try { onResult((finalBufferRef.current || "").trim()); } catch {}
       };
 
       // Start recognition
@@ -222,6 +247,7 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
     isStartingRef.current = false;
     // RESET buffer on stop too
     finalBufferRef.current = "";
+    try { onResult(""); } catch {}
 
     if (restartTimeout.current) {
       window.clearTimeout(restartTimeout.current);
@@ -231,9 +257,16 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
     if (recognitionRef.current) {
       try {
         recognitionRef.current.onend = null; // Prevent restart
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
         recognitionRef.current.stop();
+        if (typeof recognitionRef.current.abort === "function") {
+          recognitionRef.current.abort();
+        }
       } catch (error) {
         console.warn("Error stopping speech recognition:", error);
+      } finally {
+        recognitionRef.current = null;
       }
     }
   };
