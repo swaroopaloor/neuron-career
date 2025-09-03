@@ -329,3 +329,40 @@ Rules:
     return parsed;
   },
 });
+
+export const transcribeChunk = action({
+  args: {
+    audio: v.bytes(),
+    mimeType: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error("AI not configured. Please add GROQ_API_KEY in Integrations.");
+    }
+    const groq = new Groq({ apiKey });
+
+    // Construct a File from bytes using Web-standard Blob/File available in Node runtime
+    const type = args.mimeType || "audio/webm";
+    const blob = new Blob([args.audio], { type });
+    const file = new File([blob], "chunk.webm", { type });
+
+    // Use whisper-large-v3 for fast, accurate STT
+    const resp = await groq.audio.transcriptions.create({
+      file,
+      model: "whisper-large-v3",
+      response_format: "text",
+      temperature: 0,
+      // optional guiding prompt to stabilize domain terms
+      prompt: args.prompt || "",
+    });
+
+    const raw: unknown = resp;
+    const text =
+      typeof raw === "string"
+        ? raw.trim()
+        : String((raw as any)?.text ?? (raw as any)?.result ?? "").trim();
+    return text;
+  },
+});

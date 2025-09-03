@@ -605,6 +605,7 @@ function VoiceMirror({
   const suggest = useAction(api.aiInterview.suggestAnswer);
   const genQs = useAction(api.aiInterview.generateQuestions);
   const sessionFeedback = useAction(api.aiInterview.sessionFeedback);
+  const transcribeChunk = useAction(api.aiInterview.transcribeChunk);
 
   // Small helper: retry wrapper for transient network issues
   const withRetry = async <T,>(fn: () => Promise<T>): Promise<T> => {
@@ -837,6 +838,127 @@ function VoiceMirror({
     };
   }, [showSummary, metricsLog, durationMin]);
 
+  // Add: Groq STT mode toggle and recorder refs
+  const [useGroqSTT, setUseGroqSTT] = useState<boolean>(false);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const sendingRef = useRef<boolean>(false);
+  const stoppedRef = useRef<boolean>(true);
+
+  // Start Groq STT recorder
+  const startGroq = async () => {
+    try {
+      if (recorderRef.current || !stoppedRef.current) return;
+      // request mic
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      // Prefer opus/webm for smaller chunks and speed
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
+
+      const rec = new MediaRecorder(stream, { mimeType: mime });
+      recorderRef.current = rec;
+      stoppedRef.current = false;
+
+      // Clear state and start timer
+      setTranscript("");
+      setStartedAt(Date.now());
+
+      rec.ondataavailable = async (ev: BlobEvent) => {
+        if (stoppedRef.current) return;
+        const blob = ev.data;
+        if (!blob || blob.size === 0) return;
+
+        // Avoid overlapping sends
+        if (sendingRef.current) return;
+        sendingRef.current = true;
+        try {
+          const buf = await blob.arrayBuffer();
+          const text = await transcribeChunk({
+            audio: new Uint8Array(buf) as any,
+            mimeType: blob.type || mime,
+            prompt:
+              interviewType === "Technical"
+                ? "Technical interview context. Use concise phrasing and preserve jargon."
+                : interviewType === "HR"
+                ? "HR/behavioral interview context. Clean up filler words but keep meaning."
+                : "Job interview context. Transcribe clearly and concisely.",
+          });
+          if (!stoppedRef.current && text) {
+            // Append space if needed
+            setTranscript((prev) => (prev && !prev.endsWith(" ") ? prev + " " + text : (prev || "") + text));
+          }
+        } catch {
+          // swallow transient errors; chunks are continuous
+        } finally {
+          sendingRef.current = false;
+        }
+      };
+
+      rec.onerror = () => {
+        // Failover to Web Speech if available
+        toast.error("Microphone recording error. Falling back to browser voice.");
+        stopGroq();
+        if (!supported) return;
+        void start();
+      };
+
+      // Fire frequent chunks for near-instant text
+      rec.start(500);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to start Groq voice");
+      stopGroq();
+    }
+  };
+
+  // Stop Groq STT recorder
+  const stopGroq = () => {
+    stoppedRef.current = true;
+    try {
+      recorderRef.current?.stop();
+    } catch {}
+    recorderRef.current = null;
+    mediaStreamRef.current?.getTracks()?.forEach((t) => {
+      try {
+        t.stop();
+      } catch {}
+    });
+    mediaStreamRef.current = null;
+  };
+
+  // Integrate start/stop unified
+  const startUnified = () => {
+    if (useGroqSTT) {
+      // Ensure browser SR isn't running
+      if (listening) {
+        try { stop(); } catch {}
+      }
+      startGroq();
+    } else {
+      // Ensure Groq isn't running
+      stopGroq();
+      start();
+    }
+  };
+  const stopUnified = () => {
+    if (useGroqSTT) {
+      stopGroq();
+    } else {
+      stop();
+    }
+  };
+
+  // Ensure cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopGroq();
+    };
+  }, []);
+
   return (
     <Card>
       <CardHeader>
@@ -977,29 +1099,49 @@ function VoiceMirror({
         <Separator />
         <SectionHeader title="Record or type your answer" description="Use your mic or type. Metrics update in real-time." />
         <div className="flex items-center gap-2 flex-wrap">
-          {!supported && (
+          {/* Add: STT mode toggle */}
+          <div className="flex items-center gap-2 text-xs rounded-md border px-2 py-1">
+            <span className="text-muted-foreground">STT:</span>
+            <button
+              className={`px-2 py-0.5 rounded ${useGroqSTT ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+              onClick={() => {
+                // switching modes stops current engine
+                stopUnified();
+                setUseGroqSTT((v) => !v);
+                setTranscript("");
+                setStartedAt(null);
+              }}
+            >
+              {useGroqSTT ? "Groq (fast)" : "Browser"}
+            </button>
+          </div>
+
+          {!supported && !useGroqSTT && (
             <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded px-2 py-1">
-              Voice not supported. Please use a modern browser like Chrome, Edge, or Safari.
+              Browser voice not supported. Switch to Groq (fast).
             </div>
           )}
           <Button
             size="sm"
-            onClick={() => (listening ? stop() : start())}
-            variant={listening ? "destructive" : "default"}
-            disabled={!supported}
+            onClick={() => (useGroqSTT ? (stoppedRef.current ? startUnified() : stopUnified()) : listening ? stopUnified() : startUnified())}
+            variant={useGroqSTT ? (stoppedRef.current ? "default" : "destructive") : listening ? "destructive" : "default"}
           >
-            {listening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}
-            {listening ? "Stop" : "Start"} Recording
+            {useGroqSTT ? (stoppedRef.current ? <Mic className="h-4 w-4 mr-2" /> : <MicOff className="h-4 w-4 mr-2" />) : listening ? (
+              <MicOff className="h-4 w-4 mr-2" />
+            ) : (
+              <Mic className="h-4 w-4 mr-2" />
+            )}
+            {useGroqSTT ? (stoppedRef.current ? "Start" : "Stop") : listening ? "Stop" : "Start"} Recording
           </Button>
           <Button size="sm" variant="outline" onClick={resetRecording}>
             Reset
           </Button>
-          {listening && (
+          {(!stoppedRef.current && useGroqSTT) || listening ? (
             <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               Listening...
             </div>
-          )}
+          ) : null}
           <div className="mx-2 h-5 w-px bg-border" />
           <Button size="sm" variant="outline" onClick={handleNewQuestion}>
             New Question
