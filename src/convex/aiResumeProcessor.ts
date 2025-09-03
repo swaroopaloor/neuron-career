@@ -100,6 +100,49 @@ Focus on:
   },
 });
 
+export const refineText = action({
+  args: {
+    text: v.string(),
+    context: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey) {
+      throw new Error("GROQ API key not configured");
+    }
+
+    const groq = new Groq({ apiKey: groqApiKey });
+
+    const system =
+      "You rewrite and polish resume content. Return ONLY plain text (no JSON, no markdown). Keep it concise, impactful, and ATS-friendly.";
+    const user = `Context: ${args.context || "general"}
+Original:
+${args.text}
+
+Rules:
+- Improve clarity, grammar, and punch.
+- Prefer active voice and measurable impact.
+- Keep original meaning; don't invent experience.
+- Bullet-like flow allowed via short lines; but return plain text only.`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+
+    const content = completion.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!content) {
+      throw new Error("Empty response from model");
+    }
+    return content;
+  },
+});
+
 export const suggestTargetRoles = action({
   args: { resumeContent: v.string() },
   handler: async (ctx, args) => {

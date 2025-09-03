@@ -73,10 +73,7 @@ const defaultResumeData: ResumeData = {
   skills: [],
 };
 
-export async function refineText({ text }: { text: string }): Promise<string> {
-  // No-op refinement to avoid blocking the UI; returns the original text
-  return text;
-}
+/* removed local refineText helper; now using Convex action aiResumeProcessor.refineText */
 
 function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement>; variant?: "classic" | "modern" | "minimal" | "technical" }) {
   // Style presets by variant
@@ -629,6 +626,9 @@ export default function ResumeBuilder() {
   const [refiningExpIndex, setRefiningExpIndex] = useState<number | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<"classic" | "modern" | "minimal" | "technical">("classic");
 
+  // Use Groq-backed Convex action for refinement
+  const refineTextAI = useAction(api.aiResumeProcessor.refineText);
+
   const openPrintDialogFromPreview = async (): Promise<boolean> => {
     const source = previewRef.current;
     if (!source) return false;
@@ -710,7 +710,7 @@ export default function ResumeBuilder() {
     try {
       const opened = await openPrintDialogFromPreview();
       if (opened) {
-        toast.info("Print dialog opened — Save as PDF. IMPORTANT: Uncheck “Headers and footers” and check “Background graphics” for a clean resume.");
+        toast.info('Print dialog opened — Save as PDF. IMPORTANT: Uncheck "Headers and footers" and check "Background graphics" for a clean resume.');
       } else {
         toast.error("Unable to open print dialog. Please try again.");
       }
@@ -801,7 +801,7 @@ export default function ResumeBuilder() {
     }
     try {
       setIsRefiningSummary(true);
-      const refined = await refineText({ text });
+      const refined = await refineTextAI({ text, context: "summary" });
       setResumeData((prev) => ({ ...prev, summary: refined || text }));
       toast.success("Summary refined!");
     } catch (e) {
@@ -820,7 +820,7 @@ export default function ResumeBuilder() {
     }
     try {
       setRefiningExpIndex(index);
-      const refined = await refineText({ text: current });
+      const refined = await refineTextAI({ text: current, context: "experience" });
       setResumeData((prev) => ({
         ...prev,
         experience: prev.experience.map((exp, i) =>
