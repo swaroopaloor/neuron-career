@@ -662,11 +662,13 @@ export default function ResumeBuilder() {
     <meta charset="utf-8" />
     ${headHtml}
     <style>
-      @page { size: A4; margin: 12mm; }
+      /* Remove browser header/footer space and control margins ourselves */
+      @page { size: A4; margin: 0; }
       html, body { background: #ffffff; color: #000; height: auto; }
       * { box-sizing: border-box; }
       body { margin: 0; padding: 0; }
-      .print-container { width: 210mm; min-height: 297mm; margin: 0 auto; }
+      /* Add internal padding to simulate margins and keep the exact preview layout */
+      .print-container { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 12mm; }
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     </style>
@@ -708,7 +710,7 @@ export default function ResumeBuilder() {
     try {
       const opened = await openPrintDialogFromPreview();
       if (opened) {
-        toast.info("Opening print dialog — choose 'Save as PDF'.");
+        toast.info("Print dialog opened — Save as PDF. IMPORTANT: Uncheck “Headers and footers” and check “Background graphics” for a clean resume.");
       } else {
         toast.error("Unable to open print dialog. Please try again.");
       }
