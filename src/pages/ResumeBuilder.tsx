@@ -639,6 +639,14 @@ export default function ResumeBuilder() {
     if (!source) {
       return false;
     }
+
+    // Collect current document styles (Tailwind/shadcn output) so preview prints exactly as styled
+    const cssLinks = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style')
+    )
+      .map((el) => (el as HTMLElement).outerHTML)
+      .join("\n");
+
     const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (!printWindow) {
       return false;
@@ -650,6 +658,7 @@ export default function ResumeBuilder() {
   <head>
     <meta charset="utf-8" />
     <title>${resumeData.personalInfo.name || "Resume"}</title>
+    ${cssLinks}
     <style>
       @page { size: A4; margin: 12mm; }
       html, body { background: #ffffff; color: #000; height: auto; }
@@ -675,7 +684,7 @@ export default function ResumeBuilder() {
             window.focus();
             window.print();
           } catch (_) {}
-        }, 150);
+        }, 200);
       });
       window.onafterprint = function () {
         setTimeout(function(){ window.close(); }, 200);
