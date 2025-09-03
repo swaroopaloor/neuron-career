@@ -50,6 +50,7 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
   const SpeechRecognitionRef = useRef<any>(null);
   const restartTimeout = useRef<number | null>(null);
   const isStartingRef = useRef<boolean>(false);
+  const finalBufferRef = useRef<string>("");
 
   useEffect(() => {
     // Check for speech recognition support
@@ -116,17 +117,30 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
       rec.maxAlternatives = 1;
 
       rec.onstart = () => {
+        // RESET buffer on start to avoid stale text
+        finalBufferRef.current = "";
         setListening(true);
         isStartingRef.current = false;
         console.log("Speech recognition started");
       };
 
       rec.onresult = (e: any) => {
-        let transcript = "";
+        let interim = "";
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          transcript += e.results[i][0].transcript;
+          const res = e.results[i];
+          const t = res[0]?.transcript ?? "";
+          if (!t) continue;
+          if (res.isFinal) {
+            // Add a space if needed between segments
+            const needsSpace = finalBufferRef.current.length > 0 && !finalBufferRef.current.endsWith(" ");
+            finalBufferRef.current += (needsSpace ? " " : "") + t.trim();
+          } else {
+            interim += t + " ";
+          }
         }
-        onResult(transcript);
+        // Emit combined text instantly for live feel
+        const combined = (finalBufferRef.current + " " + interim).trim();
+        onResult(combined);
       };
 
       rec.onerror = (ev: any) => {
@@ -206,7 +220,9 @@ function useSpeechRecognition(onResult: (partial: string) => void) {
     console.log("Stopping speech recognition");
     setListening(false);
     isStartingRef.current = false;
-    
+    // RESET buffer on stop too
+    finalBufferRef.current = "";
+
     if (restartTimeout.current) {
       window.clearTimeout(restartTimeout.current);
       restartTimeout.current = null;
