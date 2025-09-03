@@ -633,8 +633,10 @@ export default function ResumeBuilder() {
     const source = previewRef.current;
     if (!source) return false;
 
-    // Collect styles from current document
-    const headHtml = Array.from(document.head.children)
+    // Collect essential styles from current document (links, styles, meta, title)
+    const headHtml = Array.from(
+      document.head.querySelectorAll("link,style,meta,title")
+    )
       .map((el) => (el as HTMLElement).outerHTML)
       .join("\n");
 
@@ -648,13 +650,13 @@ export default function ResumeBuilder() {
     iframe.style.border = "0";
     document.body.appendChild(iframe);
 
-    // Write print document
     const doc = iframe.contentDocument;
     if (!doc) {
       document.body.removeChild(iframe);
       return false;
     }
 
+    // Inject the preview HTML exactly as-is; no wrappers, no extra layout CSS
     const html = `
 <!doctype html>
 <html>
@@ -662,31 +664,23 @@ export default function ResumeBuilder() {
     <meta charset="utf-8" />
     ${headHtml}
     <style>
-      /* Remove browser header/footer space and control margins ourselves */
-      @page { size: A4; margin: 0; }
-      html, body { background: #ffffff; color: #000; height: auto; }
+      @media print {
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+      }
+      html, body {
+        background: #ffffff;
+        color: #000;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       * { box-sizing: border-box; }
-      body { margin: 0; padding: 0; }
-      /* Add internal padding to simulate margins and keep the exact preview layout */
-      .print-container { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 12mm; }
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
     </style>
   </head>
   <body>
-    <div class="print-container">
-      ${source.outerHTML}
-    </div>
-    <script>
-      window.addEventListener('load', function () {
-        setTimeout(function () {
-          try { window.focus(); window.print(); } catch (_) {}
-        }, 50);
-      });
-      window.onafterprint = function () {
-        setTimeout(function(){ window.close && window.close(); }, 100);
-      };
-    </script>
+    ${source.outerHTML}
   </body>
 </html>`.trim();
 
@@ -694,13 +688,65 @@ export default function ResumeBuilder() {
       doc.open();
       doc.write(html);
       doc.close();
-      // Clean up iframe after some delay (post-print)
-      setTimeout(() => {
-        try { document.body.removeChild(iframe); } catch {}
-      }, 2000);
+
+      const win = iframe.contentWindow;
+
+      // Wait for resources (fonts/images) to load to avoid layout shifts
+      const waitForReady = async () => {
+        try {
+          // fonts
+          if (win?.document?.fonts && typeof win.document.fonts.ready?.then === "function") {
+            await win.document.fonts.ready;
+          }
+        } catch {}
+        // images
+        await new Promise<void>((resolve) => {
+          if (!win) return resolve();
+          const images = Array.from(win.document.images || []);
+          if (images.length === 0) return resolve();
+          let loaded = 0;
+          const done = () => { loaded += 1; if (loaded >= images.length) resolve(); };
+          images.forEach((img) => {
+            if ((img as any).complete) return done();
+            img.addEventListener("load", done);
+            img.addEventListener("error", done);
+          });
+          // safety timeout
+          setTimeout(resolve, 800);
+        });
+      };
+
+      await waitForReady();
+
+      // Try printing (parent-triggered) after resources are ready
+      const tryPrint = () => {
+        if (!win) return;
+        try {
+          win.focus();
+          win.print();
+        } catch {}
+      };
+
+      // Fallback: also attempt on iframe load
+      iframe.onload = () => {
+        tryPrint();
+      };
+
+      // Attempt now
+      tryPrint();
+
+      // Cleanup
+      window.setTimeout(() => {
+        try {
+          document.body.removeChild(iframe);
+        } catch {}
+      }, 2500);
+
       return true;
     } catch {
-      try { document.body.removeChild(iframe); } catch {}
+      try {
+        document.body.removeChild(iframe);
+      } catch {}
       return false;
     }
   };
