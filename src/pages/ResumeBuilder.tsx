@@ -665,9 +665,18 @@ export default function ResumeBuilder() {
     ${headHtml}
     <style>
       @media print {
+        @page {
+          margin: 0;
+          size: letter;
+        }
         html, body {
           margin: 0 !important;
           padding: 0 !important;
+        }
+        /* Hide browser headers/footers */
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
       }
       html, body {
