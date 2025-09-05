@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Upload, BookOpen, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Save, Layers } from "lucide-react";
+import InterviewLiveCall from "@/components/InterviewLiveCall";
 
 export default function Interview() {
   const { isLoading, isAuthenticated, user } = useAuth();
@@ -37,6 +38,9 @@ export default function Interview() {
   // Track coach state to save
   const [sessionQs, setSessionQs] = useState<string[]>([]);
   const [sessionIdx, setSessionIdx] = useState<number>(-1);
+
+  // Live interview state
+  const [liveOpen, setLiveOpen] = useState<boolean>(false);
 
   // Load user's analyses (guarded)
   const analyses = useQuery(api.analyses.getUserAnalyses, isAuthenticated ? { limit: 50 } : "skip");
@@ -432,9 +436,26 @@ export default function Interview() {
                     {effectiveJd ? effectiveJd : "Not set"}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full md:w-auto">
                   <Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
                     Reconfigure
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="w-full md:w-auto"
+                    onClick={() => {
+                      if (!sessionResumeFileId && !selectedAnalysis?.resumeFileId) {
+                        toast.error("Select or upload a resume first");
+                        return;
+                      }
+                      if (!effectiveJd?.trim()) {
+                        toast.error("Provide a job description first");
+                        return;
+                      }
+                      setLiveOpen(true);
+                    }}
+                  >
+                    Start Live Interview
                   </Button>
                   <Button size="sm" className="sm:hidden" onClick={handleSaveSession}>
                     <Save className="h-4 w-4 mr-1" /> Save
@@ -466,6 +487,16 @@ export default function Interview() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Live Interview */}
+        <InterviewLiveCall
+          open={liveOpen}
+          onClose={() => setLiveOpen(false)}
+          jd={effectiveJd || undefined}
+          resumeFileId={sessionResumeFileId || selectedAnalysis?.resumeFileId}
+          defaultType="Intro"
+          defaultDuration={30}
+        />
 
         {/* Tips */}
         <div className="mt-6">
