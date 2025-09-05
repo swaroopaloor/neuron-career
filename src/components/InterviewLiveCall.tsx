@@ -460,282 +460,338 @@ export default function InterviewLiveCall({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm">
-      <div className="absolute inset-0 grid grid-rows-[auto,1fr]">
-        {/* Top Bar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b bg-background/80">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">AI Recruiter Call</Badge>
-            {sessionActive ? (
-              <div className="text-sm">
-                Time left: <span className="font-semibold">{Math.floor(remainingSec / 60)}:{String(remainingSec % 60).padStart(2, "0")}</span>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">Ready</div>
-            )}
-            <div className="text-muted-foreground">•</div>
-            <div className="text-sm">
-              Round: <span className="font-semibold">{interviewType}</span>
-            </div>
-            <div className="text-muted-foreground">•</div>
-            <div className="text-sm">
-              Questions: <span className="font-semibold">{questionsAsked}/{targetQuestions || "-"}</span>
-            </div>
+    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm">
+      {/* Header / Meeting bar */}
+      <div className="absolute top-0 left-0 right-0 h-12 border-b bg-background/80 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs">AI Recruiter Call</Badge>
+          <div className="text-muted-foreground">•</div>
+          <div className="text-sm">
+            Round: <span className="font-semibold">{interviewType}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="h-2 w-16 rounded bg-muted overflow-hidden">
-                <div
-                  className="h-2 bg-green-500 transition-[width] duration-150"
-                  style={{ width: `${Math.round(micLevel * 100)}%` }}
-                />
-              </div>
-              <span className="text-xs text-muted-foreground">Mic</span>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => setMuted((m) => !m)}>
-              {muted ? <VolumeX className="h-4 w-4 mr-2" /> : <Volume2 className="h-4 w-4 mr-2" />}
-              {muted ? "Unmute AI" : "Mute AI"}
-            </Button>
+          <div className="text-muted-foreground">•</div>
+          <div className="text-sm">
+            Questions: <span className="font-semibold">{questionsAsked}/{targetQuestions || "-"}</span>
+          </div>
+          <div className="text-muted-foreground">•</div>
+          <div className="text-sm">
             {sessionActive ? (
-              <Button size="sm" variant="destructive" onClick={handleEndSession}>End Session</Button>
+              <>
+                Time left: <span className="font-semibold">
+                  {Math.floor(remainingSec / 60)}:{String(remainingSec % 60).padStart(2, "0")}
+                </span>
+              </>
             ) : (
-              <Button size="sm" variant="ghost" onClick={() => { stopRecorder(); stopSpeak(); onClose(); }}>
-                <X className="h-4 w-4 mr-2" /> Close
-              </Button>
+              <span className="text-muted-foreground">Ready</span>
             )}
           </div>
         </div>
 
-        {/* Main */}
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 p-4 overflow-y-auto">
-          {/* Left: Call-style bubbles */}
-          <div className="rounded-xl border bg-gradient-to-br from-secondary/20 to-primary/10 p-4 relative">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 grid place-items-center">
-                  <Sparkles className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-3">
+          {/* Mic level mini meter */}
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="h-2 w-20 rounded bg-muted overflow-hidden">
+              <div
+                className="h-2 bg-green-500 transition-[width] duration-150"
+                style={{ width: `${Math.round(micLevel * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">Mic</span>
+          </div>
+
+          {!sessionActive ? (
+            <Button size="sm" variant="ghost" onClick={() => { stopRecorder(); stopSpeak(); onClose(); }}>
+              <X className="h-4 w-4 mr-2" /> Close
+            </Button>
+          ) : (
+            <Button size="sm" variant="destructive" onClick={handleEndSession}>
+              End Session
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Main layout: Stage + Sidebar */}
+      <div className="absolute inset-12 grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 p-4">
+        {/* Stage */}
+        <div className="relative rounded-xl border bg-muted/10 overflow-hidden">
+          <div className="grid grid-rows-[1fr,auto] h-full">
+            {/* Video tiles area */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
+              {/* AI tile */}
+              <div className="relative rounded-2xl border bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none" />
+                <div className="h-full flex flex-col items-center justify-center p-6">
+                  <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/30 grid place-items-center mb-3">
+                    <Sparkles className="h-10 w-10 text-primary" />
+                  </div>
+                  <div className="text-sm font-semibold">AI Recruiter</div>
+                  <div className="text-xs text-muted-foreground">Speaking via TTS</div>
                 </div>
-                <div className="text-sm font-semibold">AI Recruiter</div>
+                {/* Current AI question (overlay chip) */}
+                {sessionActive && question && (
+                  <div className="absolute left-3 bottom-3 max-w-[85%]">
+                    <div className="rounded-full bg-background/90 border px-3 py-1.5 text-xs shadow">
+                      Q: {question}
+                    </div>
+                  </div>
+                )}
               </div>
-              {!sessionActive && !showSummary && (
-                <div className="flex items-center gap-2">
-                  <div className="flex rounded-md border overflow-hidden">
-                    <button
-                      className={`px-3 py-1.5 text-xs ${durationMin === 30 ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => setDurationMin(30)}
-                    >30m</button>
-                    <button
-                      className={`px-3 py-1.5 text-xs border-l ${durationMin === 60 ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => setDurationMin(60)}
-                    >60m</button>
-                    <button
-                      className={`px-3 py-1.5 text-xs border-l ${durationMin === 90 ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => setDurationMin(90)}
-                    >90m</button>
+
+              {/* User tile */}
+              <div className="relative rounded-2xl border bg-gradient-to-br from-secondary/10 to-primary/10 overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none" />
+                <div className="h-full flex flex-col items-center justify-center p-6">
+                  <div className="w-20 h-20 rounded-full bg-muted grid place-items-center mb-3 border">
+                    <User className="h-10 w-10 text-muted-foreground" />
                   </div>
-                  <div className="flex rounded-md border overflow-hidden">
-                    <button
-                      className={`px-3 py-1.5 text-xs ${interviewType === "Intro" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => setInterviewType("Intro")}
-                    >Intro</button>
-                    <button
-                      className={`px-3 py-1.5 text-xs border-l ${interviewType === "Technical" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => setInterviewType("Technical")}
-                    >Technical</button>
-                    <button
-                      className={`px-3 py-1.5 text-xs border-l ${interviewType === "HR" ? "bg-primary text-primary-foreground" : ""}`}
-                      onClick={() => setInterviewType("HR")}
-                    >HR</button>
+                  <div className="text-sm font-semibold">You</div>
+                  <div className="text-xs text-muted-foreground">
+                    {(!stoppedRef.current && sessionActive) ? (
+                      <span className="text-green-600 dark:text-green-400">Listening…</span>
+                    ) : (
+                      "Mic idle"
+                    )}
+                  </div>
+
+                  {/* Embedded mic level bar */}
+                  <div className="mt-3 w-40 h-2 rounded bg-muted overflow-hidden">
+                    <div
+                      className="h-2 bg-green-500 transition-[width] duration-150"
+                      style={{ width: `${Math.round(micLevel * 100)}%` }}
+                    />
                   </div>
                 </div>
-              )}
+
+                {/* Live utterance overlay bubble */}
+                {sessionActive && (liveUserUtterance || transcript) && (
+                  <div className="absolute right-3 bottom-3 max-w-[85%] animate-in slide-in-from-bottom-2 fade-in">
+                    <div className="rounded-2xl rounded-tr-sm bg-primary/90 text-primary-foreground px-3 py-2 text-sm shadow">
+                      {(liveUserUtterance || transcript) || ""}
+                      <span className="inline-block w-2 h-2 bg-primary-foreground rounded-full ml-2 animate-pulse align-middle" />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-3 max-h-[62vh] overflow-y-auto pr-1">
-              {/* Current question as highlighted bubble when session active */}
-              {sessionActive && question && (
-                <div className="flex items-start gap-2">
+            {/* Bottom control dock */}
+            <div className="relative">
+              <div className="absolute inset-x-0 -top-3 flex items-center justify-center">
+                <div className="rounded-full border bg-background/95 shadow-lg px-3 py-2 flex items-center gap-2">
+                  {/* Start/Stop Mic */}
+                  {sessionActive && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => {
+                        if (stoppedRef.current) startRecorder();
+                        else stopRecorder();
+                      }}
+                    >
+                      {stoppedRef.current ? <Mic className="h-4 w-4 mr-2" /> : <MicOff className="h-4 w-4 mr-2" />}
+                      {stoppedRef.current ? "Start Mic" : "Stop Mic"}
+                    </Button>
+                  )}
+
+                  {/* Mute/Unmute AI */}
+                  <Button size="sm" variant="outline" className="rounded-full" onClick={() => setMuted((m) => !m)}>
+                    {muted ? <VolumeX className="h-4 w-4 mr-2" /> : <Volume2 className="h-4 w-4 mr-2" />}
+                    {muted ? "Unmute AI" : "Mute AI"}
+                  </Button>
+
+                  {/* Done speaking */}
+                  {sessionActive && (
+                    <Button size="sm" className="rounded-full" onClick={handleUserDoneSpeaking}>
+                      I'm Done Speaking
+                    </Button>
+                  )}
+
+                  {/* Next question */}
+                  {sessionActive && (
+                    <Button size="sm" variant="outline" className="rounded-full" onClick={handleNextQuestion}>
+                      Next <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+
+                  {/* Start/End session */}
+                  {!sessionActive ? (
+                    <Button size="sm" className="rounded-full" onClick={startSession} disabled={!jd}>
+                      Start Live Interview
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="destructive" className="rounded-full" onClick={handleEndSession}>
+                      End
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Spacer for dock */}
+              <div className="h-12" />
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar: Chat & Summary */}
+        <div className="rounded-xl border bg-background p-4 flex flex-col">
+          {/* Quick metrics */}
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {(() => {
+              const m = computeMetrics(liveUserUtterance || transcript, startedAt);
+              return (
+                <>
+                  <Stat label="WPM" value={m.wpm} accent="text-primary" />
+                  <Stat label="Fillers" value={m.fillerCount} />
+                  <Stat label="Fillers/min" value={m.fillerPerMin} />
+                  <Stat label="Confidence" value={`${m.confidence}%`} accent="text-green-600 dark:text-green-500" />
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Duration/type selectors (only when idle) */}
+          {!sessionActive && !showSummary && (
+            <div className="mb-3 flex items-center gap-2 flex-wrap">
+              <div className="flex rounded-md border overflow-hidden">
+                <button
+                  className={`px-3 py-1.5 text-xs ${durationMin === 30 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(30)}
+                >30m</button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 60 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(60)}
+                >60m</button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 90 ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setDurationMin(90)}
+                >90m</button>
+              </div>
+              <div className="flex rounded-md border overflow-hidden">
+                <button
+                  className={`px-3 py-1.5 text-xs ${interviewType === "Intro" ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setInterviewType("Intro")}
+                >Intro</button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${interviewType === "Technical" ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setInterviewType("Technical")}
+                >Technical</button>
+                <button
+                  className={`px-3 py-1.5 text-xs border-l ${interviewType === "HR" ? "bg-primary text-primary-foreground" : ""}`}
+                  onClick={() => setInterviewType("HR")}
+                >HR</button>
+              </div>
+            </div>
+          )}
+
+          {/* Call Bubbles */}
+          <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+            {/* Current question bubble (when active) */}
+            {sessionActive && question && (
+              <div className="flex items-start gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-sm max-w-[85%]">
+                  {question}
+                </div>
+              </div>
+            )}
+
+            {/* History bubbles */}
+            {chat.map((m, i) =>
+              m.role === "ai" ? (
+                <div key={m.ts + ":" + i} className="flex items-start gap-2">
                   <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0">
                     <Sparkles className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-sm max-w-[85%]">
-                    {question}
+                  <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-sm max-w-[85%]">
+                    {m.text}
                   </div>
                 </div>
-              )}
-
-              {/* Chat bubbles */}
-              {chat.map((m, i) => (
-                m.role === "ai" ? (
-                  <div key={m.ts + ":" + i} className="flex items-start gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-sm max-w-[85%]">
-                      {m.text}
-                    </div>
-                  </div>
-                ) : (
-                  <div key={m.ts + ":" + i} className="flex items-start gap-2 justify-end">
-                    <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[85%]">
-                      {m.text}
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-muted grid place-items-center shrink-0">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                )
-              ))}
-
-              {/* Live speaking bubble */}
-              {sessionActive && (liveUserUtterance || transcript) && (
-                <div className="flex items-start gap-2 justify-end animate-in slide-in-from-bottom-2 fade-in">
-                  <div className="rounded-2xl rounded-tr-sm bg-primary/90 text-primary-foreground px-3 py-2 text-sm max-w-[85%] shadow">
-                    {(liveUserUtterance || transcript) || ""}
-                    <span className="inline-block w-2 h-2 bg-primary-foreground rounded-full ml-2 animate-pulse align-middle" />
+              ) : (
+                <div key={m.ts + ":" + i} className="flex items-start gap-2 justify-end">
+                  <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[85%]">
+                    {m.text}
                   </div>
                   <div className="w-8 h-8 rounded-full bg-muted grid place-items-center shrink-0">
                     <User className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
-              )}
-
-              {/* Summary section remains */}
-              {showSummary && (
-                <div className="mt-2 space-y-3">
-                  <div className="text-sm font-semibold">Session Summary</div>
-                  {summary ? (
-                    <>
-                      <div className="grid grid-cols-4 gap-2">
-                        <Stat label="Avg WPM" value={summary.avgWpm} accent="text-primary" />
-                        <Stat label="Avg Fillers/min" value={summary.avgFpm} />
-                        <Stat label="Avg Confidence" value={`${summary.avgConf}%`} accent="text-green-600 dark:text-green-500" />
-                        <Stat label="Questions" value={summary.totalQuestions} />
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Duration: ~{summary.durationMin} min • Round: {interviewType}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-xs text-muted-foreground">No metrics collected.</div>
-                  )}
-
-                  <Separator />
-                  <div className="space-y-2">
-                    <div className="text-sm font-semibold">AI Feedback</div>
-                    {feedbackLoading ? (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating feedback...
-                      </div>
-                    ) : feedback ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm whitespace-pre-wrap">
-                        {feedback}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">No feedback available.</div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(`${feedback}\n\nTranscript:\n${sessionTranscript}`);
-                          toast.success("Copied feedback & transcript");
-                        } catch {
-                          toast.error("Copy failed");
-                        }
-                      }}
-                    >
-                      <Clipboard className="h-4 w-4 mr-2" /> Copy Summary
-                    </Button>
-                    <Button size="sm" onClick={() => { setShowSummary(false); }}>
-                      Close Summary
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {!sessionActive && !showSummary && (
-              <div className="mt-4">
-                <Button size="sm" onClick={startSession} disabled={!jd}>
-                  Start Live Interview
-                </Button>
-                {!jd && <div className="text-xs text-muted-foreground mt-2">Select or paste a job description first.</div>}
-              </div>
+              )
             )}
-          </div>
 
-          {/* Right: Controls & live transcript editor */}
-          <div className="rounded-xl border bg-background p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                {(!stoppedRef.current && sessionActive) ? (
-                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    Listening...
-                  </div>
+            {/* Summary */}
+            {showSummary && (
+              <div className="mt-2 space-y-3">
+                <div className="text-sm font-semibold">Session Summary</div>
+                {summary ? (
+                  <>
+                    <div className="grid grid-cols-4 gap-2">
+                      <Stat label="Avg WPM" value={summary.avgWpm} accent="text-primary" />
+                      <Stat label="Avg Fillers/min" value={summary.avgFpm} />
+                      <Stat label="Avg Confidence" value={`${summary.avgConf}%`} accent="text-green-600 dark:text-green-500" />
+                      <Stat label="Questions" value={summary.totalQuestions} />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Duration: ~{summary.durationMin} min • Round: {interviewType}
+                    </div>
+                  </>
                 ) : (
-                  <div className="text-xs text-muted-foreground">Mic idle</div>
+                  <div className="text-xs text-muted-foreground">No metrics collected.</div>
                 )}
-              </div>
-              {sessionActive && (
+
+                <Separator />
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold">AI Feedback</div>
+                  {feedbackLoading ? (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating feedback...
+                    </div>
+                  ) : feedback ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm whitespace-pre-wrap">
+                      {feedback}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">No feedback available.</div>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      if (stoppedRef.current) startRecorder();
-                      else stopRecorder();
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(`${feedback}\n\nTranscript:\n${sessionTranscript}`);
+                        toast.success("Copied feedback & transcript");
+                      } catch {
+                        toast.error("Copy failed");
+                      }
                     }}
                   >
-                    {stoppedRef.current ? <Mic className="h-4 w-4 mr-2" /> : <MicOff className="h-4 w-4 mr-2" />}
-                    {stoppedRef.current ? "Start Mic" : "Stop Mic"}
+                    <Clipboard className="h-4 w-4 mr-2" /> Copy Summary
+                  </Button>
+                  <Button size="sm" onClick={() => { setShowSummary(false); }}>
+                    Close Summary
                   </Button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            {/* Quick metrics */}
-            <div className="grid grid-cols-4 gap-2 mb-3">
-              {(() => {
-                const m = computeMetrics(liveUserUtterance || transcript, startedAt);
-                return (
-                  <>
-                    <Stat label="WPM" value={m.wpm} accent="text-primary" />
-                    <Stat label="Fillers" value={m.fillerCount} />
-                    <Stat label="Fillers/min" value={m.fillerPerMin} />
-                    <Stat label="Confidence" value={`${m.confidence}%`} accent="text-green-600 dark:text-green-500" />
-                  </>
-                );
-              })()}
-            </div>
-
-            <div className="space-y-2">
-              <Badge variant="outline" className="w-fit">Live transcript (editable)</Badge>
-              <Textarea
-                value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Your spoken words will appear here..."
-                className="min-h-40"
-              />
-              {liveUserUtterance && (
-                <div className="text-xs text-muted-foreground -mt-1">
-                  Capturing speech... partial: {liveUserUtterance.slice(-120)}
-                </div>
-              )}
-            </div>
-
-            {sessionActive && (
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <Button size="sm" onClick={handleUserDoneSpeaking}>
-                  I'm Done Speaking
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleNextQuestion}>
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+          {/* Live transcript editor for manual corrections */}
+          <div className="mt-3 space-y-2">
+            <Badge variant="outline" className="w-fit">Live transcript (editable)</Badge>
+            <Textarea
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              placeholder="Your spoken words will appear here..."
+              className="min-h-40"
+            />
+            {liveUserUtterance && (
+              <div className="text-xs text-muted-foreground -mt-1">
+                Capturing speech... partial: {liveUserUtterance.slice(-120)}
               </div>
             )}
           </div>
