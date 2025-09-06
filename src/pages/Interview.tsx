@@ -38,10 +38,14 @@ import { Upload, FileText, ListChecks } from "lucide-react";
 import InterviewCoach from "@/components/InterviewCoach";
 import InterviewLiveCall from "@/components/InterviewLiveCall";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 export default function InterviewPage() {
   const { isLoading: authLoading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<"practice" | "live" | "negotiation">("practice");
+
+  // Add: show setup modal on first open until saved
+  const [showSetupDialog, setShowSetupDialog] = useState(true);
 
   // Setup selections
   const currentUser = useQuery(api.users.currentUser) as any;
@@ -62,9 +66,7 @@ export default function InterviewPage() {
     difficulty: "easy",
   });
 
-  // Add: recent practice sessions list (empty for now; can be wired to backend later)
-  const interviews: any[] = [];
-
+  // Remove inline setup section; we'll use modal & compact summary
   const [resumeChoice, setResumeChoice] = useState<"saved" | "upload">("saved");
   const [uploadedResumeId, setUploadedResumeId] = useState<string | undefined>(undefined);
   const [uploadedResumeName, setUploadedResumeName] = useState<string>("");
@@ -86,7 +88,6 @@ export default function InterviewPage() {
       ? (userAnalyses.find((a: any) => a._id === selectedAnalysisId)?.jobDescription || "")
       : jobDescription;
 
-  // Attach modes for generateQuestions & coach
   const practiceInterviewTypeMap: Record<typeof interviewMode, string> = {
     intro: "behavioral",
     technical: "technical",
@@ -112,6 +113,25 @@ export default function InterviewPage() {
     }
   }
 
+  // Add: Save config and close dialog
+  const handleSaveConfiguration = () => {
+    if (!resolvedJd) {
+      toast("Please select or paste a job description");
+      return;
+    }
+    if (resumeChoice === "upload" && !resolvedResumeId) {
+      toast("Please upload a resume or switch to saved resume");
+      return;
+    }
+    setShowSetupDialog(false);
+    toast("Configuration saved");
+  };
+
+  // Add: reconfigure to reopen dialog
+  const handleReconfigure = () => {
+    setShowSetupDialog(true);
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="container-responsive py-16">
@@ -135,7 +155,6 @@ export default function InterviewPage() {
       toast("Please select or paste a job description");
       return;
     }
-    // Resume is optional; but per request, ensure chosen path decided
     if (!resolvedResumeId && resumeChoice === "upload") {
       toast("Please upload a resume or switch to saved resume");
       return;
@@ -143,9 +162,9 @@ export default function InterviewPage() {
     try {
       setPracticeLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 1200));
-      toast("Practice interview started successfully!");
+      toast("Practice session ready");
     } catch (error: any) {
-      toast(error?.message || "Failed to start practice interview");
+      toast(error?.message || "Failed to start practice");
     } finally {
       setPracticeLoading(false);
     }
@@ -157,7 +176,7 @@ export default function InterviewPage() {
       return;
     }
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const questions = await generateQuestionsAction({
         jd: `Mode: ${interviewMode}. ${resolvedJd}`,
         interviewType: practiceInterviewTypeMap[interviewMode],
@@ -174,6 +193,132 @@ export default function InterviewPage() {
 
   return (
     <div className="container-responsive py-8 space-y-8">
+      {/* Setup Dialog */}
+      <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Configure your Interview Session</DialogTitle>
+            <DialogDescription>
+              Choose a resume and job description. You can reconfigure anytime.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Resume Choice */}
+          <div className="space-y-2">
+            <Label>Resume</Label>
+            <RadioGroup
+              className="flex flex-wrap gap-4"
+              value={resumeChoice}
+              onValueChange={(v) => setResumeChoice(v as any)}
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="saved" id="dlg-resume-saved" />
+                <Label htmlFor="dlg-resume-saved" className="cursor-pointer">
+                  Use Saved Resume {currentUser?.savedResumeId ? `(${currentUser?.savedResumeName || "Saved"})` : "(None saved)"}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="upload" id="dlg-resume-upload" />
+                <Label htmlFor="dlg-resume-upload" className="cursor-pointer">Upload New</Label>
+              </div>
+            </RadioGroup>
+            {resumeChoice === "upload" && (
+              <div className="flex items-center gap-3">
+                <Input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUploadResume(f);
+                  }}
+                />
+                <Badge variant="outline">
+                  {uploadedResumeName ? `Selected: ${uploadedResumeName}` : "No file uploaded"}
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* JD Choice */}
+          <div className="space-y-2">
+            <Label>Job Description</Label>
+            <RadioGroup
+              className="flex flex-wrap gap-4"
+              value={jdChoice}
+              onValueChange={(v) => setJdChoice(v as any)}
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="existing" id="dlg-jd-existing" />
+                <Label htmlFor="dlg-jd-existing" className="cursor-pointer">Use from Recent Analysis</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="new" id="dlg-jd-new" />
+                <Label htmlFor="dlg-jd-new" className="cursor-pointer">Paste New</Label>
+              </div>
+            </RadioGroup>
+
+            {jdChoice === "existing" ? (
+              <div className="space-y-2">
+                <Select value={selectedAnalysisId} onValueChange={setSelectedAnalysisId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an analysis" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userAnalyses.map((a: any) => (
+                      <SelectItem key={a._id} value={a._id}>
+                        {a.resumeFileName || "Resume"} • {new Date(a._creationTime).toLocaleDateString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedAnalysisId && (
+                  <div className="text-sm text-muted-foreground line-clamp-3">
+                    {(userAnalyses.find((a: any) => a._id === selectedAnalysisId)?.jobDescription || "").slice(0, 400)}
+                    {(userAnalyses.find((a: any) => a._id === selectedAnalysisId)?.jobDescription || "").length > 400 ? "..." : ""}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Textarea
+                placeholder="Paste the job description here..."
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                className="min-h-28"
+              />
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Mode */}
+          <div className="space-y-2">
+            <Label>Interview Mode</Label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "intro", label: "Intro Call" },
+                { id: "technical", label: "Technical Round" },
+                { id: "hr", label: "HR Round" },
+              ].map((m) => (
+                <Button
+                  key={m.id}
+                  variant={interviewMode === (m.id as any) ? "default" : "outline"}
+                  onClick={() => setInterviewMode(m.id as any)}
+                  className="h-9"
+                >
+                  {m.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={handleSaveConfiguration}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -186,149 +331,28 @@ export default function InterviewPage() {
             Interview Suite
           </h1>
           <p className="text-muted-foreground">
-            Practice interviews, get AI coaching, and conduct live sessions
+            Practice questions, live mock interview, and salary negotiation coaching
           </p>
         </div>
       </motion.div>
 
-      {/* Setup Section: Resume + JD + Mode */}
+      {/* Compact Config Summary + Reconfigure */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ListChecks className="h-5 w-5" />
-              Interview Setup
-            </CardTitle>
-            <CardDescription>Select your resume, job description, and interview mode</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Resume Choice */}
-            <div className="space-y-2">
-              <Label>Resume</Label>
-              <RadioGroup
-                className="flex flex-wrap gap-4"
-                value={resumeChoice}
-                onValueChange={(v) => setResumeChoice(v as any)}
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="saved" id="resume-saved" />
-                  <Label htmlFor="resume-saved" className="cursor-pointer">
-                    Use Saved Resume {currentUser?.savedResumeId ? `(${currentUser?.savedResumeName || "Saved"})` : "(None saved)"}
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="upload" id="resume-upload" />
-                  <Label htmlFor="resume-upload" className="cursor-pointer">Upload New</Label>
-                </div>
-              </RadioGroup>
-              {resumeChoice === "upload" && (
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) handleUploadResume(f);
-                    }}
-                  />
-                  <Badge variant="outline">
-                    {uploadedResumeName ? `Selected: ${uploadedResumeName}` : "No file uploaded"}
-                  </Badge>
-                </div>
-              )}
+          <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">Resume: {resolvedResumeName}</Badge>
+              <Badge variant="outline">JD: {resolvedJd ? "Selected" : "Not set"}</Badge>
+              <Badge variant="outline" className="capitalize">Mode: {interviewMode}</Badge>
             </div>
-
-            <Separator />
-
-            {/* JD Choice */}
-            <div className="space-y-2">
-              <Label>Job Description</Label>
-              <RadioGroup
-                className="flex flex-wrap gap-4"
-                value={jdChoice}
-                onValueChange={(v) => setJdChoice(v as any)}
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="existing" id="jd-existing" />
-                  <Label htmlFor="jd-existing" className="cursor-pointer">Use from Recent Analysis</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="new" id="jd-new" />
-                  <Label htmlFor="jd-new" className="cursor-pointer">Paste New</Label>
-                </div>
-              </RadioGroup>
-
-              {jdChoice === "existing" ? (
-                <div className="space-y-2">
-                  <Select value={selectedAnalysisId} onValueChange={setSelectedAnalysisId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an analysis" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userAnalyses.map((a: any) => (
-                        <SelectItem key={a._id} value={a._id}>
-                          {a.resumeFileName || "Resume"} • {new Date(a._creationTime).toLocaleDateString()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedAnalysisId && (
-                    <div className="text-sm text-muted-foreground line-clamp-3">
-                      {(userAnalyses.find((a: any) => a._id === selectedAnalysisId)?.jobDescription || "").slice(0, 400)}
-                      {(userAnalyses.find((a: any) => a._id === selectedAnalysisId)?.jobDescription || "").length > 400 ? "..." : ""}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Textarea
-                  placeholder="Paste the job description here..."
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  className="min-h-28"
-                />
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Interview Mode */}
-            <div className="space-y-2">
-              <Label>Interview Mode</Label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: "intro", label: "Intro Call" },
-                  { id: "technical", label: "Technical Round" },
-                  { id: "hr", label: "HR Round" },
-                ].map((m) => (
-                  <Button
-                    key={m.id}
-                    variant={interviewMode === (m.id as any) ? "default" : "outline"}
-                    onClick={() => setInterviewMode(m.id as any)}
-                    className="h-9"
-                  >
-                    {m.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Badge variant="outline">
-                Resume: {resolvedResumeName}
-              </Badge>
-              <Badge variant="outline">
-                JD: {resolvedJd ? "Selected" : "Not set"}
-              </Badge>
-              <Badge variant="outline" className="capitalize">
-                Mode: {interviewMode}
-              </Badge>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowSetupDialog(true)}>Reconfigure</Button>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Tab Navigation */}
+      {/* Top Toggles */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -338,7 +362,7 @@ export default function InterviewPage() {
           <CardContent className="p-6">
             <div className="flex flex-wrap gap-2">
               {[
-                { id: "practice", label: "Practice Interview", icon: Target },
+                { id: "practice", label: "Practice Questions", icon: Target },
                 { id: "live", label: "Live Interview", icon: Video },
                 { id: "negotiation", label: "Salary Negotiation Coach", icon: Brain },
               ].map((tab) => (
@@ -367,25 +391,25 @@ export default function InterviewPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            {/* Guard: require JD */}
-            {!resolvedJd ? (
+            {/* Guard */}
+            {!resolvedJd || showSetupDialog ? (
               <Card>
                 <CardContent className="py-8 text-center">
                   <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Please complete the setup above (JD required).</p>
+                  <p className="text-muted-foreground mb-4">Please configure your resume and job description.</p>
+                  <Button onClick={() => setShowSetupDialog(true)}>Open Configuration</Button>
                 </CardContent>
               </Card>
             ) : (
               <>
-                {/* Keep existing Practice setup card but now powered by selections */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="h-5 w-5" />
-                      Practice Interview Setup
+                      Practice Questions Setup
                     </CardTitle>
                     <CardDescription>
-                      Configure your practice session parameters
+                      Generate questions based on your configuration
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -452,7 +476,7 @@ export default function InterviewPage() {
                         ) : (
                           <Play className="h-4 w-4" />
                         )}
-                        Start Practice
+                        Prepare Session
                       </Button>
                       
                       <Button 
@@ -464,47 +488,6 @@ export default function InterviewPage() {
                         Generate Questions
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Recent Practice Sessions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5" />
-                      Recent Practice Sessions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {interviews.length === 0 ? (
-                      <div className="text-center py-8">
-                        <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No practice sessions yet</p>
-                        <p className="text-sm text-muted-foreground">Start your first practice interview above</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {interviews.slice(0, 3).map((interview: any, index: number) => (
-                          <motion.div
-                            key={interview._id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                          >
-                            <div>
-                              <div className="font-medium">{interview.jobTitle} at {interview.company}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {interview.interviewType} • {new Date(interview._creationTime).toLocaleDateString()}
-                              </div>
-                            </div>
-                            <Badge variant="outline">
-                              {interview.status || "Completed"}
-                            </Badge>
-                          </motion.div>
-                        ))}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </>
@@ -519,11 +502,12 @@ export default function InterviewPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            {!resolvedJd ? (
+            {!resolvedJd || showSetupDialog ? (
               <Card>
                 <CardContent className="py-8 text-center">
                   <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Please complete the setup above (JD required).</p>
+                  <p className="text-muted-foreground mb-4">Please configure your resume and job description.</p>
+                  <Button onClick={() => setShowSetupDialog(true)}>Open Configuration</Button>
                 </CardContent>
               </Card>
             ) : (
@@ -539,11 +523,12 @@ export default function InterviewPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            {!resolvedJd ? (
+            {!resolvedJd || showSetupDialog ? (
               <Card>
                 <CardContent className="py-8 text-center">
                   <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Please complete the setup above (JD required).</p>
+                  <p className="text-muted-foreground mb-4">Please configure your resume and job description.</p>
+                  <Button onClick={() => setShowSetupDialog(true)}>Open Configuration</Button>
                 </CardContent>
               </Card>
             ) : (

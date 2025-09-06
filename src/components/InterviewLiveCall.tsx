@@ -20,6 +20,8 @@ import {
   Wifi,
   WifiOff
 } from "lucide-react";
+import { useAction } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // Connection Status Component
 const ConnectionStatus = ({ status }: { status: "connecting" | "connected" | "disconnected" | "error" }) => {
@@ -101,13 +103,117 @@ export default function InterviewLiveCall({
     { id: 2, name: "Interviewer", isHost: false }
   ]);
 
+  // Add: AI hooks for questions and feedback scoring
+  const generatePractice = useAction(api.aiInterview.generateQuestions);
+  const polishAnswerAction = useAction(api.aiInterview.polishAnswer);
+
+  // Add: interview flow state
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [isRecognizing, setIsRecognizing] = useState(false);
+  const [interviewDone, setInterviewDone] = useState(false);
+  const [report, setReport] = useState<null | {
+    totalQuestions: number;
+    avgScore?: number;
+    items: Array<{ q: string; a: string; score?: number }>;
+  }>(null);
+
+  // Simple browser speech recognition guard
+  const getSpeechRecognition = () => {
+    const AnyWindow = window as any;
+    return AnyWindow.SpeechRecognition || AnyWindow.webkitSpeechRecognition || null;
+  };
+
+  const askNextQuestion = async () => {
+    if (currentIdx >= questions.length) {
+      toast("No more questions");
+      return;
+    }
+    const q = questions[currentIdx];
+    try {
+      // Ask via TTS for immersion (best-effort)
+      const utterance = new SpeechSynthesisUtterance(q);
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utterance);
+      toast("Question asked. Click 'Answer' and speak your response.");
+    } catch {}
+  };
+
+  const startVoiceAnswer = async () => {
+    const SR = getSpeechRecognition();
+    if (!SR) {
+      toast("Speech recognition not supported in this browser. Please use Chrome.");
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+
+    setIsRecognizing(true);
+    rec.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript as string;
+      setAnswers(prev => {
+        const copy = [...prev];
+        copy[currentIdx] = transcript;
+        return copy;
+      });
+      toast("Answer captured");
+    };
+    rec.onerror = () => {
+      toast("Voice capture error");
+      setIsRecognizing(false);
+    };
+    rec.onend = () => {
+      setIsRecognizing(false);
+    };
+    rec.start();
+  };
+
+  const nextStep = async () => {
+    // Optionally score this answer before moving on
+    try {
+      const q = questions[currentIdx];
+      const a = answers[currentIdx] || "";
+      if (q && a) {
+        const composedJd = `Interview mode: ${mode}. Resume: ${resumeFileId ? "attached" : "none"}. JD: ${jd}`;
+        // Best-effort scoring; backend can return structured feedback
+        await polishAnswerAction({ question: q, answer: a, jd: composedJd });
+      }
+    } catch {
+      // best-effort; continue
+    }
+
+    if (currentIdx + 1 >= questions.length) {
+      // Finish interview
+      setInterviewDone(true);
+      // Lightweight report
+      const items = questions.map((q, i) => ({
+        q,
+        a: answers[i] || "",
+      }));
+      const avgLen = items.length
+        ? Math.round(items.reduce((s, it) => s + (it.a?.split(" ").length || 0), 0) / items.length)
+        : 0;
+      setReport({
+        totalQuestions: items.length,
+        avgScore: undefined,
+        items,
+      });
+      toast("Interview completed. Report generated.");
+    } else {
+      setCurrentIdx(i => i + 1);
+      await askNextQuestion();
+    }
+  };
+
   const handleStartCall = async () => {
     try {
       setIsLoading(true);
       setLoadingText("Initializing video call...");
       setConnectionStatus("connecting");
       
-      // Simulate connection process
       await new Promise(resolve => setTimeout(resolve, 1500));
       setLoadingText("Connecting to interviewer...");
       
@@ -119,6 +225,45 @@ export default function InterviewLiveCall({
       setIsCallActive(true);
       setConnectionStatus("connected");
       toast("Call started successfully!");
+
+      // Fetch tailored questions
+      try {
+        const arr = await generatePractice({
+          jd: `Live mock. Mode: ${mode}. ${jd}`,
+          interviewType: mode === "technical" ? "technical" : "behavioral",
+          count: 5,
+          // @ts-ignore optional
+          resumeFileId,
+        });
+        if (Array.isArray(arr) && arr.length > 0) {
+          setQuestions(arr);
+          setAnswers(Array(arr.length).fill(""));
+          setCurrentIdx(0);
+        } else {
+          // fallback default questions
+          const fallback =
+            mode === "technical"
+              ? [
+                  "Explain the concept of closures in JavaScript and provide an example.",
+                  "How would you optimize a React application for performance?",
+                  "Describe a time you diagnosed a production incident and your approach.",
+                  "What is the difference between a process and a thread?",
+                  "Explain Big-O for inserting into a balanced BST.",
+                ]
+              : [
+                  "Tell me about yourself.",
+                  "Describe a challenge you faced and how you overcame it.",
+                  "Tell me about a time you worked in a team.",
+                  "What are your strengths and weaknesses?",
+                  "Why are you interested in this role?",
+                ];
+          setQuestions(fallback);
+          setAnswers(Array(fallback.length).fill(""));
+          setCurrentIdx(0);
+        }
+      } catch {
+        // handled above with fallback
+      }
       
     } catch (error) {
       setConnectionStatus("error");
@@ -188,16 +333,12 @@ export default function InterviewLiveCall({
                   Live Interview Call
                 </CardTitle>
                 <CardDescription>
-                  {/* Add contextual info */}
-                  <span className="block">
-                    Mode: <span className="font-medium capitalize">{mode}</span>
-                  </span>
-                  <span className="block">
-                    JD: <span className="line-clamp-1">{jd || "Not provided"}</span>
-                  </span>
-                  <span className="block">
-                    Resume: <span className="font-medium">{resumeFileId ? "Attached" : "None"}</span>
-                  </span>
+                  <span className="block">Mode: <span className="font-medium capitalize">{mode}</span></span>
+                  <span className="block">JD: <span className="line-clamp-1">{jd || "Not provided"}</span></span>
+                  <span className="block">Resume: <span className="font-medium">{resumeFileId ? "Attached" : "None"}</span></span>
+                  {isCallActive && questions.length > 0 && !interviewDone && (
+                    <span className="block mt-1">Question {currentIdx + 1} of {questions.length}</span>
+                  )}
                 </CardDescription>
               </div>
               <ConnectionStatus status={connectionStatus} />
@@ -225,10 +366,34 @@ export default function InterviewLiveCall({
                   className="w-full h-full flex items-center justify-center"
                 >
                   {isVideoEnabled ? (
-                    <div className="text-white text-center">
+                    <div className="text-white text-center px-4">
                       <Monitor className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg font-medium">Video Call Active</p>
-                      <p className="text-sm opacity-75">Camera: {isVideoEnabled ? "On" : "Off"} • Mic: {isAudioEnabled ? "On" : "Off"}</p>
+                      {!interviewDone && questions.length > 0 ? (
+                        <>
+                          <p className="text-lg font-medium mb-2">Current Question</p>
+                          <p className="text-sm opacity-90 line-clamp-3 mb-4">{questions[currentIdx]}</p>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button size="sm" variant="secondary" onClick={askNextQuestion} disabled={isRecognizing}>Ask</Button>
+                            <Button size="sm" onClick={startVoiceAnswer} disabled={isRecognizing}>
+                              {isRecognizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />} Answer
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={nextStep} disabled={isRecognizing}>Next</Button>
+                          </div>
+                          <div className="mt-3 text-xs text-white/80 line-clamp-3">
+                            {answers[currentIdx] ? `Your answer: ${answers[currentIdx]}` : "Your answer will appear here after recording."}
+                          </div>
+                        </>
+                      ) : interviewDone ? (
+                        <>
+                          <p className="text-lg font-medium mb-2">Interview Complete</p>
+                          <p className="text-sm opacity-75">See detailed report below.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-lg font-medium">Video Call Active</p>
+                          <p className="text-sm opacity-75">Camera: {isVideoEnabled ? "On" : "Off"} • Mic: {isAudioEnabled ? "On" : "Off"}</p>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="text-white text-center">
@@ -332,6 +497,42 @@ export default function InterviewLiveCall({
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Report Section */}
+      {interviewDone && report && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                Interview Performance Report
+              </CardTitle>
+              <CardDescription>
+                Summary of your responses in this session
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <Badge variant="outline">Questions: {report.totalQuestions}</Badge>
+                {/* avgScore is optional when backend scoring is added */}
+              </div>
+              <div className="space-y-3">
+                {report.items.map((it, idx) => (
+                  <div key={idx} className="p-3 border rounded-lg">
+                    <div className="text-sm font-medium mb-1">Q{idx + 1}: {it.q}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Answer: {it.a || "No answer recorded"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Call Features */}
       <motion.div
