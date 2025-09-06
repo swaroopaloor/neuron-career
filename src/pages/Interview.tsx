@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useAction } from "convex/react";
@@ -49,6 +49,8 @@ export default function InterviewPage() {
 
   // Setup selections
   const currentUser = useQuery(api.users.currentUser) as any;
+  const savedSession = useQuery(api.users.getInterviewSession) as any;
+  const saveInterviewSession = useMutation(api.users.saveInterviewSession);
   const userAnalyses = useQuery(api.analyses.getUserAnalyses, { limit: 10 }) ?? [];
   const userResumes = useQuery(api.resumes.listResumes) ?? [];
 
@@ -102,6 +104,8 @@ export default function InterviewPage() {
     hr: "behavioral",
   };
 
+  const [hydratedFromSession, setHydratedFromSession] = useState(false);
+
   async function handleUploadResume(file: File) {
     try {
       const url = await generateUploadUrl({});
@@ -127,12 +131,26 @@ export default function InterviewPage() {
       toast("Please select or paste a job description");
       return;
     }
-    if (resumeChoice === "upload" && !resolvedResumeId) {
-      toast("Please upload a resume or switch to saved resume");
+    // Require a resume for persistence (either saved or uploaded)
+    if (!resolvedResumeId) {
+      toast("Please select a resume (saved or upload a new one)");
       return;
     }
     setShowSetupDialog(false);
-    toast("Configuration saved");
+    // Persist selection so the user can resume later
+    try {
+      // @ts-ignore Convex expects Id<_storage> for resumeFileId
+      saveInterviewSession({
+        jd: resolvedJd,
+        resumeFileId: resolvedResumeId,
+        resumeFileName: resolvedResumeName || undefined,
+        questions: [],
+        currentIdx: 0,
+      });
+      toast("Configuration saved");
+    } catch (e: any) {
+      toast(e?.message || "Failed to save configuration");
+    }
   };
 
   // Add: reconfigure to reopen dialog
@@ -260,6 +278,33 @@ export default function InterviewPage() {
       setQaLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (hydratedFromSession) return;
+    if (!savedSession) return;
+    // Prefer saved session JD
+    if (typeof savedSession.jd === "string" && savedSession.jd.trim().length > 0) {
+      setJdChoice("new");
+      setJobDescription(savedSession.jd);
+      setSelectedAnalysisId(undefined);
+    }
+    // Resume: if matches saved resume on profile, treat as "saved", else consider it "upload"
+    if (savedSession.resumeFileId) {
+      if (currentUser?.savedResumeId && currentUser.savedResumeId === savedSession.resumeFileId) {
+        setResumeChoice("saved");
+      } else {
+        setResumeChoice("upload");
+        setUploadedResumeId(savedSession.resumeFileId);
+        setUploadedResumeName(savedSession.resumeFileName || "Uploaded Resume");
+      }
+    }
+    // Close setup if we have both JD and a resume
+    if ((savedSession.jd && savedSession.resumeFileId) || (currentUser?.savedResumeId && (savedSession.jd || resolvedJd))) {
+      setShowSetupDialog(false);
+    }
+    setHydratedFromSession(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedSession, currentUser, hydratedFromSession]);
 
   return (
     <div className="container-responsive py-4 space-y-6">
