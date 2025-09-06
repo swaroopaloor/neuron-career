@@ -440,26 +440,80 @@ export default function Interview() {
                   <Button variant="outline" size="sm" onClick={() => setSetupOpen(true)}>
                     Reconfigure
                   </Button>
-                  <Button
-                    size="sm"
-                    className="w-full md:w-auto"
-                    onClick={() => {
-                      if (!sessionResumeFileId && !selectedAnalysis?.resumeFileId) {
-                        toast.error("Select or upload a resume first");
-                        return;
-                      }
-                      if (!effectiveJd?.trim()) {
-                        toast.error("Provide a job description first");
-                        return;
-                      }
-                      setLiveOpen(true);
-                    }}
-                  >
-                    Start Live Interview
-                  </Button>
                   <Button size="sm" className="sm:hidden" onClick={handleSaveSession}>
                     <Save className="h-4 w-4 mr-1" /> Save
                   </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Hero CTA section for Live Interview */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                {/* Left: Copy */}
+                <div className="space-y-3">
+                  <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs bg-background/70 w-fit">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    AI Recruiter Call
+                  </div>
+                  <h2 className="text-2xl font-bold">Practice a realistic interview — voice to voice</h2>
+                  <p className="text-sm text-muted-foreground">
+                    The AI recruiter asks tailored questions out loud. You answer with your voice. Get a live transcript,
+                    real-time metrics (WPM, fillers, confidence), smart follow‑ups, and an actionable summary at the end.
+                  </p>
+                  <ul className="text-sm space-y-1 list-disc pl-5">
+                    <li>Works on desktop and mobile — Chrome/Edge/Safari supported</li>
+                    <li>Intro, Technical, and HR rounds with timed sessions</li>
+                    <li>Uses your JD and resume for precise, relevant prompts</li>
+                  </ul>
+                  <div className="pt-2">
+                    <Button
+                      size="lg"
+                      onClick={() => {
+                        if (!sessionResumeFileId && !selectedAnalysis?.resumeFileId) {
+                          toast.error("Select or upload a resume first");
+                          setSetupOpen(true);
+                          return;
+                        }
+                        if (!effectiveJd?.trim()) {
+                          toast.error("Provide a job description first");
+                          setSetupOpen(true);
+                          return;
+                        }
+                        setLiveOpen(true);
+                      }}
+                      className="h-11 px-6"
+                    >
+                      <Sparkles className="h-5 w-5 mr-2" />
+                      Start Live Interview
+                    </Button>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      Tip: If your mic prompt doesn't appear on desktop, ensure browser permissions are allowed and try Chrome or Edge.
+                    </div>
+                  </div>
+                </div>
+                {/* Right: Status + Selections preview */}
+                <div className="rounded-xl border bg-background/70 p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-md border p-3">
+                      <div className="text-xs text-muted-foreground">Resume</div>
+                      <div className="font-medium truncate">
+                        {sessionResumeName || user?.savedResumeName || (resumeChoice === "new" && file?.name) || "Not set"}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <div className="text-xs text-muted-foreground">JD</div>
+                      <div className="font-medium line-clamp-2">{effectiveJd ? effectiveJd : "Not set"}</div>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="text-xs text-muted-foreground">
+                    You can update resume or JD anytime via "Reconfigure".
+                  </div>
                 </div>
               </div>
             </CardContent>

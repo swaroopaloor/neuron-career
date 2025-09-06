@@ -279,24 +279,34 @@ export default function InterviewLiveCall({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
       startLevelMeter(stream); // start mic level meter
-      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
-        ? "audio/ogg;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a")
-        ? "audio/mp4;codecs=mp4a"
-        : MediaRecorder.isTypeSupported("audio/aac")
-        ? "audio/aac"
-        : "" as any;
 
+      // Broaden MIME fallbacks for better desktop compatibility (Chrome/Edge/Safari)
+      const candidates: Array<string> = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/mp4;codecs=mp4a",
+        "audio/aac",
+        "audio/mpeg",
+        "audio/3gpp",
+      ];
+      let mime: string | null = null;
+      for (const c of candidates) {
+        try {
+          if (MediaRecorder.isTypeSupported(c)) {
+            mime = c;
+            break;
+          }
+        } catch {
+          // continue
+        }
+      }
       if (!mime) {
         toast.error("This browser doesn't support live audio recording. Try Chrome or Edge.");
         return;
       }
 
-      const rec = new MediaRecorder(stream, { mimeType: mime });
+      const rec = new MediaRecorder(stream, { mimeType: mime as any });
       recorderRef.current = rec;
       stoppedRef.current = false;
 
@@ -310,12 +320,10 @@ export default function InterviewLiveCall({
         if (!blob || blob.size === 0) return;
 
         if (sendingRef.current) {
-          // queue latest chunk; older one is discarded to keep it snappy
-          pendingBlobRef.current = blob;
+          pendingBlobRef.current = blob; // keep latest
           return;
         }
-        // send now
-        void sendChunk(blob, mime);
+        void sendChunk(blob, mime!);
       };
 
       rec.onerror = () => {
@@ -323,8 +331,8 @@ export default function InterviewLiveCall({
         stopRecorder();
       };
 
-      // 250ms for near-instant updates
-      rec.start(250);
+      // Faster tick for snappier transcript
+      rec.start(200);
     } catch (e: any) {
       toast.error(e?.message || "Failed to access microphone");
       stopRecorder();
