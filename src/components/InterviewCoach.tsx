@@ -44,7 +44,17 @@ const CoachLoadingSpinner = ({ text = "AI Coach is thinking..." }: { text?: stri
   </motion.div>
 );
 
-export default function InterviewCoach() {
+export default function InterviewCoach({
+  jd,
+  mode = "behavioral",
+  purpose = "interview",
+  resumeFileId,
+}: {
+  jd: string;
+  mode?: "behavioral" | "technical" | "system-design" | "case-study";
+  purpose?: "interview" | "negotiation";
+  resumeFileId?: string; // Id<"_storage">
+}) {
   const { isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [question, setQuestion] = useState("");
@@ -59,19 +69,31 @@ export default function InterviewCoach() {
   const handleGenerateQuestion = async () => {
     try {
       setIsLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Build JD context depending on purpose and mode
+      const composedJd =
+        purpose === "negotiation"
+          ? `Salary negotiation coaching context. Resume: ${resumeFileId ? "attached" : "none"}. Interview mode: ${mode}. JD: ${jd}`
+          : `Interview practice context. Resume: ${resumeFileId ? "attached" : "none"}. Interview mode: ${mode}. JD: ${jd}`;
+
       const arr = await generatePractice({
-        jd: `Interview type: behavioral, difficulty: medium`,
-        interviewType: "behavioral",
-        count: 1
+        jd: composedJd || "Interview practice",
+        interviewType: mode,
+        count: 1,
+        // resumeFileId is optional in backend; pass if available
+        // @ts-ignore - safe to pass optional
+        resumeFileId: resumeFileId,
       });
-      
-      setQuestion(arr?.[0] || "Tell me about a time when you had to overcome a significant challenge at work.");
+
+      setQuestion(
+        arr?.[0] ||
+          (purpose === "negotiation"
+            ? "How would you open a salary negotiation after receiving an offer?"
+            : "Tell me about a time when you had to overcome a significant challenge at work.")
+      );
       toast("New practice question generated!");
-      
     } catch (error: any) {
       toast(error?.message || "Failed to generate question");
     } finally {
@@ -87,34 +109,56 @@ export default function InterviewCoach() {
 
     try {
       setIsLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+
+      const composedJd =
+        purpose === "negotiation"
+          ? `Salary negotiation coaching context. Resume: ${resumeFileId ? "attached" : "none"}. Interview mode: ${mode}. JD: ${jd}`
+          : `Interview practice context. Resume: ${resumeFileId ? "attached" : "none"}. Interview mode: ${mode}. JD: ${jd}`;
+
       const _polished = await polishAnswerAction({
         question,
         answer: response,
-        jd: "behavioral interview"
+        jd: composedJd,
       });
       // Client-side feedback synthesized:
       const coachingFeedback = null as any;
 
-      // Mock feedback structure
       const mockFeedback = {
         overallScore: 85,
-        strengths: [
-          "Clear structure using STAR method",
-          "Specific examples with measurable results",
-          "Good communication skills"
-        ],
-        improvements: [
-          "Could elaborate more on the challenges faced",
-          "Add more details about team collaboration"
-        ],
-        suggestions: [
-          "Practice quantifying your impact with specific metrics",
-          "Prepare follow-up examples for similar scenarios"
-        ]
+        strengths:
+          purpose === "negotiation"
+            ? [
+                "Clear articulation of value",
+                "Data-driven benchmarking mentioned",
+                "Collaborative tone throughout",
+              ]
+            : [
+                "Clear structure using STAR method",
+                "Specific examples with measurable results",
+                "Good communication skills",
+              ],
+        improvements:
+          purpose === "negotiation"
+            ? [
+                "Include precise counter range aligned with market data",
+                "Mention total comp components explicitly",
+              ]
+            : [
+                "Could elaborate more on the challenges faced",
+                "Add more details about team collaboration",
+              ],
+        suggestions:
+          purpose === "negotiation"
+            ? [
+                "Prepare market data ranges and target anchor",
+                "List trade-offs you can negotiate (sign-on, equity, PTO)",
+              ]
+            : [
+                "Practice quantifying your impact with specific metrics",
+                "Prepare follow-up examples for similar scenarios",
+              ],
       };
 
       setFeedback(coachingFeedback || mockFeedback);

@@ -81,7 +81,15 @@ const CallActionLoading = ({ isVisible, text }: { isVisible: boolean, text: stri
   </AnimatePresence>
 );
 
-export default function InterviewLiveCall() {
+export default function InterviewLiveCall({
+  jd,
+  resumeFileId,
+  mode = "intro",
+}: {
+  jd: string;
+  resumeFileId?: string; // Id<"_storage"> but avoid import to keep this component lightweight
+  mode?: "intro" | "technical" | "hr";
+}) {
   const [isCallActive, setIsCallActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("disconnected");
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -180,7 +188,16 @@ export default function InterviewLiveCall() {
                   Live Interview Call
                 </CardTitle>
                 <CardDescription>
-                  Conduct real-time video interviews with built-in recording and AI analysis
+                  {/* Add contextual info */}
+                  <span className="block">
+                    Mode: <span className="font-medium capitalize">{mode}</span>
+                  </span>
+                  <span className="block">
+                    JD: <span className="line-clamp-1">{jd || "Not provided"}</span>
+                  </span>
+                  <span className="block">
+                    Resume: <span className="font-medium">{resumeFileId ? "Attached" : "None"}</span>
+                  </span>
                 </CardDescription>
               </div>
               <ConnectionStatus status={connectionStatus} />
