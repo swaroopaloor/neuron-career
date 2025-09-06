@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Label } from "@/components/ui/label";
 
 // Connection Status Component
 const ConnectionStatus = ({ status }: { status: "connecting" | "connected" | "disconnected" | "error" }) => {
@@ -92,6 +93,8 @@ export default function InterviewLiveCall({
   resumeFileId?: string; // Id<"_storage"> but avoid import to keep this component lightweight
   mode?: "intro" | "technical" | "hr";
 }) {
+  // Add: local mode selection for Live tab (independent of setup dialog)
+  const [liveMode, setLiveMode] = useState<"intro" | "technical" | "hr">(mode);
   const [isCallActive, setIsCallActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("disconnected");
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -125,6 +128,18 @@ export default function InterviewLiveCall({
     return AnyWindow.SpeechRecognition || AnyWindow.webkitSpeechRecognition || null;
   };
 
+  // Helper: pick a female voice if available
+  const pickFemaleVoice = () => {
+    const voices = speechSynthesis.getVoices();
+    // Try common female voice names; fallback to any en-* voice
+    const preferred = voices.find(v =>
+      /female/i.test(v.name) ||
+      /Samantha|Victoria|Karen|Serena|Zira|Jenny|en-US-Wavenet-F|en-GB-Wavenet-A|News/i.test(v.name)
+    );
+    const english = voices.find(v => /en[-_]/i.test(v.lang));
+    return preferred || english || voices[0] || null;
+  };
+
   const askNextQuestion = async () => {
     if (currentIdx >= questions.length) {
       toast("No more questions");
@@ -132,8 +147,12 @@ export default function InterviewLiveCall({
     }
     const q = questions[currentIdx];
     try {
-      // Ask via TTS for immersion (best-effort)
+      // Ask via TTS with female voice preference
       const utterance = new SpeechSynthesisUtterance(q);
+      const voice = pickFemaleVoice();
+      if (voice) utterance.voice = voice;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
       speechSynthesis.cancel();
       speechSynthesis.speak(utterance);
       toast("Question asked. Click 'Answer' and speak your response.");
@@ -177,7 +196,7 @@ export default function InterviewLiveCall({
       const q = questions[currentIdx];
       const a = answers[currentIdx] || "";
       if (q && a) {
-        const composedJd = `Interview mode: ${mode}. Resume: ${resumeFileId ? "attached" : "none"}. JD: ${jd}`;
+        const composedJd = `Interview mode: ${liveMode}. Resume: ${resumeFileId ? "attached" : "none"}. JD: ${jd}`;
         // Best-effort scoring; backend can return structured feedback
         await polishAnswerAction({ question: q, answer: a, jd: composedJd });
       }
@@ -214,13 +233,13 @@ export default function InterviewLiveCall({
       setLoadingText("Initializing video call...");
       setConnectionStatus("connecting");
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1200));
       setLoadingText("Connecting to interviewer...");
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
       setLoadingText("Establishing secure connection...");
       
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       setIsCallActive(true);
       setConnectionStatus("connected");
@@ -229,8 +248,8 @@ export default function InterviewLiveCall({
       // Fetch tailored questions
       try {
         const arr = await generatePractice({
-          jd: `Live mock. Mode: ${mode}. ${jd}`,
-          interviewType: mode === "technical" ? "technical" : "behavioral",
+          jd: `Live mock. Mode: ${liveMode}. ${jd}`,
+          interviewType: liveMode === "technical" ? "technical" : "behavioral",
           count: 5,
           // @ts-ignore optional
           resumeFileId,
@@ -240,9 +259,8 @@ export default function InterviewLiveCall({
           setAnswers(Array(arr.length).fill(""));
           setCurrentIdx(0);
         } else {
-          // fallback default questions
           const fallback =
-            mode === "technical"
+            liveMode === "technical"
               ? [
                   "Explain the concept of closures in JavaScript and provide an example.",
                   "How would you optimize a React application for performance?",
@@ -262,7 +280,7 @@ export default function InterviewLiveCall({
           setCurrentIdx(0);
         }
       } catch {
-        // handled above with fallback
+        // handled with fallback
       }
       
     } catch (error) {
@@ -319,35 +337,93 @@ export default function InterviewLiveCall({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - Promote Start Call + Mode selector */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Video className="h-6 w-6 text-blue-600" />
                   Live Interview Call
                 </CardTitle>
                 <CardDescription>
-                  <span className="block">Mode: <span className="font-medium capitalize">{mode}</span></span>
-                  <span className="block">JD: <span className="line-clamp-1">{jd || "Not provided"}</span></span>
-                  <span className="block">Resume: <span className="font-medium">{resumeFileId ? "Attached" : "None"}</span></span>
+                  <span className="block">
+                    Mode:{" "}
+                    <span className="font-medium capitalize">{liveMode}</span>
+                  </span>
+                  <span className="block">
+                    JD: <span className="line-clamp-1">{jd || "Not provided"}</span>
+                  </span>
+                  <span className="block">
+                    Resume: <span className="font-medium">{resumeFileId ? "Attached" : "None"}</span>
+                  </span>
                   {isCallActive && questions.length > 0 && !interviewDone && (
-                    <span className="block mt-1">Question {currentIdx + 1} of {questions.length}</span>
+                    <span className="block mt-1">
+                      Question {currentIdx + 1} of {questions.length}
+                    </span>
                   )}
                 </CardDescription>
               </div>
-              <ConnectionStatus status={connectionStatus} />
+
+              {/* Right cluster: Mode toggle + Start/End button + status */}
+              <div className="flex flex-col items-stretch gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: "intro", label: "Intro" },
+                    { id: "technical", label: "Technical" },
+                    { id: "hr", label: "HR" },
+                  ].map((m) => (
+                    <Button
+                      key={m.id}
+                      variant={liveMode === (m.id as any) ? "default" : "outline"}
+                      onClick={() => setLiveMode(m.id as any)}
+                      className="h-8"
+                      disabled={isCallActive} // lock while on call
+                    >
+                      {m.label}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  <ConnectionStatus status={connectionStatus} />
+                  {!isCallActive ? (
+                    <Button
+                      size="sm"
+                      onClick={handleStartCall}
+                      disabled={isLoading}
+                      className="flex items-center gap-2"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Phone className="h-4 w-4" />
+                      )}
+                      Start Call
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={handleEndCall}
+                      disabled={isLoading}
+                      className="flex items-center gap-2"
+                    >
+                      <PhoneOff className="h-4 w-4" />
+                      End Call
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </CardHeader>
         </Card>
       </motion.div>
 
-      {/* Video Call Interface */}
+      {/* Video Call Interface with glowing avatars */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -361,25 +437,49 @@ export default function InterviewLiveCall({
             <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
               {isCallActive ? (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="w-full h-full flex items-center justify-center"
                 >
                   {isVideoEnabled ? (
-                    <div className="text-white text-center px-4">
-                      <Monitor className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <div className="text-white w-full h-full flex flex-col items-center justify-center px-4">
+                      {/* Meet-style avatars */}
+                      <div className="flex items-center gap-10 mb-6">
+                        {/* You */}
+                        <div className="relative">
+                          <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-primary/60 shadow-[0_0_30px_5px_rgba(59,130,246,0.35)] animate-pulse">
+                            <span className="text-xl font-semibold">Y</span>
+                          </div>
+                          <div className="absolute -bottom-2 w-full text-center text-xs text-white/80">You</div>
+                        </div>
+                        {/* Interviewer */}
+                        <div className="relative">
+                          <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-pink-500/70 shadow-[0_0_30px_5px_rgba(236,72,153,0.35)] animate-pulse">
+                            <span className="text-xl font-semibold">AI</span>
+                          </div>
+                          <div className="absolute -bottom-2 w-full text-center text-xs text-white/80">Interviewer</div>
+                        </div>
+                      </div>
+
+                      {/* Question + controls */}
                       {!interviewDone && questions.length > 0 ? (
                         <>
                           <p className="text-lg font-medium mb-2">Current Question</p>
-                          <p className="text-sm opacity-90 line-clamp-3 mb-4">{questions[currentIdx]}</p>
+                          <p className="text-sm opacity-90 text-center max-w-3xl mb-4 line-clamp-3">
+                            {questions[currentIdx]}
+                          </p>
                           <div className="flex items-center justify-center gap-2">
-                            <Button size="sm" variant="secondary" onClick={askNextQuestion} disabled={isRecognizing}>Ask</Button>
+                            <Button size="sm" variant="secondary" onClick={askNextQuestion} disabled={isRecognizing}>
+                              Ask (AI Voice)
+                            </Button>
                             <Button size="sm" onClick={startVoiceAnswer} disabled={isRecognizing}>
                               {isRecognizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />} Answer
                             </Button>
-                            <Button size="sm" variant="outline" onClick={nextStep} disabled={isRecognizing}>Next</Button>
+                            <Button size="sm" variant="outline" onClick={nextStep} disabled={isRecognizing}>
+                              Next
+                            </Button>
                           </div>
-                          <div className="mt-3 text-xs text-white/80 line-clamp-3">
+                          <div className="mt-3 text-xs text-white/80 text-center max-w-3xl">
                             {answers[currentIdx] ? `Your answer: ${answers[currentIdx]}` : "Your answer will appear here after recording."}
                           </div>
                         </>
@@ -408,9 +508,28 @@ export default function InterviewLiveCall({
                   animate={{ opacity: 1 }}
                   className="text-white text-center"
                 >
-                  <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">Ready to Start Interview</p>
-                  <p className="text-sm opacity-75">Click "Start Call" to begin</p>
+                  {/* Promote call start visually above the fold */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-primary/60 shadow-[0_0_40px_8px_rgba(59,130,246,0.35)] animate-pulse mb-4">
+                      <Video className="h-10 w-10 opacity-80" />
+                    </div>
+                    <p className="text-lg font-medium">Ready to Start Interview</p>
+                    <p className="text-sm opacity-75 mb-3">Choose the mode above and press Start Call</p>
+                    {/* Start button already in header; keep a secondary here */}
+                    <Button
+                      size="lg"
+                      onClick={handleStartCall}
+                      disabled={isLoading}
+                      className="flex items-center gap-2 px-8"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Phone className="h-5 w-5" />
+                      )}
+                      Start Call
+                    </Button>
+                  </div>
                 </motion.div>
               )}
 
@@ -424,17 +543,17 @@ export default function InterviewLiveCall({
                   <div className="bg-black/50 backdrop-blur-sm rounded-lg p-2">
                     <div className="flex items-center gap-2 text-white text-sm">
                       <Users className="h-4 w-4" />
-                      <span>{participants.length} participants</span>
+                      <span>2 participants</span>
                     </div>
                   </div>
                 </motion.div>
               )}
             </div>
 
-            {/* Controls */}
+            {/* Controls - simplified since Start/End is in header */}
             <div className="p-6 bg-card">
               <div className="flex items-center justify-center gap-4">
-                {isCallActive ? (
+                {isCallActive && (
                   <>
                     {/* Video Toggle */}
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -462,35 +581,8 @@ export default function InterviewLiveCall({
                       </Button>
                     </motion.div>
 
-                    {/* End Call */}
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        variant="destructive"
-                        size="lg"
-                        onClick={handleEndCall}
-                        disabled={isLoading}
-                        className="rounded-full w-12 h-12 p-0"
-                      >
-                        <PhoneOff className="h-5 w-5" />
-                      </Button>
-                    </motion.div>
+                    {/* End Call kept in header */}
                   </>
-                ) : (
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      size="lg"
-                      onClick={handleStartCall}
-                      disabled={isLoading}
-                      className="flex items-center gap-2 px-8"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <Phone className="h-5 w-5" />
-                      )}
-                      Start Call
-                    </Button>
-                  </motion.div>
                 )}
               </div>
             </div>
@@ -498,7 +590,7 @@ export default function InterviewLiveCall({
         </Card>
       </motion.div>
 
-      {/* Report Section */}
+      {/* Report Section remains the same */}
       {interviewDone && report && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

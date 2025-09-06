@@ -360,29 +360,6 @@ export default function InterviewPage() {
             )}
           </div>
 
-          <Separator />
-
-          {/* Mode */}
-          <div className="space-y-2">
-            <Label>Interview Mode</Label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: "intro", label: "Intro Call" },
-                { id: "technical", label: "Technical Round" },
-                { id: "hr", label: "HR Round" },
-              ].map((m) => (
-                <Button
-                  key={m.id}
-                  variant={interviewMode === (m.id as any) ? "default" : "outline"}
-                  onClick={() => setInterviewMode(m.id as any)}
-                  className="h-9"
-                >
-                  {m.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
           <DialogFooter>
             <Button onClick={handleSaveConfiguration}>Save</Button>
           </DialogFooter>
