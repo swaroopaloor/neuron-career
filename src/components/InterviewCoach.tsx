@@ -334,9 +334,9 @@ export default function InterviewCoach({
       {/* Switchable layout with Tabs */}
       <Tabs defaultValue="drills" className="w-full">
         <div className="flex items-center justify-between mb-3">
-          <TabsList>
+          {/* Mobile-friendly, consistent tab list */}
+          <TabsList className="flex overflow-x-auto max-w-full gap-1">
             <TabsTrigger value="drills">Q&A Drills</TabsTrigger>
-            <TabsTrigger value="voice">Live Interview</TabsTrigger>
             <TabsTrigger value="salary">Salary Coach</TabsTrigger>
           </TabsList>
           {!!questions.length && currentIdx >= 0 && (
@@ -352,18 +352,6 @@ export default function InterviewCoach({
             resumeFileId={resumeFileId}
             sharedQuestions={questions}
             setSharedQuestions={setQuestions}
-          />
-        </TabsContent>
-
-        <TabsContent value="voice">
-          <VoiceMirror
-            jobDescription={jobDescription}
-            resumeFileId={resumeFileId}
-            sharedQuestions={questions}
-            currentIdx={currentIdx}
-            onPrev={() => setCurrentIdx(Math.max(currentIdx - 1, 0))}
-            onNext={() => setCurrentIdx(Math.min(currentIdx + 1, Math.max(questions.length - 1, 0)))}
-            onJump={(idx) => setCurrentIdx(idx)}
           />
         </TabsContent>
 
