@@ -60,6 +60,7 @@ export default function InterviewLiveCall({
   const [sessionActive, setSessionActive] = useState<boolean>(false);
   const [remainingSec, setRemainingSec] = useState<number>(0);
   const [muted, setMuted] = useState<boolean>(false);
+  const [aiTalking, setAiTalking] = useState<boolean>(false);
 
   const [question, setQuestion] = useState<string>("Tell me about yourself.");
   const [transcript, setTranscript] = useState<string>("");
@@ -151,7 +152,10 @@ export default function InterviewLiveCall({
   const ttsUtterRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speak = (text: string) => {
     try {
-      if (muted) return;
+      if (muted) { 
+        setAiTalking(false); 
+        return; 
+      }
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
@@ -162,11 +166,14 @@ export default function InterviewLiveCall({
         if (ttsVoiceRef.current) {
           u.voice = ttsVoiceRef.current;
         }
+        u.onstart = () => setAiTalking(true);
+        u.onend = () => setAiTalking(false);
+        u.onerror = () => setAiTalking(false);
         ttsUtterRef.current = u;
         window.speechSynthesis.speak(u);
       }
     } catch {
-      // ignore
+      setAiTalking(false);
     }
   };
   const stopSpeak = () => {
@@ -176,6 +183,7 @@ export default function InterviewLiveCall({
       }
       ttsUtterRef.current = null;
     } catch {}
+    setAiTalking(false);
   };
 
   // Helper: push AI bubble
@@ -548,6 +556,8 @@ export default function InterviewLiveCall({
     };
   }, [showSummary, metricsLog, durationMin]);
 
+  const userTalking = sessionActive && !stoppedRef.current && micLevel > 0.08;
+
   if (!open) return null;
 
   return (
@@ -613,11 +623,15 @@ export default function InterviewLiveCall({
               <div className="relative rounded-2xl border bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none" />
                 <div className="h-full flex flex-col items-center justify-center p-6">
-                  <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/30 grid place-items-center mb-3 shadow-[0_0_30px_rgba(59,130,246,0.25)]">
+                  <div
+                    className={`w-20 h-20 rounded-full grid place-items-center mb-3 border transition-all
+                    ${aiTalking
+                      ? "bg-primary/25 border-primary/60 ring-4 ring-primary/60 shadow-[0_0_36px_rgba(59,130,246,0.55)] animate-pulse"
+                      : "bg-primary/20 border-primary/30 shadow-[0_0_30px_rgba(59,130,246,0.25)]"}`}
+                  >
                     <Sparkles className="h-10 w-10 text-primary" />
                   </div>
                   <div className="text-sm font-semibold">AI Recruiter</div>
-                  <div className="text-xs text-muted-foreground">Speaking via TTS</div>
                 </div>
                 {/* Current AI question (overlay chip) with glow */}
                 {sessionActive && question && (
@@ -634,7 +648,12 @@ export default function InterviewLiveCall({
               <div className="relative rounded-2xl border bg-gradient-to-br from-secondary/10 to-primary/10 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none" />
                 <div className="h-full flex flex-col items-center justify-center p-6">
-                  <div className="w-20 h-20 rounded-full bg-muted grid place-items-center mb-3 border shadow-[0_0_30px_rgba(34,197,94,0.20)]">
+                  <div
+                    className={`w-20 h-20 rounded-full grid place-items-center mb-3 border transition-all
+                    ${userTalking
+                      ? "bg-emerald-200/20 border-emerald-500/60 ring-4 ring-emerald-500/60 shadow-[0_0_36px_rgba(34,197,94,0.55)] animate-pulse"
+                      : "bg-muted border shadow-[0_0_30px_rgba(34,197,94,0.20)]"}`}
+                  >
                     <User className="h-10 w-10 text-muted-foreground" />
                   </div>
                   <div className="text-sm font-semibold">You</div>
@@ -765,19 +784,7 @@ export default function InterviewLiveCall({
 
           {/* Call Bubbles (scrollable) */}
           <div className="space-y-3 flex-1 overflow-y-auto pr-1 pb-28">
-            {/* Current question bubble (when active) */}
-            {sessionActive && question && (
-              <div className="flex items-start gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_16px_rgba(59,130,246,0.28)]">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                {/* Better text legibility and subtle glow */}
-                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] ring-2 ring-primary/20 shadow-[0_0_18px_rgba(59,130,246,0.18)]">
-                  <span className="font-semibold text-primary">AI:</span>{" "}
-                  <span className="font-medium">{question}</span>
-                </div>
-              </div>
-            )}
+            
 
             {/* History bubbles with soft glow */}
             {chat.map((m, i) =>
