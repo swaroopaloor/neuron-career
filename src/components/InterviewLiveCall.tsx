@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Mic, MicOff, Volume2, VolumeX, ChevronRight, Sparkles, Clipboard, X, User } from "lucide-react";
 import { toast } from "sonner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type InterviewType = "Intro" | "Technical" | "HR";
 
@@ -684,34 +685,72 @@ export default function InterviewLiveCall({
 
           {/* Duration/type selectors (only when idle) */}
           {!sessionActive && !showSummary && (
-            <div className="mb-3 flex items-center gap-2 flex-wrap">
-              <div className="flex rounded-md border overflow-hidden">
-                <button
-                  className={`px-3 py-1.5 text-xs ${durationMin === 30 ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setDurationMin(30)}
-                >30m</button>
-                <button
-                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 60 ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setDurationMin(60)}
-                >60m</button>
-                <button
-                  className={`px-3 py-1.5 text-xs border-l ${durationMin === 90 ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setDurationMin(90)}
-                >90m</button>
+            <div className="mb-3 flex items-center gap-3 flex-wrap">
+              {/* Duration segmented control */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Duration</span>
+                <ToggleGroup
+                  type="single"
+                  value={String(durationMin)}
+                  onValueChange={(val) => {
+                    if (!val) return;
+                    const mins = parseInt(val, 10);
+                    if (!Number.isNaN(mins)) setDurationMin(mins);
+                  }}
+                  className="rounded-md border p-1"
+                >
+                  <ToggleGroupItem
+                    value="30"
+                    className="px-3 py-1.5 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    30m
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="60"
+                    className="px-3 py-1.5 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    60m
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="90"
+                    className="px-3 py-1.5 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    90m
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
-              <div className="flex rounded-md border overflow-hidden">
-                <button
-                  className={`px-3 py-1.5 text-xs ${interviewType === "Intro" ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setInterviewType("Intro")}
-                >Intro</button>
-                <button
-                  className={`px-3 py-1.5 text-xs border-l ${interviewType === "Technical" ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setInterviewType("Technical")}
-                >Technical</button>
-                <button
-                  className={`px-3 py-1.5 text-xs border-l ${interviewType === "HR" ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => setInterviewType("HR")}
-                >HR</button>
+
+              {/* Interview Type segmented control */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Round</span>
+                <ToggleGroup
+                  type="single"
+                  value={interviewType}
+                  onValueChange={(val) => {
+                    if (!val) return;
+                    setInterviewType(val as "Intro" | "Technical" | "HR");
+                  }}
+                  className="rounded-md border p-1"
+                >
+                  <ToggleGroupItem
+                    value="Intro"
+                    className="px-3 py-1.5 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    Intro
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="Technical"
+                    className="px-3 py-1.5 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    Technical
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="HR"
+                    className="px-3 py-1.5 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    HR
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
             </div>
           )}
