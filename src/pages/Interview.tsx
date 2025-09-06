@@ -262,7 +262,7 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="container-responsive py-8 space-y-8">
+    <div className="container-responsive py-4 space-y-6">
       {/* Setup Dialog */}
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
         <DialogContent className="sm:max-w-2xl">

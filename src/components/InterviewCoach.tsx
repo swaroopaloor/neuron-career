@@ -21,7 +21,8 @@ import {
   Sparkles,
   CheckCircle,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Copy
 } from "lucide-react";
 
 // Loading Component
@@ -220,6 +221,45 @@ export default function InterviewCoach({
     }
   };
 
+  const handleCopyPlan = async () => {
+    const plan = [
+      "Salary Negotiation Plan",
+      "",
+      "Recommended Strategy:",
+      negotiationTips || "Use market data, anchor high, negotiate total comp, keep collaborative tone.",
+      "",
+      "Offer Anchoring:",
+      "- Define your target range (top-of-market) backed by market data.",
+      "- Tie your ask to measurable impact, unique skills, and role scope.",
+      "- Use ranges, not single numbers; keep flexibility for components.",
+      "",
+      "Compensation Components:",
+      "- Base salary, bonus, equity/ESOPs, sign-on, relocation, benefits, PTO, WFH stipend.",
+      "- Ask about review cycle and refreshers for equity.",
+      "",
+      "Suggested Phrases:",
+      '- "Based on market data and my expected impact, I\'m targeting a total comp of ..."',
+      '- "If base is constrained, could we explore equity or sign-on to bridge the gap?"',
+      '- "I\'m excited about the role; if we can get to ... I\'m ready to sign."',
+      "",
+      "Do / Don't:",
+      "Do: research, anchor with data, stay collaborative, propose trade-offs, ask for written details.",
+      "Don't: give ultimatums, over-explain personal needs, accept first offer, rush decisions.",
+      "",
+      "Counter-offer Planner:",
+      "- Target: top-of-market range",
+      "- Walk-away: minimum acceptable total comp",
+      "- Concessions list: base, equity, sign-on, bonus, PTO",
+      "- Timeline: ask for date for updated offer",
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(plan);
+      toast("Plan copied to clipboard");
+    } catch {
+      toast("Failed to copy plan");
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <Card>
@@ -271,7 +311,7 @@ export default function InterviewCoach({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">
                     Resume: {resumeFileId ? "Attached" : "Not attached"}
                   </Badge>
@@ -280,18 +320,29 @@ export default function InterviewCoach({
                   </Badge>
                 </div>
 
-                <Button
-                  onClick={handleGenerateNegotiationTips}
-                  disabled={isLoading}
-                  className="flex items-center gap-2"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  Generate Tips
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={handleGenerateNegotiationTips}
+                    disabled={isLoading}
+                    className="flex items-center gap-2"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Generate Tips
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCopyPlan}
+                    disabled={!negotiationTips}
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy Plan
+                  </Button>
+                </div>
 
                 {negotiationTips && (
                   <div className="p-4 border rounded-lg space-y-3">
@@ -308,34 +359,97 @@ export default function InterviewCoach({
                   </div>
                 )}
 
-                {/* Quick Principles */}
+                {/* Detailed Guidance: 3-column professional layout */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 border rounded-lg">
+                  {/* Offer Anchoring */}
+                  <div className="p-4 border rounded-lg space-y-2">
                     <div className="flex items-center gap-2 font-medium">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Anchor Smart
+                      Offer Anchoring
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Lead with a data-backed range at the top of market for comparable roles.
-                    </p>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                      <li>Anchor at top-of-market range backed by market data.</li>
+                      <li>Tie ask to measurable impact and role scope.</li>
+                      <li>Use ranges, not single numbers; keep flexibility.</li>
+                      <li>Ask for written breakdown of total comp.</li>
+                    </ul>
                   </div>
-                  <div className="p-3 border rounded-lg">
+                  {/* Compensation Components */}
+                  <div className="p-4 border rounded-lg space-y-2">
                     <div className="flex items-center gap-2 font-medium">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Total Comp
+                      Compensation Components
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Negotiate base, bonus, equity, sign-on, benefits, and PTO together.
-                    </p>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                      <li>Base salary, performance bonus, equity/ESOPs.</li>
+                      <li>Sign-on bonus (1–2 tranches), relocation.</li>
+                      <li>Benefits, PTO, WFH stipend, education budget.</li>
+                      <li>Review cycle, equity refreshers, promotion path.</li>
+                    </ul>
                   </div>
-                  <div className="p-3 border rounded-lg">
+                  {/* Suggested Phrases */}
+                  <div className="p-4 border rounded-lg space-y-2">
                     <div className="flex items-center gap-2 font-medium">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      Collaborative Tone
+                      <Lightbulb className="h-4 w-4 text-blue-600" />
+                      Suggested Phrases
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Emphasize excitement for the role while clearly stating your target range.
-                    </p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>“Based on market data and my impact in this role, I'm targeting a total comp of ..."</p>
+                      <p>“If base is constrained, could we explore equity or sign-on to bridge the gap?"</p>
+                      <p>“I'm excited about the role; if we can get to ... I'm ready to sign."</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Do/Don't and Counter-offer Planner */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Do / Don't */}
+                  <div className="p-4 border rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 font-medium">
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                      Do / Don't
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <div className="font-medium mb-1">Do</div>
+                        <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                          <li>Research ranges (Levels, Glassdoor, peers).</li>
+                          <li>Anchor with data and role impact.</li>
+                          <li>Stay collaborative, ask clarifying questions.</li>
+                          <li>Propose trade-offs across components.</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <div className="font-medium mb-1">Don't</div>
+                        <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                          <li>Give ultimatums or personal need reasons.</li>
+                          <li>Accept first offer without discussion.</li>
+                          <li>Rush decisions without full breakdown.</li>
+                          <li>Neglect written confirmation and dates.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Counter-offer Planner */}
+                  <div className="p-4 border rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 font-medium">
+                      <Target className="h-4 w-4 text-primary" />
+                      Counter-offer Planner
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-2">
+                      <div>
+                        <span className="font-medium text-foreground">Target Range:</span> Top-of-market for role and level.
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">Walk-away:</span> Minimum acceptable total comp.
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">Concessions:</span> Base, equity, sign-on, bonus, PTO.
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">Timeline:</span> Request a date for updated written offer.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
