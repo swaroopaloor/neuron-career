@@ -158,24 +158,6 @@ export default function InterviewPage() {
     setShowSetupDialog(true);
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="container-responsive py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card>
-            <CardContent className="py-8 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Please sign in to access the Interview Suite.</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
-
   const handleStartPractice = async () => {
     if (!resolvedJd) {
       toast("Please select or paste a job description");
@@ -305,6 +287,24 @@ export default function InterviewPage() {
     setHydratedFromSession(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedSession, currentUser, hydratedFromSession]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container-responsive py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card>
+            <CardContent className="py-8 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Please sign in to access the Interview Suite.</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-responsive py-4 space-y-6">
