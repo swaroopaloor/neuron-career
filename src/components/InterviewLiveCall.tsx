@@ -460,9 +460,9 @@ export default function InterviewLiveCall({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm">
+    <div className="fixed inset-0 z-[80] bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm">
       {/* Header / Meeting bar */}
-      <div className="absolute top-0 left-0 right-0 h-12 border-b bg-background/80 flex items-center justify-between px-4">
+      <div className="absolute top-0 left-0 right-0 h-12 border-b bg-background/90 flex items-center justify-between px-4 z-[85]">
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-xs">AI Recruiter Call</Badge>
           <div className="text-muted-foreground">•</div>
@@ -512,7 +512,7 @@ export default function InterviewLiveCall({
       </div>
 
       {/* Main layout: Stage + Sidebar */}
-      <div className="absolute inset-12 grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 p-4">
+      <div className="absolute left-0 right-0 top-12 bottom-20 grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 p-4 overflow-hidden">
         {/* Stage */}
         <div className="relative rounded-xl border bg-muted/10 overflow-hidden">
           <div className="grid grid-rows-[1fr,auto] h-full">
@@ -522,16 +522,16 @@ export default function InterviewLiveCall({
               <div className="relative rounded-2xl border bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none" />
                 <div className="h-full flex flex-col items-center justify-center p-6">
-                  <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/30 grid place-items-center mb-3">
+                  <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/30 grid place-items-center mb-3 shadow-[0_0_30px_rgba(59,130,246,0.25)]">
                     <Sparkles className="h-10 w-10 text-primary" />
                   </div>
                   <div className="text-sm font-semibold">AI Recruiter</div>
                   <div className="text-xs text-muted-foreground">Speaking via TTS</div>
                 </div>
-                {/* Current AI question (overlay chip) */}
+                {/* Current AI question (overlay chip) with glow */}
                 {sessionActive && question && (
                   <div className="absolute left-3 bottom-3 max-w-[85%]">
-                    <div className="rounded-full bg-background/90 border px-3 py-1.5 text-xs shadow">
+                    <div className="rounded-full bg-background/95 border px-3 py-1.5 text-xs shadow ring-1 ring-primary/30 animate-in fade-in slide-in-from-bottom-1">
                       Q: {question}
                     </div>
                   </div>
@@ -542,7 +542,7 @@ export default function InterviewLiveCall({
               <div className="relative rounded-2xl border bg-gradient-to-br from-secondary/10 to-primary/10 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none" />
                 <div className="h-full flex flex-col items-center justify-center p-6">
-                  <div className="w-20 h-20 rounded-full bg-muted grid place-items-center mb-3 border">
+                  <div className="w-20 h-20 rounded-full bg-muted grid place-items-center mb-3 border shadow-[0_0_30px_rgba(34,197,94,0.20)]">
                     <User className="h-10 w-10 text-muted-foreground" />
                   </div>
                   <div className="text-sm font-semibold">You</div>
@@ -563,10 +563,10 @@ export default function InterviewLiveCall({
                   </div>
                 </div>
 
-                {/* Live utterance overlay bubble */}
+                {/* Live utterance overlay bubble with glow */}
                 {sessionActive && (liveUserUtterance || transcript) && (
                   <div className="absolute right-3 bottom-3 max-w-[85%] animate-in slide-in-from-bottom-2 fade-in">
-                    <div className="rounded-2xl rounded-tr-sm bg-primary/90 text-primary-foreground px-3 py-2 text-sm shadow">
+                    <div className="rounded-2xl rounded-tr-sm bg-primary/90 text-primary-foreground px-3 py-2 text-sm shadow ring-2 ring-primary/30">
                       {(liveUserUtterance || transcript) || ""}
                       <span className="inline-block w-2 h-2 bg-primary-foreground rounded-full ml-2 animate-pulse align-middle" />
                     </div>
@@ -575,67 +575,15 @@ export default function InterviewLiveCall({
               </div>
             </div>
 
-            {/* Bottom control dock */}
+            {/* Spacer where old dock was; keep empty */}
             <div className="relative">
-              <div className="absolute inset-x-0 -top-3 flex items-center justify-center">
-                <div className="rounded-full border bg-background/95 shadow-lg px-3 py-2 flex items-center gap-2">
-                  {/* Start/Stop Mic */}
-                  {sessionActive && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-full"
-                      onClick={() => {
-                        if (stoppedRef.current) startRecorder();
-                        else stopRecorder();
-                      }}
-                    >
-                      {stoppedRef.current ? <Mic className="h-4 w-4 mr-2" /> : <MicOff className="h-4 w-4 mr-2" />}
-                      {stoppedRef.current ? "Start Mic" : "Stop Mic"}
-                    </Button>
-                  )}
-
-                  {/* Mute/Unmute AI */}
-                  <Button size="sm" variant="outline" className="rounded-full" onClick={() => setMuted((m) => !m)}>
-                    {muted ? <VolumeX className="h-4 w-4 mr-2" /> : <Volume2 className="h-4 w-4 mr-2" />}
-                    {muted ? "Unmute AI" : "Mute AI"}
-                  </Button>
-
-                  {/* Done speaking */}
-                  {sessionActive && (
-                    <Button size="sm" className="rounded-full" onClick={handleUserDoneSpeaking}>
-                      I'm Done Speaking
-                    </Button>
-                  )}
-
-                  {/* Next question */}
-                  {sessionActive && (
-                    <Button size="sm" variant="outline" className="rounded-full" onClick={handleNextQuestion}>
-                      Next <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
-
-                  {/* Start/End session */}
-                  {!sessionActive ? (
-                    <Button size="sm" className="rounded-full" onClick={startSession} disabled={!jd}>
-                      Start Live Interview
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="destructive" className="rounded-full" onClick={handleEndSession}>
-                      End
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Spacer for dock */}
-              <div className="h-12" />
+              <div className="h-2" />
             </div>
           </div>
         </div>
 
         {/* Sidebar: Chat & Summary */}
-        <div className="rounded-xl border bg-background p-4 flex flex-col">
+        <div className="rounded-xl border bg-background p-4 flex flex-col overflow-hidden">
           {/* Quick metrics */}
           <div className="grid grid-cols-4 gap-2 mb-3">
             {(() => {
@@ -685,37 +633,37 @@ export default function InterviewLiveCall({
             </div>
           )}
 
-          {/* Call Bubbles */}
+          {/* Call Bubbles (scrollable) */}
           <div className="space-y-3 flex-1 overflow-y-auto pr-1">
             {/* Current question bubble (when active) */}
             {sessionActive && question && (
               <div className="flex items-start gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.25)]">
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>
-                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-sm max-w-[85%]">
+                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-sm max-w-[85%] ring-1 ring-primary/10">
                   {question}
                 </div>
               </div>
             )}
 
-            {/* History bubbles */}
+            {/* History bubbles with soft glow */}
             {chat.map((m, i) =>
               m.role === "ai" ? (
                 <div key={m.ts + ":" + i} className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.25)]">
                     <Sparkles className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-sm max-w-[85%]">
+                  <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-sm max-w-[85%] ring-1 ring-primary/5">
                     {m.text}
                   </div>
                 </div>
               ) : (
                 <div key={m.ts + ":" + i} className="flex items-start gap-2 justify-end">
-                  <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[85%]">
+                  <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[85%] shadow ring-2 ring-primary/30">
                     {m.text}
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-muted grid place-items-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-muted grid place-items-center shrink-0 shadow-[0_0_12px_rgba(34,197,94,0.20)]">
                     <User className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
@@ -795,6 +743,63 @@ export default function InterviewLiveCall({
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Fixed bottom control dock (always accessible) */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] pointer-events-auto">
+        <div className="rounded-full border bg-background/95 shadow-xl px-3 py-2 flex items-center gap-2">
+          {/* Start/Stop Mic */}
+          {sessionActive && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => {
+                if (stoppedRef.current) startRecorder();
+                else stopRecorder();
+              }}
+            >
+              {stoppedRef.current ? <Mic className="h-4 w-4 mr-2" /> : <MicOff className="h-4 w-4 mr-2" />}
+              {stoppedRef.current ? "Start Mic" : "Stop Mic"}
+            </Button>
+          )}
+
+          {/* Mute/Unmute AI */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setMuted((m) => !m)}
+          >
+            {muted ? <VolumeX className="h-4 w-4 mr-2" /> : <Volume2 className="h-4 w-4 mr-2" />}
+            {muted ? "Unmute AI" : "Mute AI"}
+          </Button>
+
+          {/* Done speaking */}
+          {sessionActive && (
+            <Button size="sm" className="rounded-full" onClick={handleUserDoneSpeaking}>
+              I'm Done Speaking
+            </Button>
+          )}
+
+          {/* Next question */}
+          {sessionActive && (
+            <Button size="sm" variant="outline" className="rounded-full" onClick={handleNextQuestion}>
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          )}
+
+          {/* Start/End session */}
+          {!sessionActive ? (
+            <Button size="sm" className="rounded-full" onClick={startSession} disabled={!jd}>
+              Start Live Interview
+            </Button>
+          ) : (
+            <Button size="sm" variant="destructive" className="rounded-full" onClick={handleEndSession}>
+              End
+            </Button>
+          )}
         </div>
       </div>
     </div>
