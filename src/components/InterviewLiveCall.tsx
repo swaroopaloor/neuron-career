@@ -103,7 +103,7 @@ export default function InterviewLiveCall({
     return 25;
   };
 
-  // Better human-like TTS voice selection
+  // Better female voice selection - prefer natural female voices by name hints
   const ttsVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const voicesLoadedRef = useRef(false);
 
@@ -112,22 +112,26 @@ export default function InterviewLiveCall({
     const voices = window.speechSynthesis.getVoices() || [];
     if (!voices || voices.length === 0) return;
 
-    // Prefer natural voices
+    // Heuristics: prefer named female/natural voices from Google/Microsoft
+    const femaleHints = ["aria", "jenny", "sonia", "zira", "female", "samantha", "nikki", "luna", "emma", "olivia", "natasha"];
     const prefer = (v: SpeechSynthesisVoice) => {
       const n = (v.name || "").toLowerCase();
       const uri = (v.voiceURI || "").toLowerCase();
-      return (
-        n.includes("google") ||
-        n.includes("microsoft") ||
-        n.includes("natural") ||
-        uri.includes("google") ||
-        uri.includes("microsoft") ||
-        uri.includes("natural")
-      );
+      const prov = n + " " + uri;
+      const isNaturalProvider = prov.includes("google") || prov.includes("microsoft") || prov.includes("natural");
+      const looksFemale = femaleHints.some(h => n.includes(h));
+      return (isNaturalProvider && looksFemale) || looksFemale;
     };
 
     const en = voices.filter((v) => (v.lang || "").toLowerCase().startsWith("en"));
-    const preferred = en.find(prefer) || voices.find(prefer) || en[0] || voices[0] || null;
+    // Priorities: female+natural -> any female -> natural -> first en -> first
+    const preferred =
+      en.find(prefer) ||
+      voices.find(prefer) ||
+      en.find(v => (v.name || "").toLowerCase().includes("google")) ||
+      en.find(v => (v.name || "").toLowerCase().includes("microsoft")) ||
+      en[0] || voices[0] || null;
+
     ttsVoiceRef.current = preferred || null;
     voicesLoadedRef.current = true;
   };
@@ -150,8 +154,8 @@ export default function InterviewLiveCall({
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.96; // slightly slower for clarity
-        u.pitch = 1.02; // subtle warmth
+        u.rate = 0.93; // natural pacing
+        u.pitch = 1.08; // warmer voice timbre
         u.volume = muted ? 0 : 1;
         u.lang = "en-US";
         if (ttsVoiceRef.current) {
@@ -278,7 +282,18 @@ export default function InterviewLiveCall({
         ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm")
         ? "audio/webm"
-        : "audio/ogg";
+        : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
+        ? "audio/ogg;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a")
+        ? "audio/mp4;codecs=mp4a"
+        : MediaRecorder.isTypeSupported("audio/aac")
+        ? "audio/aac"
+        : "" as any;
+
+      if (!mime) {
+        toast.error("This browser doesn't support live audio recording. Try Chrome or Edge.");
+        return;
+      }
 
       const rec = new MediaRecorder(stream, { mimeType: mime });
       recorderRef.current = rec;
@@ -579,7 +594,7 @@ export default function InterviewLiveCall({
       </div>
 
       {/* Main layout: Stage + Sidebar */}
-      <div className="absolute left-0 right-0 top-12 bottom-20 grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 p-4 overflow-hidden">
+      <div className="absolute left-0 right-0 top-12 bottom-24 grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 p-4 overflow-hidden">
         {/* Stage */}
         <div className="relative rounded-xl border bg-muted/10 overflow-hidden">
           <div className="grid grid-rows-[1fr,auto] h-full">
@@ -598,7 +613,7 @@ export default function InterviewLiveCall({
                 {/* Current AI question (overlay chip) with glow */}
                 {sessionActive && question && (
                   <div className="absolute left-3 bottom-3 max-w-[85%]">
-                    <div className="rounded-full bg-background/95 border px-3 py-2 text-sm leading-relaxed shadow ring-2 ring-primary/40 text-foreground">
+                    <div className="rounded-full bg-background/95 border px-3 py-2 text-sm leading-relaxed shadow ring-2 ring-primary/50 text-foreground">
                       <span className="font-semibold text-primary mr-1">Q:</span>
                       <span className="font-medium">{question}</span>
                     </div>
@@ -651,7 +666,7 @@ export default function InterviewLiveCall({
         </div>
 
         {/* Sidebar: Chat & Summary */}
-        <div className="rounded-xl border bg-background p-4 flex flex-col overflow-hidden">
+        <div className="rounded-xl border bg-background p-4 flex flex-col overflow-hidden pb-6">
           {/* Quick metrics */}
           <div className="grid grid-cols-4 gap-2 mb-3">
             {(() => {
@@ -702,15 +717,15 @@ export default function InterviewLiveCall({
           )}
 
           {/* Call Bubbles (scrollable) */}
-          <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+          <div className="space-y-3 flex-1 overflow-y-auto pr-1 pb-28">
             {/* Current question bubble (when active) */}
             {sessionActive && question && (
               <div className="flex items-start gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.25)]">
+                <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_16px_rgba(59,130,246,0.28)]">
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 {/* Better text legibility and subtle glow */}
-                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] ring-2 ring-primary/10 text-foreground">
+                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] ring-2 ring-primary/20 shadow-[0_0_18px_rgba(59,130,246,0.18)]">
                   <span className="font-semibold text-primary">AI:</span>{" "}
                   <span className="font-medium">{question}</span>
                 </div>
@@ -721,20 +736,19 @@ export default function InterviewLiveCall({
             {chat.map((m, i) =>
               m.role === "ai" ? (
                 <div key={m.ts + ":" + i} className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.25)]">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_16px_rgba(59,130,246,0.28)]">
                     <Sparkles className="h-4 w-4 text-primary" />
                   </div>
-                  {/* Larger readable text, improved contrast, glow */}
-                  <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] ring-2 ring-primary/10 shadow-[0_0_16px_rgba(59,130,246,0.12)]">
+                  <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] ring-2 ring-primary/15 shadow-[0_0_22px_rgba(59,130,246,0.16)]">
                     {m.text}
                   </div>
                 </div>
               ) : (
                 <div key={m.ts + ":" + i} className="flex items-start gap-2 justify-end">
-                  <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] shadow ring-2 ring-primary/30">
+                  <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] shadow ring-2 ring-primary/40 shadow-[0_0_22px_rgba(34,197,94,0.18)]">
                     {m.text}
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-muted grid place-items-center shrink-0 shadow-[0_0_12px_rgba(34,197,94,0.20)]">
+                  <div className="w-8 h-8 rounded-full bg-muted grid place-items-center shrink-0 shadow-[0_0_14px_rgba(34,197,94,0.22)]">
                     <User className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
@@ -818,7 +832,7 @@ export default function InterviewLiveCall({
       </div>
 
       {/* Fixed bottom control dock (always accessible) */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] pointer-events-auto">
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[95] pointer-events-auto">
         <div className="rounded-full border bg-background/95 shadow-xl px-3 py-2 flex items-center gap-2">
           {/* Start/Stop Mic */}
           {sessionActive && (
