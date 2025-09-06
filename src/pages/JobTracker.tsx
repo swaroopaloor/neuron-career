@@ -16,7 +16,6 @@ import {
   Building2, 
   Calendar, 
   FileText, 
-  MoreHorizontal,
   ArrowLeft,
   Briefcase,
   Target,
