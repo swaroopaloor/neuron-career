@@ -93,12 +93,54 @@ export default function InterviewLiveCall({
   const sendingRef = useRef<boolean>(false);
   const stoppedRef = useRef<boolean>(true);
 
+  // ADD: simple queue to avoid dropping chunks if one is in-flight
+  const pendingBlobRef = useRef<Blob | null>(null);
+
   // derive target questions from duration
   const deriveTargetQuestions = (mins: number) => {
     if (mins <= 30) return 10;
     if (mins <= 60) return 18;
     return 25;
   };
+
+  // Better human-like TTS voice selection
+  const ttsVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const voicesLoadedRef = useRef(false);
+
+  const loadVoices = () => {
+    if (!("speechSynthesis" in window)) return;
+    const voices = window.speechSynthesis.getVoices() || [];
+    if (!voices || voices.length === 0) return;
+
+    // Prefer natural voices
+    const prefer = (v: SpeechSynthesisVoice) => {
+      const n = (v.name || "").toLowerCase();
+      const uri = (v.voiceURI || "").toLowerCase();
+      return (
+        n.includes("google") ||
+        n.includes("microsoft") ||
+        n.includes("natural") ||
+        uri.includes("google") ||
+        uri.includes("microsoft") ||
+        uri.includes("natural")
+      );
+    };
+
+    const en = voices.filter((v) => (v.lang || "").toLowerCase().startsWith("en"));
+    const preferred = en.find(prefer) || voices.find(prefer) || en[0] || voices[0] || null;
+    ttsVoiceRef.current = preferred || null;
+    voicesLoadedRef.current = true;
+  };
+
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    loadVoices();
+    const handler = () => loadVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", handler);
+    return () => {
+      window.speechSynthesis.removeEventListener?.("voiceschanged", handler);
+    };
+  }, []);
 
   // TTS
   const ttsUtterRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -108,9 +150,13 @@ export default function InterviewLiveCall({
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
-        u.rate = 1;
-        u.pitch = 1;
+        u.rate = 0.96; // slightly slower for clarity
+        u.pitch = 1.02; // subtle warmth
         u.volume = muted ? 0 : 1;
+        u.lang = "en-US";
+        if (ttsVoiceRef.current) {
+          u.voice = ttsVoiceRef.current;
+        }
         ttsUtterRef.current = u;
         window.speechSynthesis.speak(u);
       }
@@ -184,6 +230,43 @@ export default function InterviewLiveCall({
     setMicLevel(0);
   };
 
+  // ADD: helper to send chunk and flush pending queue
+  const sendChunk = async (blob: Blob, mime: string) => {
+    sendingRef.current = true;
+    try {
+      const buf = await blob.arrayBuffer();
+      const text = await transcribeChunk({
+        audio: new Uint8Array(buf) as any,
+        mimeType: blob.type || mime,
+        prompt:
+          interviewType === "Technical"
+            ? "Technical interview context. Use concise phrasing and preserve jargon."
+            : interviewType === "HR"
+            ? "HR/behavioral interview context. Clean up filler words but keep meaning."
+            : "Job interview context. Transcribe clearly and concisely.",
+      });
+      if (!stoppedRef.current && text) {
+        if (!startedAt) setStartedAt(Date.now());
+        setLiveUserUtterance((prev) =>
+          prev ? `${prev} ${text}` : text
+        );
+        setTranscript((prev) =>
+          prev ? `${prev} ${text}` : text
+        );
+      }
+    } catch {
+      // swallow transient errors to keep stream alive
+    } finally {
+      sendingRef.current = false;
+      // if a chunk was queued while sending, flush it now (single-late-chunk policy)
+      const pending = pendingBlobRef.current;
+      pendingBlobRef.current = null;
+      if (pending && !stoppedRef.current) {
+        void sendChunk(pending, mime);
+      }
+    }
+  };
+
   // start recorder with Groq STT
   const startRecorder = async () => {
     try {
@@ -195,7 +278,8 @@ export default function InterviewLiveCall({
         ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm")
         ? "audio/webm"
-        : "audio/mp4";
+        : "audio/ogg";
+
       const rec = new MediaRecorder(stream, { mimeType: mime });
       recorderRef.current = rec;
       stoppedRef.current = false;
@@ -208,31 +292,14 @@ export default function InterviewLiveCall({
         if (stoppedRef.current) return;
         const blob = ev.data;
         if (!blob || blob.size === 0) return;
-        if (sendingRef.current) return;
-        sendingRef.current = true;
-        try {
-          const buf = await blob.arrayBuffer();
-          const text = await transcribeChunk({
-            audio: new Uint8Array(buf) as any,
-            mimeType: blob.type || mime,
-            prompt:
-              interviewType === "Technical"
-                ? "Technical interview context. Use concise phrasing and preserve jargon."
-                : interviewType === "HR"
-                ? "HR/behavioral interview context. Clean up filler words but keep meaning."
-                : "Job interview context. Transcribe clearly and concisely.",
-          });
-          if (!stoppedRef.current && text) {
-            if (!startedAt) setStartedAt(Date.now());
-            // Stream into the live utterance and full transcript for reliability
-            setLiveUserUtterance((prev) => (prev && !prev.endsWith(" ") ? prev + " " + text : (prev || "") + text));
-            setTranscript((prev) => (prev && !prev.endsWith(" ") ? prev + " " + text : (prev || "") + text));
-          }
-        } catch {
-          // swallow transient errors to keep stream alive
-        } finally {
-          sendingRef.current = false;
+
+        if (sendingRef.current) {
+          // queue latest chunk; older one is discarded to keep it snappy
+          pendingBlobRef.current = blob;
+          return;
         }
+        // send now
+        void sendChunk(blob, mime);
       };
 
       rec.onerror = () => {
@@ -240,7 +307,7 @@ export default function InterviewLiveCall({
         stopRecorder();
       };
 
-      // Smaller timeslice for more instantaneous updates
+      // 250ms for near-instant updates
       rec.start(250);
     } catch (e: any) {
       toast.error(e?.message || "Failed to access microphone");
@@ -531,8 +598,9 @@ export default function InterviewLiveCall({
                 {/* Current AI question (overlay chip) with glow */}
                 {sessionActive && question && (
                   <div className="absolute left-3 bottom-3 max-w-[85%]">
-                    <div className="rounded-full bg-background/95 border px-3 py-1.5 text-xs shadow ring-1 ring-primary/30 animate-in fade-in slide-in-from-bottom-1">
-                      Q: {question}
+                    <div className="rounded-full bg-background/95 border px-3 py-2 text-sm leading-relaxed shadow ring-2 ring-primary/40 text-foreground">
+                      <span className="font-semibold text-primary mr-1">Q:</span>
+                      <span className="font-medium">{question}</span>
                     </div>
                   </div>
                 )}
@@ -575,7 +643,7 @@ export default function InterviewLiveCall({
               </div>
             </div>
 
-            {/* Spacer where old dock was; keep empty */}
+            {/* Spacer */}
             <div className="relative">
               <div className="h-2" />
             </div>
@@ -641,8 +709,10 @@ export default function InterviewLiveCall({
                 <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.25)]">
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>
-                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-sm max-w-[85%] ring-1 ring-primary/10">
-                  {question}
+                {/* Better text legibility and subtle glow */}
+                <div className="rounded-2xl rounded-tl-sm bg-primary/10 border border-primary/20 px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] ring-2 ring-primary/10 text-foreground">
+                  <span className="font-semibold text-primary">AI:</span>{" "}
+                  <span className="font-medium">{question}</span>
                 </div>
               </div>
             )}
@@ -654,13 +724,14 @@ export default function InterviewLiveCall({
                   <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 grid place-items-center shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.25)]">
                     <Sparkles className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-sm max-w-[85%] ring-1 ring-primary/5">
+                  {/* Larger readable text, improved contrast, glow */}
+                  <div className="rounded-2xl rounded-tl-sm bg-background border px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] ring-2 ring-primary/10 shadow-[0_0_16px_rgba(59,130,246,0.12)]">
                     {m.text}
                   </div>
                 </div>
               ) : (
                 <div key={m.ts + ":" + i} className="flex items-start gap-2 justify-end">
-                  <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[85%] shadow ring-2 ring-primary/30">
+                  <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-[0.95rem] leading-6 max-w-[85%] shadow ring-2 ring-primary/30">
                     {m.text}
                   </div>
                   <div className="w-8 h-8 rounded-full bg-muted grid place-items-center shrink-0 shadow-[0_0_12px_rgba(34,197,94,0.20)]">
@@ -728,7 +799,7 @@ export default function InterviewLiveCall({
             )}
           </div>
 
-          {/* Live transcript editor for manual corrections */}
+          {/* Live transcript editor */}
           <div className="mt-3 space-y-2">
             <Badge variant="outline" className="w-fit">Live transcript (editable)</Badge>
             <Textarea
