@@ -57,6 +57,9 @@ export default function InterviewPage() {
   // Add: hook for generating practice questions
   const generateQuestionsAction = useAction(api.aiInterview.generateQuestions);
 
+  // Add: action to generate suggested answers
+  const polishAnswerAction = useAction(api.aiInterview.polishAnswer);
+
   // Add: practice UI + control state
   const [practiceLoading, setPracticeLoading] = useState(false);
   const [practiceForm, setPracticeForm] = useState({
@@ -65,6 +68,11 @@ export default function InterviewPage() {
     interviewType: "behavioral",
     difficulty: "easy",
   });
+
+  // Add: practice Q&A state (questions + AI-suggested answers shown one by one)
+  const [qa, setQa] = useState<Array<{ q: string; a: string }>>([]);
+  const [qaIdx, setQaIdx] = useState(0);
+  const [qaLoading, setQaLoading] = useState(false);
 
   // Remove inline setup section; we'll use modal & compact summary
   const [resumeChoice, setResumeChoice] = useState<"saved" | "upload">("saved");
@@ -191,6 +199,68 @@ export default function InterviewPage() {
     }
   };
 
+  const handleGenerateQA = async () => {
+    if (!resolvedJd) {
+      toast("Please select or paste a job description");
+      return;
+    }
+    if (resumeChoice === "upload" && !resolvedResumeId) {
+      toast("Please upload a resume or switch to saved resume");
+      return;
+    }
+
+    try {
+      setQaLoading(true);
+      setQa([]);
+      setQaIdx(0);
+
+      const questions = await generateQuestionsAction({
+        jd: `Mode: ${interviewMode}. ${resolvedJd}`,
+        interviewType: practiceInterviewTypeMap[interviewMode],
+        count: 50,
+        // @ts-ignore optional
+        resumeFileId: resolvedResumeId,
+      });
+
+      const qArr: string[] = Array.isArray(questions) ? questions : [];
+      if (qArr.length === 0) {
+        toast("No questions generated. Try switching the round or updating your JD.");
+        return;
+      }
+
+      // Compose JD context for answer suggestions
+      const composedJd = `Generate a concise, strong answer using STAR where relevant. Consider the user's resume ${resolvedResumeId ? "attached" : "not attached"} and JD: ${resolvedJd}`;
+
+      // Sequentially generate suggested answers for each question
+      const qaPairs: Array<{ q: string; a: string }> = [];
+      for (let i = 0; i < qArr.length; i++) {
+        const q = qArr[i];
+        try {
+          const suggested = await polishAnswerAction({
+            question: q,
+            // Seed an empty draft; backend should provide improved/polished suggestion
+            answer: "",
+            jd: composedJd,
+          });
+          const ans = typeof suggested === "string" ? suggested : ((suggested as any)?.answer || "");
+          qaPairs.push({ q, a: ans });
+        } catch {
+          qaPairs.push({ q, a: "" });
+        }
+        // Update progressively so the user can start browsing as they generate
+        if (i % 5 === 0) setQa([...qaPairs]);
+      }
+
+      setQa(qaPairs);
+      setQaIdx(0);
+      toast(`Generated ${qaPairs.length} Q&A items`);
+    } catch (e: any) {
+      toast(e?.message || "Failed to generate practice Q&A");
+    } finally {
+      setQaLoading(false);
+    }
+  };
+
   return (
     <div className="container-responsive py-8 space-y-8">
       {/* Setup Dialog */}
@@ -268,7 +338,7 @@ export default function InterviewPage() {
                   <SelectContent>
                     {userAnalyses.map((a: any) => (
                       <SelectItem key={a._id} value={a._id}>
-                        {a.resumeFileName || "Resume"} • {new Date(a._creationTime).toLocaleDateString()}
+                        {(a.jobDescription || "").slice(0, 80) || "Job description"}{(a.jobDescription || "").length > 80 ? "..." : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -391,7 +461,6 @@ export default function InterviewPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            {/* Guard */}
             {!resolvedJd || showSetupDialog ? (
               <Card>
                 <CardContent className="py-8 text-center">
@@ -406,88 +475,90 @@ export default function InterviewPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="h-5 w-5" />
-                      Practice Questions Setup
+                      Practice Questions
                     </CardTitle>
                     <CardDescription>
-                      Generate questions based on your configuration
+                      50 questions with suggested answers based on your resume and job description
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Job Title</Label>
-                        <Input
-                          placeholder="e.g., Senior Software Engineer"
-                          value={practiceForm.jobTitle}
-                          onChange={(e) => setPracticeForm(prev => ({ ...prev, jobTitle: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <Label>Company</Label>
-                        <Input
-                          placeholder="e.g., Google, Microsoft"
-                          value={practiceForm.company}
-                          onChange={(e) => setPracticeForm(prev => ({ ...prev, company: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <Label>Interview Type</Label>
-                        <Select 
-                          value={practiceForm.interviewType} 
-                          onValueChange={(value) => setPracticeForm(prev => ({ ...prev, interviewType: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="behavioral">Behavioral</SelectItem>
-                            <SelectItem value="technical">Technical</SelectItem>
-                            <SelectItem value="system-design">System Design</SelectItem>
-                            <SelectItem value="case-study">Case Study</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Difficulty</Label>
-                        <Select 
-                          value={practiceForm.difficulty} 
-                          onValueChange={(value) => setPracticeForm(prev => ({ ...prev, difficulty: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="easy">Easy</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="hard">Hard</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    {/* Round Toggle (Intro / Technical / HR) */}
+                    <div className="space-y-2">
+                      <Label>Interview Round</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: "intro", label: "Intro Call" },
+                          { id: "technical", label: "Technical Round" },
+                          { id: "hr", label: "HR Round" },
+                        ].map((m) => (
+                          <Button
+                            key={m.id}
+                            variant={interviewMode === (m.id as any) ? "default" : "outline"}
+                            onClick={() => setInterviewMode(m.id as any)}
+                            className="h-9"
+                          >
+                            {m.label}
+                          </Button>
+                        ))}
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-3">
-                      <Button 
-                        onClick={handleStartPractice}
-                        disabled={practiceLoading}
+                      <Button
+                        onClick={handleGenerateQA}
+                        disabled={qaLoading}
                         className="flex items-center gap-2"
                       >
-                        {practiceLoading ? (
+                        {qaLoading ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Play className="h-4 w-4" />
+                          <Zap className="h-4 w-4" />
                         )}
-                        Prepare Session
-                      </Button>
-                      
-                      <Button 
-                        variant="outline"
-                        onClick={handleGenerateQuestions}
-                        className="flex items-center gap-2"
-                      >
-                        <Zap className="h-4 w-4" />
-                        Generate Questions
+                        Generate 50 Q&A
                       </Button>
                     </div>
+
+                    {/* Q&A Viewer */}
+                    {qa.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline">Total: {qa.length}</Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {qaIdx + 1} / {qa.length}
+                          </span>
+                        </div>
+
+                        <div className="p-4 border rounded-lg space-y-3">
+                          <div className="text-sm font-medium">
+                            Q{qaIdx + 1}: {qa[qaIdx]?.q}
+                          </div>
+                          <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {qa[qaIdx]?.a ? (
+                              qa[qaIdx].a
+                            ) : (
+                              "Generating suggested answer..."
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Button
+                            variant="outline"
+                            onClick={() => setQaIdx((i) => Math.max(0, i - 1))}
+                            disabled={qaIdx === 0}
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setQaIdx((i) => Math.min(qa.length - 1, i + 1))}
+                            disabled={qaIdx >= qa.length - 1}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </>
