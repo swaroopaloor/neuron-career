@@ -498,13 +498,17 @@ export default function InterviewPage() {
         className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between"
       >
         <div className="w-full">
-          <Card className="border bg-background/70">
-            <CardContent className="py-3 px-4">
-              <div className="flex items-start gap-2">
-                <Video className="h-6 w-6 mt-0.5 text-primary" />
+          <Card className="border bg-background/80 backdrop-blur-sm shadow-sm">
+            <CardContent className="py-4 px-5">
+              <div className="flex items-start gap-3">
+                <Video className="h-7 w-7 mt-0.5 text-primary drop-shadow" />
                 <div>
-                  <div className="text-2xl font-semibold leading-tight">Interview Suite</div>
-                  <div className="text-sm text-muted-foreground">
+                  {/* Styled title */}
+                  <div className="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                    Interview Suite
+                  </div>
+                  {/* Refined subtitle */}
+                  <div className="text-sm md:text-base text-muted-foreground/90">
                     Practice questions, live mock interview, and salary negotiation coaching
                   </div>
                 </div>
