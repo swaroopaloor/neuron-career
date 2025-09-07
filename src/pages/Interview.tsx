@@ -76,7 +76,22 @@ export default function InterviewPage() {
   const [qaIdx, setQaIdx] = useState(0);
   const [qaLoading, setQaLoading] = useState(false);
 
-  // Remove inline setup section; we'll use modal & compact summary
+  // Add: Motivational carousel content and state
+  const MOTIVATION: Array<{ title: string; body: string }> = [
+    { title: "Own your story", body: "Lead with measurable impact and finish with a confident ask." },
+    { title: "Practice = poise", body: "Rehearse with intent, pause with purpose, and connect with clarity." },
+    { title: "Show your edge", body: "Tie your strengths to their roadmap and solve real problems out loud." },
+    { title: "Negotiate well", body: "Anchor with data, stay collaborative, and trade across components." },
+  ];
+  const [motIdx, setMotIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setMotIdx((i) => (i + 1) % MOTIVATION.length);
+    }, 4200);
+    return () => clearInterval(id);
+  }, []);
+
+  // Add: practice UI + control state
   const [resumeChoice, setResumeChoice] = useState<"saved" | "upload">("saved");
   const [uploadedResumeId, setUploadedResumeId] = useState<string | undefined>(undefined);
   const [uploadedResumeName, setUploadedResumeName] = useState<string>("");
@@ -308,6 +323,71 @@ export default function InterviewPage() {
 
   return (
     <div className="container-responsive py-4 space-y-6">
+      {/* Motivational Hero (animated) */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="rounded-xl p-5 md:p-6 bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/10 border shadow-sm"
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+              <span className="inline-flex h-2 w-2 rounded-full bg-primary/70 animate-pulse" />
+              Daily Momentum
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={motIdx}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-1"
+              >
+                <h2 className="text-xl md:text-2xl font-semibold tracking-tight">
+                  {MOTIVATION[motIdx].title}
+                </h2>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  {MOTIVATION[motIdx].body}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Momentum tiles */}
+          <div className="grid grid-cols-3 gap-2 md:gap-3 w-full md:w-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="rounded-lg border bg-background/60 px-3 py-2"
+            >
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Focus</div>
+              <div className="text-sm font-medium">One strong story</div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="rounded-lg border bg-background/60 px-3 py-2"
+            >
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Practice</div>
+              <div className="text-sm font-medium">2 short reps</div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="rounded-lg border bg-background/60 px-3 py-2"
+            >
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Progress</div>
+              <div className="text-sm font-medium">+1 improvement</div>
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Setup Dialog */}
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
         <DialogContent className="sm:max-w-2xl">
