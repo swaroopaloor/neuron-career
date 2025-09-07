@@ -322,13 +322,13 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="container-responsive py-4 space-y-6">
+    <div className="container-responsive py-2 space-y-4">
       {/* Motivational Hero (animated) */}
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="rounded-xl p-5 md:p-6 bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/10 border shadow-sm"
+        className="rounded-lg p-3 md:p-4 bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/10 border shadow-sm"
       >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">
@@ -361,7 +361,7 @@ export default function InterviewPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="rounded-lg border bg-background/60 px-3 py-2"
+              className="rounded-lg border bg-background/60 px-2.5 py-1.5"
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Focus</div>
               <div className="text-sm font-medium">One strong story</div>
@@ -370,7 +370,7 @@ export default function InterviewPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="rounded-lg border bg-background/60 px-3 py-2"
+              className="rounded-lg border bg-background/60 px-2.5 py-1.5"
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Practice</div>
               <div className="text-sm font-medium">2 short reps</div>
@@ -379,7 +379,7 @@ export default function InterviewPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="rounded-lg border bg-background/60 px-3 py-2"
+              className="rounded-lg border bg-background/60 px-2.5 py-1.5"
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Progress</div>
               <div className="text-sm font-medium">+1 improvement</div>
@@ -511,7 +511,7 @@ export default function InterviewPage() {
       {/* Compact Config Summary + Reconfigure */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Card>
-          <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <CardContent className="p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">Resume: {resolvedResumeName}</Badge>
               <Badge variant="outline">JD: {resolvedJd ? "Selected" : "Not set"}</Badge>
@@ -531,7 +531,7 @@ export default function InterviewPage() {
         transition={{ delay: 0.1 }}
       >
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex flex-wrap gap-2">
               {[
                 { id: "practice", label: "Practice Questions", icon: Target },
