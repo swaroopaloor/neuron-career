@@ -408,14 +408,14 @@ export default function Dashboard() {
                         </CardDescription>
                       </div>
                       
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
                         <div className="relative w-full sm:w-auto">
                           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             placeholder="Search analyses..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 w-full sm:w-48"
+                            className="pl-8 w-full sm:w-56"
                           />
                         </div>
                         
@@ -489,7 +489,7 @@ export default function Dashboard() {
                           )}
                         </motion.div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-3 overflow-x-hidden">
                           {filteredAnalyses.map((analysis, index) => (
                             <motion.div
                               key={analysis._id}
@@ -497,12 +497,12 @@ export default function Dashboard() {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.05 * index }}
                               whileHover={{ scale: 1.01, x: 5 }}
-                              className="bg-secondary/30 border border-border rounded-lg p-4 hover:bg-secondary/50 transition-all duration-300 cursor-pointer group"
+                              className="bg-secondary/30 border border-border rounded-lg p-4 hover:bg-secondary/50 transition-all duration-300 cursor-pointer group overflow-hidden"
                               onClick={() => analysis.status === "completed" && setSelectedAnalysisId(analysis._id)}
                             >
-                              <div className="flex items-start justify-between">
+                              <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-2">
+                                  <div className="flex flex-wrap items-center gap-2 mb-2">
                                     {getStatusIcon(analysis.status)}
                                     <Badge className={`${getStatusColor(analysis.status)} border text-xs`}>
                                       {analysis.status}
@@ -512,20 +512,18 @@ export default function Dashboard() {
                                       {new Date(analysis._creationTime).toLocaleDateString()}
                                     </span>
                                     {analysis.resumeFileName && (
-                                      <Badge variant="outline" className="text-xs">
-                                        {analysis.resumeFileName.length > 15 
-                                          ? analysis.resumeFileName.substring(0, 15) + "..." 
-                                          : analysis.resumeFileName}
+                                      <Badge variant="outline" className="text-xs max-w-[60vw] sm:max-w-none truncate">
+                                        {analysis.resumeFileName}
                                       </Badge>
                                     )}
                                   </div>
                                   
-                                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                                    {analysis.jobDescription.substring(0, 120)}...
+                                  <p className="text-sm text-muted-foreground line-clamp-3 md:line-clamp-2 break-words mb-3">
+                                    {analysis.jobDescription.substring(0, 240)}...
                                   </p>
                                   
                                   {analysis.status === "completed" && (
-                                    <div className="flex gap-4 text-sm">
+                                    <div className="flex flex-wrap gap-4 text-sm">
                                       <div className="flex items-center gap-1">
                                         <div className="w-2 h-2 bg-primary rounded-full"></div>
                                         <span className="text-muted-foreground">Match: </span>
@@ -540,48 +538,50 @@ export default function Dashboard() {
                                   )}
                                   
                                   {analysis.status === "failed" && analysis.errorMessage && (
-                                    <p className="text-sm text-destructive">{analysis.errorMessage}</p>
+                                    <p className="text-sm text-destructive break-words">{analysis.errorMessage}</p>
                                   )}
                                 </div>
                                 
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleFavorite(analysis._id);
-                                  }}
-                                  className="ml-3 flex-shrink-0"
-                                >
-                                  <Heart 
-                                    className={`h-5 w-5 transition-colors duration-200 ${
-                                      analysis.isFavorited 
-                                        ? "text-red-500 fill-red-500" 
-                                        : "text-muted-foreground/50 hover:text-red-500"
-                                    }`} 
-                                  />
-                                </motion.button>
-                                {analysis.status === "completed" && !analysis.isDreamJob && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="ml-2 flex-shrink-0"
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setPendingDreamId(analysis._id);
-                                      setConfirmDreamOpen(true);
+                                      handleToggleFavorite(analysis._id);
                                     }}
+                                    className="ml-1"
                                   >
-                                    <Star className="h-3 w-3 mr-1" />
-                                    Set as Dream Job
-                                  </Button>
-                                )}
-                                {analysis.isDreamJob && (
-                                  <Badge variant="outline" className="ml-2 flex-shrink-0">
-                                    <Star className="h-3 w-3 mr-1 text-yellow-500" />
-                                    Dream Job
-                                  </Badge>
-                                )}
+                                    <Heart 
+                                      className={`h-5 w-5 transition-colors duration-200 ${
+                                        analysis.isFavorited 
+                                          ? "text-red-500 fill-red-500" 
+                                          : "text-muted-foreground/50 hover:text-red-500"
+                                      }`} 
+                                    />
+                                  </motion.button>
+                                  {analysis.status === "completed" && !analysis.isDreamJob && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="ml-1 hidden xs:inline-flex"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPendingDreamId(analysis._id);
+                                        setConfirmDreamOpen(true);
+                                      }}
+                                    >
+                                      <Star className="h-3 w-3 mr-1" />
+                                      Set as Dream Job
+                                    </Button>
+                                  )}
+                                  {analysis.isDreamJob && (
+                                    <Badge variant="outline" className="ml-1 flex-shrink-0">
+                                      <Star className="h-3 w-3 mr-1 text-yellow-500" />
+                                      Dream Job
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </motion.div>
                           ))}

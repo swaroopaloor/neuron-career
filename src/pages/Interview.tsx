@@ -499,7 +499,7 @@ export default function InterviewPage() {
       >
         <div className="w-full">
           <Card className="border bg-background/80 backdrop-blur-sm shadow-sm">
-            <CardContent className="py-4 px-5">
+            <CardContent className="py-3 px-4">
               <div className="flex items-start gap-3">
                 <Video className="h-7 w-7 mt-0.5 text-primary drop-shadow" />
                 <div>
