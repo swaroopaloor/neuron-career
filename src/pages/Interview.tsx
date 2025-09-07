@@ -497,14 +497,20 @@ export default function InterviewPage() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between"
       >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Video className="h-8 w-8 text-primary" />
-            Interview Suite
-          </h1>
-          <p className="text-muted-foreground">
-            Practice questions, live mock interview, and salary negotiation coaching
-          </p>
+        <div className="w-full">
+          <Card className="border bg-background/70">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-start gap-2">
+                <Video className="h-6 w-6 mt-0.5 text-primary" />
+                <div>
+                  <div className="text-2xl font-semibold leading-tight">Interview Suite</div>
+                  <div className="text-sm text-muted-foreground">
+                    Practice questions, live mock interview, and salary negotiation coaching
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </motion.div>
 
