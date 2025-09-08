@@ -694,33 +694,50 @@ export default function ResumeBuilder() {
     const source = previewRef.current;
     if (!source) return false;
 
-    // Collect essential styles from current document (links, styles, meta, title)
-    const headHtml = Array.from(
-      document.head.querySelectorAll("link,style,meta,title")
-    )
-      .map((el) => (el as HTMLElement).outerHTML)
-      .join("\n");
+    // Get all stylesheets including Tailwind and custom styles
+    const allStyles = Array.from(document.styleSheets)
+      .map(sheet => {
+        try {
+          return Array.from(sheet.cssRules || [])
+            .map(rule => rule.cssText)
+            .join('\n');
+        } catch (e) {
+          // Cross-origin stylesheets might throw
+          return '';
+        }
+      })
+      .filter(css => css.length > 0)
+      .join('\n');
 
-    // Clone current HTML classes (e.g., dark) and CSS variables to ensure identical theming
+    // Get computed styles for the preview element
+    const computedStyles = window.getComputedStyle(source);
+    const elementStyles = `
+      #print-root > * {
+        ${Array.from(computedStyles)
+          .map(prop => `${prop}: ${computedStyles.getPropertyValue(prop)};`)
+          .join('\n')}
+      }
+    `;
+
+    // Clone current HTML classes and CSS variables
     const htmlClassList = document.documentElement.className;
-    const computed = getComputedStyle(document.documentElement);
-    let rootVars = "";
-    for (let i = 0; i < computed.length; i++) {
-      const name = computed[i];
-      if (name.startsWith("--")) {
-        rootVars += `${name}: ${computed.getPropertyValue(name)};`;
+    const rootComputed = getComputedStyle(document.documentElement);
+    let rootVars = '';
+    for (let i = 0; i < rootComputed.length; i++) {
+      const name = rootComputed[i];
+      if (name.startsWith('--')) {
+        rootVars += `${name}: ${rootComputed.getPropertyValue(name)};`;
       }
     }
-    const copiedVarsStyle = `<style id="copied-root-vars">:root{${rootVars}}</style>`;
 
     // Create hidden iframe
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
     document.body.appendChild(iframe);
 
     const doc = iframe.contentDocument;
@@ -729,51 +746,77 @@ export default function ResumeBuilder() {
       return false;
     }
 
-    // Inject the preview HTML exactly as-is; no wrappers, no extra layout CSS
-    const html = `
-<!doctype html>
+    // Create complete HTML with all styles embedded
+    const html = `<!DOCTYPE html>
 <html class="${htmlClassList}">
-  <head>
-    <meta charset="utf-8" />
-    ${headHtml}
-    ${copiedVarsStyle}
-    <style>
-      @media print {
-        @page {
-          size: letter portrait;
-          margin: 0;
-        }
-        html, body {
-          margin: 0 !important;
-          padding: 0 !important;
-          height: auto !important;
-        }
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resume Print</title>
+  <style>
+    /* Base print styles */
+    @media print {
+      @page {
+        size: letter portrait;
+        margin: 0;
       }
       html, body {
-        background: #ffffff;
-        color: #000;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+      }
+      * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        color-adjust: exact !important;
       }
-      /* Force exact resume canvas sizing and remove any viewport scaling */
-      #print-root {
-        width: 8.5in;
-        margin: 0 auto;
-      }
-      * { box-sizing: border-box; }
-    </style>
-    <title></title>
-  </head>
-  <body>
-    <div id="print-root">
-      ${source.outerHTML}
-    </div>
-  </body>
-</html>`.trim();
+    }
+    
+    /* Force white background and exact sizing */
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* Root variables */
+    :root {
+      ${rootVars}
+    }
+    
+    /* Container sizing */
+    #print-root {
+      width: 8.5in;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+    
+    /* Embedded styles from all stylesheets */
+    ${allStyles}
+    
+    /* Element-specific styles */
+    ${elementStyles}
+    
+    /* Ensure all elements maintain their styles */
+    #print-root * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="print-root">
+    ${source.outerHTML}
+  </div>
+</body>
+</html>`;
 
     try {
       doc.open();
@@ -781,51 +824,76 @@ export default function ResumeBuilder() {
       doc.close();
 
       const win = iframe.contentWindow;
+      if (!win) {
+        document.body.removeChild(iframe);
+        return false;
+      }
 
-      // Wait for resources (fonts/images) to load to avoid layout shifts
+      // Wait for fonts and images to load
       const waitForReady = async () => {
         try {
-          if (win?.document?.fonts && typeof win.document.fonts.ready?.then === "function") {
+          if (win.document.fonts && win.document.fonts.ready) {
             await win.document.fonts.ready;
           }
-        } catch {}
+        } catch (e) {
+          // Ignore font loading errors
+        }
+        
+        // Wait for images
         await new Promise<void>((resolve) => {
-          if (!win) return resolve();
           const images = Array.from(win.document.images || []);
-          if (images.length === 0) return resolve();
+          if (images.length === 0) {
+            resolve();
+            return;
+          }
+          
           let loaded = 0;
-          const done = () => { loaded += 1; if (loaded >= images.length) resolve(); };
+          const checkComplete = () => {
+            loaded++;
+            if (loaded >= images.length) resolve();
+          };
+          
           images.forEach((img) => {
-            if ((img as any).complete) return done();
-            img.addEventListener("load", done);
-            img.addEventListener("error", done);
+            if ((img as any).complete) {
+              checkComplete();
+            } else {
+              img.addEventListener('load', checkComplete);
+              img.addEventListener('error', checkComplete);
+            }
           });
-          setTimeout(resolve, 800);
+          
+          // Timeout fallback
+          setTimeout(resolve, 1000);
         });
       };
 
       await waitForReady();
 
-      // Trigger print exactly once (no onload fallback)
-      if (win) {
-        try {
-          win.focus();
-          win.print();
-        } catch {}
+      // Trigger print
+      try {
+        win.focus();
+        win.print();
+      } catch (e) {
+        console.error('Print error:', e);
       }
 
       // Cleanup
-      window.setTimeout(() => {
+      setTimeout(() => {
         try {
           document.body.removeChild(iframe);
-        } catch {}
-      }, 2500);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }, 3000);
 
       return true;
-    } catch {
+    } catch (e) {
+      console.error('Print setup error:', e);
       try {
         document.body.removeChild(iframe);
-      } catch {}
+      } catch (cleanupError) {
+        // Ignore cleanup errors
+      }
       return false;
     }
   };
