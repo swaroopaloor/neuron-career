@@ -694,78 +694,158 @@ export default function ResumeBuilder() {
     const source = previewRef.current;
     if (!source) return false;
 
-    // Get all stylesheets including Tailwind and custom styles
-    const allStyles = Array.from(document.styleSheets)
-      .map(sheet => {
-        try {
-          return Array.from(sheet.cssRules || [])
-            .map(rule => rule.cssText)
-            .join('\n');
-        } catch (e) {
-          // Cross-origin stylesheets might throw
-          return '';
-        }
-      })
-      .filter(css => css.length > 0)
-      .join('\n');
+    // Get the selected style variant
+    const currentVariant = selectedStyle;
 
-    // Get computed styles for the preview element
-    const computedStyles = window.getComputedStyle(source);
-    const elementStyles = `
-      #print-root > * {
-        ${Array.from(computedStyles)
-          .map(prop => `${prop}: ${computedStyles.getPropertyValue(prop)};`)
-          .join('\n')}
-      }
-    `;
+    // Create a clean, professional print document
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) return false;
 
-    // Clone current HTML classes and CSS variables
-    const htmlClassList = document.documentElement.className;
+    // Get all computed styles and CSS variables
     const rootComputed = getComputedStyle(document.documentElement);
-    let rootVars = '';
+    const bodyComputed = getComputedStyle(document.body);
+    
+    // Extract CSS variables for theming
+    let cssVars = '';
     for (let i = 0; i < rootComputed.length; i++) {
       const name = rootComputed[i];
       if (name.startsWith('--')) {
-        rootVars += `${name}: ${rootComputed.getPropertyValue(name)};`;
+        cssVars += `${name}: ${rootComputed.getPropertyValue(name)};`;
       }
     }
 
-    // Create hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
+    // Get variant-specific styles
+    const getVariantStyles = (variant: string) => {
+      const baseStyles = {
+        classic: `
+          .resume-container { background: white; color: black; padding: 0.5in; box-shadow: none; border: none; }
+          .resume-header { border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+          .resume-name { font-size: 28px; font-weight: bold; color: #111827; margin-bottom: 0.25rem; }
+          .resume-info { font-size: 12px; color: #6b7280; }
+          .section-title { font-size: 14px; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+          .job-title { font-size: 14px; font-weight: 600; color: #111827; }
+          .company-name { font-size: 13px; font-weight: 500; color: #374151; }
+          .duration { font-size: 12px; color: #6b7280; }
+          .description { font-size: 13px; color: #374151; line-height: 1.5; }
+          .skill-tag { background: #f3f4f6; color: #374151; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 12px; display: inline-block; margin: 0.125rem; }
+        `,
+        modern: `
+          .resume-container { background: white; color: black; padding: 0.5in; box-shadow: none; border: none; }
+          .resume-header { border-bottom: 4px solid #3b82f6; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+          .resume-name { font-size: 30px; font-weight: 800; color: #111827; margin-bottom: 0.25rem; letter-spacing: -0.025em; }
+          .resume-info { font-size: 12px; color: #6b7280; }
+          .section-title { font-size: 13px; font-weight: 700; color: #111827; border-bottom: 2px solid #3b82f6; padding-bottom: 0.25rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.16em; }
+          .job-title { font-size: 14px; font-weight: 600; color: #111827; }
+          .company-name { font-size: 13px; font-weight: 500; color: #374151; }
+          .duration { font-size: 12px; color: #3b82f6; }
+          .description { font-size: 13px; color: #374151; line-height: 1.6; }
+          .skill-tag { background: #eff6ff; color: #1e40af; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 12px; border: 1px solid #dbeafe; display: inline-block; margin: 0.125rem; }
+        `,
+        minimal: `
+          .resume-container { background: white; color: black; padding: 0.5in; box-shadow: none; border: none; }
+          .resume-header { border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+          .resume-name { font-size: 26px; font-weight: 600; color: #111827; margin-bottom: 0.25rem; }
+          .resume-info { font-size: 12px; color: #6b7280; }
+          .section-title { font-size: 13px; font-weight: 600; color: #374151; padding-bottom: 0.25rem; margin-bottom: 0.75rem; letter-spacing: 0.05em; }
+          .job-title { font-size: 14px; font-weight: 600; color: #111827; }
+          .company-name { font-size: 13px; font-weight: 500; color: #374151; }
+          .duration { font-size: 12px; color: #6b7280; }
+          .description { font-size: 13px; color: #374151; line-height: 1.6; }
+          .skill-tag { background: #f9fafb; color: #374151; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 12px; display: inline-block; margin: 0.125rem; }
+        `,
+        technical: `
+          .resume-container { background: white; color: black; padding: 0.5in; box-shadow: none; border: none; font-family: 'Courier New', monospace; }
+          .resume-header { border-bottom: 2px solid #1f2937; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+          .resume-name { font-size: 26px; font-weight: bold; color: #111827; margin-bottom: 0.25rem; }
+          .resume-info { font-size: 12px; color: #6b7280; }
+          .section-title { font-size: 13px; font-weight: bold; color: #111827; border-bottom: 1px solid #1f2937; padding-bottom: 0.25rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.18em; }
+          .job-title { font-size: 14px; font-weight: bold; color: #111827; }
+          .company-name { font-size: 13px; font-weight: 500; color: #374151; }
+          .duration { font-size: 12px; color: #6b7280; }
+          .description { font-size: 13px; color: #374151; line-height: 1.6; }
+          .skill-tag { background: #000; color: #fff; padding: 0.125rem 0.5rem; border-radius: 0.125rem; font-size: 11px; display: inline-block; margin: 0.125rem; }
+        `,
+        elegant: `
+          .resume-container { background: white; color: black; padding: 0.5in; box-shadow: none; border: none; }
+          .resume-header { border-bottom: 2px solid #fda4af; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+          .resume-name { font-size: 28px; font-weight: 600; color: #111827; margin-bottom: 0.25rem; letter-spacing: 0.05em; }
+          .resume-info { font-size: 12px; color: #6b7280; }
+          .section-title { font-size: 13px; font-weight: 600; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 0.25rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; }
+          .job-title { font-size: 14px; font-weight: 600; color: #111827; }
+          .company-name { font-size: 13px; font-weight: 500; color: #374151; }
+          .duration { font-size: 12px; color: #be123c; }
+          .description { font-size: 13px; color: #374151; line-height: 1.6; }
+          .skill-tag { background: #fff1f2; color: #881337; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 12px; border: 1px solid #fecdd3; display: inline-block; margin: 0.125rem; }
+        `,
+        compact: `
+          .resume-container { background: white; color: black; padding: 0.4in; box-shadow: none; border: none; }
+          .resume-header { border-bottom: 1px solid #d1d5db; padding-bottom: 0.75rem; margin-bottom: 1rem; }
+          .resume-name { font-size: 24px; font-weight: bold; color: #111827; margin-bottom: 0.25rem; }
+          .resume-info { font-size: 11px; color: #6b7280; }
+          .section-title { font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #d1d5db; padding-bottom: 0.25rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em; }
+          .job-title { font-size: 13px; font-weight: 600; color: #111827; }
+          .company-name { font-size: 12px; font-weight: 500; color: #374151; }
+          .duration { font-size: 11px; color: #6b7280; }
+          .description { font-size: 12.5px; color: #374151; line-height: 1.45; }
+          .skill-tag { background: #e5e7eb; color: #111827; padding: 0.125rem 0.5rem; border-radius: 0.125rem; font-size: 11px; display: inline-block; margin: 0.125rem; }
+        `,
+        creative: `
+          .resume-container { background: white; color: black; padding: 0.5in; box-shadow: none; border: 2px solid #c084fc; }
+          .resume-header { border-bottom: 4px solid #c084fc; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+          .resume-name { font-size: 30px; font-weight: 800; color: #111827; margin-bottom: 0.25rem; }
+          .resume-info { font-size: 12px; color: #6b7280; }
+          .section-title { font-size: 13px; font-weight: 700; color: #581c87; border-bottom: 4px solid #c084fc; padding-bottom: 0.25rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.16em; }
+          .job-title { font-size: 14px; font-weight: 600; color: #111827; }
+          .company-name { font-size: 13px; font-weight: 500; color: #374151; }
+          .duration { font-size: 12px; color: #7c3aed; }
+          .description { font-size: 13px; color: #374151; line-height: 1.6; }
+          .skill-tag { background: #f3e8ff; color: #581c87; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 12px; border: 1px solid #d8b4fe; display: inline-block; margin: 0.125rem; }
+        `,
+        executive: `
+          .resume-container { background: white; color: black; padding: 0.5in; box-shadow: none; border: 1px solid #fbbf24; }
+          .resume-header { border-bottom: 2px solid #fbbf24; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+          .resume-name { font-size: 28px; font-weight: 600; color: #111827; margin-bottom: 0.25rem; letter-spacing: 0.06em; }
+          .resume-info { font-size: 12px; color: #6b7280; }
+          .section-title { font-size: 13px; font-weight: 600; color: #92400e; border-bottom: 1px solid #fbbf24; padding-bottom: 0.25rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.14em; }
+          .job-title { font-size: 14px; font-weight: 600; color: #111827; }
+          .company-name { font-size: 13px; font-weight: 500; color: #374151; }
+          .duration { font-size: 12px; color: #d97706; }
+          .description { font-size: 13px; color: #374151; line-height: 1.6; }
+          .skill-tag { background: #fffbeb; color: #92400e; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 12px; border: 1px solid #fed7aa; display: inline-block; margin: 0.125rem; }
+        `
+      };
 
-    const doc = iframe.contentDocument;
-    if (!doc) {
-      document.body.removeChild(iframe);
-      return false;
-    }
+      const variantStyles = getVariantStyles(currentVariant);
 
-    // Create complete HTML with all styles embedded
-    const html = `<!DOCTYPE html>
-<html class="${htmlClassList}">
+      // Create the HTML content
+      const printHTML = `<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Resume Print</title>
+  <meta charset="utf-8">
+  <title>Resume - ${resumeData.personalInfo.name || 'Professional Resume'}</title>
   <style>
-    /* Base print styles */
+    /* Reset and base styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    /* Print-specific styles to remove browser headers/footers */
+    @page {
+      size: letter portrait;
+      margin: 0.5in;
+    }
+    
     @media print {
-      @page {
-        size: letter portrait;
-        margin: 0.5in;
-      }
       html, body {
         margin: 0 !important;
         padding: 0 !important;
         height: auto !important;
         min-height: 0 !important;
       }
+      
+      /* Hide browser headers/footers */
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -773,329 +853,250 @@ export default function ResumeBuilder() {
       }
     }
     
-    /* Force white background and exact sizing */
-    html, body {
-      background: #ffffff !important;
-      color: #000000 !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    }
-    
     /* Root variables */
     :root {
-      ${rootVars}
+      ${cssVars}
     }
     
-    /* Container sizing - ensure proper layout */
-    #print-root {
+    /* Body styles */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.5;
+      color: #000;
+      background: #fff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    /* Container */
+    .resume-container {
       width: 7.5in;
       margin: 0 auto;
-      box-sizing: border-box;
-      padding: 0;
+      min-height: 10in;
     }
     
-    /* Embedded styles from all stylesheets */
-    ${allStyles}
-    
-    /* Element-specific styles */
-    ${elementStyles}
-    
-    /* Ensure all elements maintain their styles */
-    #print-root * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-      box-sizing: border-box;
+    /* Header */
+    .resume-header {
+      text-align: center;
     }
     
-    /* Fix layout issues */
-    #print-root > div {
-      min-height: auto !important;
-      max-width: none !important;
-      margin: 0 !important;
-      padding: 0.5in !important;
+    .resume-name {
+      line-height: 1.1;
     }
+    
+    .resume-info {
+      line-height: 1.4;
+    }
+    
+    .info-line {
+      margin: 0.25rem 0;
+    }
+    
+    .info-separator {
+      margin: 0 0.5rem;
+      color: #9ca3af;
+    }
+    
+    /* Sections */
+    .resume-section {
+      margin-bottom: 1.5rem;
+    }
+    
+    .section-title {
+      margin-bottom: 0.75rem;
+    }
+    
+    /* Experience */
+    .experience-item {
+      margin-bottom: 1rem;
+    }
+    
+    .experience-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.25rem;
+    }
+    
+    .job-title {
+      margin-bottom: 0.125rem;
+    }
+    
+    .company-name {
+      margin-bottom: 0.5rem;
+    }
+    
+    .duration {
+      white-space: nowrap;
+    }
+    
+    .description {
+      white-space: pre-line;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Education */
+    .education-item {
+      margin-bottom: 0.75rem;
+    }
+    
+    .education-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    /* Skills */
+    .skills-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .skill-tag {
+      display: inline-block;
+    }
+    
+    /* Variant-specific styles */
+    ${variantStyles}
     
     /* Ensure proper spacing */
-    #print-root .mb-6 {
-      margin-bottom: 1rem !important;
-    }
+    .mb-1 { margin-bottom: 0.25rem !important; }
+    .mb-2 { margin-bottom: 0.5rem !important; }
+    .mb-3 { margin-bottom: 0.75rem !important; }
+    .mb-4 { margin-bottom: 1rem !important; }
+    .mb-6 { margin-bottom: 1.5rem !important; }
     
-    #print-root .mb-4 {
-      margin-bottom: 0.75rem !important;
-    }
+    .space-y-1 > * + * { margin-top: 0.25rem !important; }
+    .space-y-2 > * + * { margin-top: 0.5rem !important; }
+    .space-y-3 > * + * { margin-top: 0.75rem !important; }
+    .space-y-4 > * + * { margin-top: 1rem !important; }
     
-    #print-root .mb-3 {
-      margin-bottom: 0.5rem !important;
-    }
+    .gap-2 { gap: 0.5rem !important; }
+    .gap-3 { gap: 0.75rem !important; }
+    .gap-4 { gap: 1rem !important; }
     
-    #print-root .mb-2 {
-      margin-bottom: 0.25rem !important;
-    }
-    
-    #print-root .mb-1 {
-      margin-bottom: 0.125rem !important;
-    }
-    
-    #print-root .space-y-4 > * + * {
-      margin-top: 1rem !important;
-    }
-    
-    #print-root .space-y-3 > * + * {
-      margin-top: 0.75rem !important;
-    }
-    
-    #print-root .space-y-2 > * + * {
-      margin-top: 0.5rem !important;
-    }
-    
-    #print-root .space-y-1 > * + * {
-      margin-top: 0.25rem !important;
-    }
-    
-    #print-root .gap-2 {
-      gap: 0.5rem !important;
-    }
-    
-    #print-root .gap-3 {
-      gap: 0.75rem !important;
-    }
-    
-    #print-root .gap-4 {
-      gap: 1rem !important;
-    }
-    
-    /* Ensure proper text sizing */
-    #print-root .text-\[30px\] {
-      font-size: 30px !important;
-    }
-    
-    #print-root .text-\[28px\] {
-      font-size: 28px !important;
-    }
-    
-    #print-root .text-\[26px\] {
-      font-size: 26px !important;
-    }
-    
-    #print-root .text-\[24px\] {
-      font-size: 24px !important;
-    }
-    
-    #print-root .text-\[14px\] {
-      font-size: 14px !important;
-    }
-    
-    #print-root .text-\[13px\] {
-      font-size: 13px !important;
-    }
-    
-    #print-root .text-\[12px\] {
-      font-size: 12px !important;
-    }
-    
-    #print-root .text-\[11px\] {
-      font-size: 11px !important;
-    }
-    
-    /* Ensure proper line height */
-    #print-root .leading-\[1\.1\] {
-      line-height: 1.1 !important;
-    }
-    
-    #print-root .leading-\[1\.45\] {
-      line-height: 1.45 !important;
-    }
-    
-    #print-root .leading-\[1\.6\] {
-      line-height: 1.6 !important;
-    }
-    
-    /* Ensure proper padding */
-    #print-root .p-10 {
-      padding: 2.5rem !important;
-    }
-    
-    #print-root .p-8 {
-      padding: 2rem !important;
-    }
-    
-    #print-root .py-1 {
-      padding-top: 0.25rem !important;
-      padding-bottom: 0.25rem !important;
-    }
-    
-    #print-root .px-2 {
-      padding-left: 0.5rem !important;
-      padding-right: 0.5rem !important;
-    }
-    
-    #print-root .px-2\.5 {
-      padding-left: 0.625rem !important;
-      padding-right: 0.625rem !important;
-    }
-    
-    #print-root .pb-1 {
-      padding-bottom: 0.25rem !important;
-    }
-    
-    #print-root .pb-4 {
-      padding-bottom: 1rem !important;
-    }
-    
-    /* Ensure proper borders */
-    #print-root .border-b {
-      border-bottom: 1px solid #e5e7eb !important;
-    }
-    
-    #print-root .border-b-2 {
-      border-bottom: 2px solid #e5e7eb !important;
-    }
-    
-    #print-root .border-b-4 {
-      border-bottom: 4px solid #e5e7eb !important;
-    }
-    
-    /* Ensure proper flexbox */
-    #print-root .flex {
-      display: flex !important;
-    }
-    
-    #print-root .items-center {
-      align-items: center !important;
-    }
-    
-    #print-root .justify-center {
-      justify-content: center !important;
-    }
-    
-    #print-root .justify-between {
-      justify-content: space-between !important;
-    }
-    
-    #print-root .flex-wrap {
-      flex-wrap: wrap !important;
-    }
-    
-    /* Ensure proper grid */
-    #print-root .grid {
-      display: grid !important;
-    }
-    
-    #print-root .grid-cols-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-    
-    #print-root .gap-4 {
-      gap: 1rem !important;
-    }
-    
-    /* Ensure proper width constraints */
-    #print-root .max-w-\[8\.5in\] {
-      max-width: 8.5in !important;
-    }
-    
-    #print-root .w-full {
-      width: 100% !important;
-    }
-    
-    /* Remove any transform or animation effects */
-    #print-root * {
-      transform: none !important;
+    /* Remove any animations or transitions */
+    * {
       animation: none !important;
       transition: none !important;
+      transform: none !important;
     }
   </style>
 </head>
 <body>
-  <div id="print-root">
-    ${source.outerHTML}
+  <div class="resume-container">
+    <!-- Header -->
+    <div class="resume-header">
+      <h1 class="resume-name">${resumeData.personalInfo.name || 'Your Name'}</h1>
+      <div class="resume-info">
+        ${resumeData.personalInfo.email ? `<div class="info-line">${resumeData.personalInfo.email}</div>` : ''}
+        ${resumeData.personalInfo.phone || resumeData.personalInfo.location ? `
+          <div class="info-line">
+            ${resumeData.personalInfo.phone ? resumeData.personalInfo.phone : ''}
+            ${resumeData.personalInfo.phone && resumeData.personalInfo.location ? '<span class="info-separator">•</span>' : ''}
+            ${resumeData.personalInfo.location ? resumeData.personalInfo.location : ''}
+          </div>
+        ` : ''}
+        ${resumeData.personalInfo.website || resumeData.personalInfo.linkedin ? `
+          <div class="info-line">
+            ${resumeData.personalInfo.website ? resumeData.personalInfo.website : ''}
+            ${resumeData.personalInfo.website && resumeData.personalInfo.linkedin ? '<span class="info-separator">•</span>' : ''}
+            ${resumeData.personalInfo.linkedin ? resumeData.personalInfo.linkedin : ''}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- Summary -->
+    ${resumeData.summary ? `
+      <div class="resume-section">
+        <h2 class="section-title">Professional Summary</h2>
+        <p>${resumeData.summary}</p>
+      </div>
+    ` : ''}
+
+    <!-- Experience -->
+    ${resumeData.experience.length > 0 ? `
+      <div class="resume-section">
+        <h2 class="section-title">Work Experience</h2>
+        ${resumeData.experience.map(exp => `
+          <div class="experience-item">
+            <div class="experience-header">
+              <div>
+                <h3 class="job-title">${exp.title || 'Job Title'}</h3>
+                <p class="company-name">${exp.company || 'Company Name'}</p>
+              </div>
+              ${exp.duration ? `<span class="duration">${exp.duration}</span>` : ''}
+            </div>
+            ${exp.description ? `<p class="description">${exp.description}</p>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    <!-- Education -->
+    ${resumeData.education.length > 0 ? `
+      <div class="resume-section">
+        <h2 class="section-title">Education</h2>
+        ${resumeData.education.map(edu => `
+          <div class="education-item">
+            <div class="education-header">
+              <div>
+                <h3 class="job-title">${edu.degree || 'Degree'}</h3>
+                <p>${edu.school || 'School Name'}</p>
+                ${edu.gpa ? `<p style="font-size: 12px; color: #6b7280;">GPA: ${edu.gpa}</p>` : ''}
+              </div>
+              ${edu.year ? `<span class="duration">${edu.year}</span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    <!-- Skills -->
+    ${resumeData.skills.length > 0 ? `
+      <div class="resume-section">
+        <h2 class="section-title">Skills</h2>
+        <div class="skills-container">
+          ${resumeData.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
+        </div>
+      </div>
+    ` : ''}
   </div>
 </body>
 </html>`;
 
-    try {
-      doc.open();
-      doc.write(html);
-      doc.close();
+    // Write to the new window
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
 
-      const win = iframe.contentWindow;
-      if (!win) {
-        document.body.removeChild(iframe);
-        return false;
-      }
-
-      // Wait for fonts and images to load
-      const waitForReady = async () => {
-        try {
-          if (win.document.fonts && win.document.fonts.ready) {
-            await win.document.fonts.ready;
-          }
-        } catch (e) {
-          // Ignore font loading errors
-        }
-        
-        // Wait for images
-        await new Promise<void>((resolve) => {
-          const images = Array.from(win.document.images || []);
-          if (images.length === 0) {
-            resolve();
-            return;
-          }
-          
-          let loaded = 0;
-          const checkComplete = () => {
-            loaded++;
-            if (loaded >= images.length) resolve();
-          };
-          
-          images.forEach((img) => {
-            if ((img as any).complete) {
-              checkComplete();
-            } else {
-              img.addEventListener('load', checkComplete);
-              img.addEventListener('error', checkComplete);
-            }
-          });
-          
-          // Timeout fallback
-          setTimeout(resolve, 1000);
-        });
-      };
-
-      await waitForReady();
-
-      // Trigger print
+    // Wait for content to load then print
+    setTimeout(() => {
       try {
-        win.focus();
-        win.print();
+        printWindow.focus();
+        printWindow.print();
+        // Close the window after printing
+        setTimeout(() => {
+          try {
+            printWindow.close();
+          } catch (e) {
+            // Ignore close errors
+          }
+        }, 1000);
+        return true;
       } catch (e) {
         console.error('Print error:', e);
-      }
-
-      // Cleanup
-      setTimeout(() => {
         try {
-          document.body.removeChild(iframe);
-        } catch (e) {
-          // Ignore cleanup errors
+          printWindow.close();
+        } catch (closeError) {
+          // Ignore close errors
         }
-      }, 3000);
-
-      return true;
-    } catch (e) {
-      console.error('Print setup error:', e);
-      try {
-        document.body.removeChild(iframe);
-      } catch (cleanupError) {
-        // Ignore cleanup errors
+        return false;
       }
-      return false;
-    }
+    }, 500);
+
+    return true;
   };
 
   const handleExportPDF = async () => {
