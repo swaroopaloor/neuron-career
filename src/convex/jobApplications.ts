@@ -98,3 +98,81 @@ export const deleteJobApplication = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+export const ingestFromText = mutation({
+  args: {
+    text: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("User must be authenticated to import a job.");
+    }
+
+    const raw = args.text.trim();
+    if (!raw) {
+      throw new Error("Please paste the job text.");
+    }
+
+    // Basic heuristics for parsing
+    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const joined = raw;
+
+    const getLineValue = (prefixes: string[]) => {
+      for (const line of lines) {
+        for (const p of prefixes) {
+          const m = line.match(new RegExp(`^${p}\\s*[:\\-]?\\s*(.+)$`, "i"));
+          if (m?.[1]) return m[1].trim();
+        }
+      }
+      return "";
+    };
+
+    let jobTitle =
+      getLineValue(["Title", "Position", "Role", "Job Title"]) ||
+      lines[0]?.slice(0, 120) ||
+      "Imported Job Posting";
+
+    let companyName =
+      getLineValue(["Company", "Employer", "Organization"]) ||
+      // Try pattern: "<title> at <company>"
+      (() => {
+        const first = lines[0] || "";
+        const m = first.match(/.+\s+at\s+([A-Za-z0-9 .,&\-()]+)$/i);
+        return m?.[1]?.trim() ?? "";
+      })() ||
+      "Unknown Company";
+
+    const jobDescription = joined.slice(0, 8000);
+
+    // Dedupe by (userId, jobTitle, companyName)
+    const existing = await ctx.db
+      .query("jobApplications")
+      .withIndex("by_user_and_title_and_company", (q) =>
+        q.eq("userId", user._id).eq("jobTitle", jobTitle).eq("companyName", companyName)
+      )
+      .unique()
+      .catch(() => null); // if multiple accidentally exist, skip throwing here
+
+    if (existing) {
+      // Patch description if new text is longer or existing is empty
+      const shouldUpdate =
+        !existing.jobDescription || (jobDescription && jobDescription.length > (existing.jobDescription?.length ?? 0));
+      if (shouldUpdate) {
+        await ctx.db.patch(existing._id, { jobDescription });
+      }
+      return existing._id;
+    }
+
+    const id = await ctx.db.insert("jobApplications", {
+      userId: user._id,
+      jobTitle,
+      companyName,
+      jobDescription,
+      status: "Saved",
+      applicationDate: Date.now(),
+    });
+
+    return id;
+  },
+});

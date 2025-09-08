@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Navigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type JobApplication = NonNullable<ReturnType<typeof useQuery<typeof api.jobApplications.getJobApplications>>>[number];
 
@@ -55,6 +56,9 @@ export default function JobTracker() {
   const { isLoading, isAuthenticated } = useAuth();
   const [isAddJobDialogOpen, setIsAddJobDialogOpen] = useState(false);
   const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
   const [editingJob, setEditingJob] = useState<JobApplication | null>(null);
   const [dates, setDates] = useState<{
     shortlistedDate?: Date;
@@ -68,6 +72,8 @@ export default function JobTracker() {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<Id<"analyses"> | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: Id<"jobApplications">; title: string } | null>(null);
+  const [importText, setImportText] = useState("");
+  const [isImportingText, setIsImportingText] = useState(false);
 
   const shouldQueryJobs = isAuthenticated && !isLoading;
   const jobApplications = useQuery(
@@ -77,6 +83,8 @@ export default function JobTracker() {
   const createJobApplication = useMutation(api.jobApplications.createJobApplication);
   const updateJobApplication = useMutation(api.jobApplications.updateJobApplication);
   const deleteJobApplication = useMutation(api.jobApplications.deleteJobApplication);
+  const ingestFromUrl = useAction(api.jobInbox.ingestFromUrl);
+  const ingestFromText = useMutation(api.jobApplications.ingestFromText);
 
   useEffect(() => {
     if (editingJob) {
@@ -112,6 +120,46 @@ export default function JobTracker() {
       toast.error("Failed to create job application");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleImportJob = async () => {
+    const url = importUrl.trim();
+    if (!url) {
+      toast.error("Please paste a job URL");
+      return;
+    }
+    setIsImporting(true);
+    try {
+      const result = await ingestFromUrl({ url });
+      toast.success(`Imported: ${result.jobTitle} @ ${result.companyName}`);
+      setIsImportDialogOpen(false);
+      setImportUrl("");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Failed to import job");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleImportText = async () => {
+    const text = importText.trim();
+    if (!text) {
+      toast.error("Please paste the job text");
+      return;
+    }
+    setIsImportingText(true);
+    try {
+      const id = await ingestFromText({ text });
+      toast.success("Imported job from text");
+      setIsImportDialogOpen(false);
+      setImportText("");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Failed to import from text");
+    } finally {
+      setIsImportingText(false);
     }
   };
 
@@ -232,60 +280,136 @@ export default function JobTracker() {
               <h1 className="text-xl font-semibold text-foreground">Job Application Tracker</h1>
             </div>
             
-            <Dialog open={isAddJobDialogOpen} onOpenChange={setIsAddJobDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Job
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Job Application</DialogTitle>
-                  <DialogDescription>
-                    Track a new job opportunity you're interested in or have applied to.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="job-title">Job Title *</Label>
-                    <Input
-                      id="job-title"
-                      value={jobTitle}
-                      onChange={(e) => setJobTitle(e.target.value)}
-                      placeholder="e.g. Senior Software Engineer"
-                    />
+            {/* Actions: Add Job + Import from URL */}
+            <div className="flex items-center gap-2">
+              <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Import
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[560px]">
+                  <DialogHeader>
+                    <DialogTitle>Smart Import</DialogTitle>
+                    <DialogDescription>
+                      Paste a job posting link or raw text (from emails/boards). We'll extract the title, company, and description.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <Tabs defaultValue="url" className="w-full pt-2">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="url">From URL</TabsTrigger>
+                      <TabsTrigger value="text">From Text</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="url" className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="job-url">Job URL</Label>
+                        <Input
+                          id="job-url"
+                          placeholder="https://company.com/careers/senior-engineer-12345"
+                          value={importUrl}
+                          onChange={(e) => setImportUrl(e.target.value)}
+                          inputMode="url"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleImportJob} disabled={isImporting}>
+                          {isImporting ? "Importing..." : "Import"}
+                        </Button>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="text" className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="job-text">Paste Job Posting</Label>
+                        <Textarea
+                          id="job-text"
+                          placeholder={`Example:
+Title: Senior Backend Engineer
+Company: Acme Corp
+Location: Remote
+
+Acme is hiring a Senior Backend Engineer to build microservices...
+Requirements: Node.js, AWS, PostgreSQL...
+`}
+                          rows={10}
+                          value={importText}
+                          onChange={(e) => setImportText(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleImportText} disabled={isImportingText}>
+                          {isImportingText ? "Importing..." : "Import"}
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isAddJobDialogOpen} onOpenChange={setIsAddJobDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Job
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Job Application</DialogTitle>
+                    <DialogDescription>
+                      Track a new job opportunity you're interested in or have applied to.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="job-title">Job Title *</Label>
+                      <Input
+                        id="job-title"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        placeholder="e.g. Senior Software Engineer"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="company-name">Company Name *</Label>
+                      <Input
+                        id="company-name"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="e.g. Google"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="job-desc">Job Description (Optional)</Label>
+                      <Textarea
+                        id="job-desc"
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        placeholder="Paste the job description here..."
+                        rows={4}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button variant="outline" onClick={() => setIsAddJobDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateJob} disabled={isCreating}>
+                        {isCreating ? "Adding..." : "Add Job"}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company-name">Company Name *</Label>
-                    <Input
-                      id="company-name"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="e.g. Google"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="job-desc">Job Description (Optional)</Label>
-                    <Textarea
-                      id="job-desc"
-                      value={jobDescription}
-                      onChange={(e) => setJobDescription(e.target.value)}
-                      placeholder="Paste the job description here..."
-                      rows={4}
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="outline" onClick={() => setIsAddJobDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleCreateJob} disabled={isCreating}>
-                      {isCreating ? "Adding..." : "Add Job"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
       </motion.header>

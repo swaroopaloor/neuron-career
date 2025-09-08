@@ -155,7 +155,9 @@ const schema = defineSchema(
       shortlistedDate: v.optional(v.number()),
       interviewDate: v.optional(v.number()),
       offerDate: v.optional(v.number()),
-    }).index("by_user", ["userId"]),
+    }).index("by_user", ["userId"])
+      // ADD: Dedupe and fast lookup by (user, title, company)
+      .index("by_user_and_title_and_company", ["userId", "jobTitle", "companyName"]),
 
     // Outreach Engine: Contacts
     contacts: defineTable({
