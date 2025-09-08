@@ -834,72 +834,123 @@ export default function ResumeBuilder() {
 
   const handleDownloadPDF = async () => {
     setIsExporting(true);
-    try {
-      const source = previewRef.current;
-      if (!source) throw new Error("Preview not ready");
 
-      // Ensure fonts are loaded for consistent layout
+    const source = previewRef.current;
+    if (!source) {
+      toast.error("Preview not ready");
+      setIsExporting(false);
+      return;
+    }
+
+    // Helper: wait for fonts & images inside the document
+    const waitForAssets = async () => {
       try {
         if (document.fonts?.ready && typeof document.fonts.ready.then === "function") {
           await document.fonts.ready;
         }
       } catch {}
+      // Wait for images in the preview (if any) to load
+      const imgs = Array.from(source.querySelectorAll("img"));
+      if (imgs.length > 0) {
+        await new Promise<void>((resolve) => {
+          let loaded = 0;
+          const done = () => {
+            loaded += 1;
+            if (loaded >= imgs.length) resolve();
+          };
+          imgs.forEach((img) => {
+            if ((img as HTMLImageElement).complete) return done();
+            img.addEventListener("load", done);
+            img.addEventListener("error", done);
+          });
+          // safety timeout
+          setTimeout(resolve, 1000);
+        });
+      }
+    };
 
-      // Force an exact white background and render with foreignObject for better CSS support
-      const canvas = await html2canvas(source, {
-        scale: Math.min(2, window.devicePixelRatio || 2),
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        allowTaint: false,
-        foreignObjectRendering: true,
-        logging: false,
-        windowWidth: source.scrollWidth,
-        windowHeight: source.scrollHeight,
-      });
+    // Helper: attempt html2canvas render with given options, return canvas or throw
+    const tryRender = async (opts: Parameters<typeof html2canvas>[1]) => {
+      await waitForAssets();
+      // Force a stable layout width and white background for rendering
+      const originalBg = source.style.backgroundColor;
+      const originalWidth = source.style.width;
+      const rect = source.getBoundingClientRect();
+      // Ensure we render the exact visual width to avoid reflow differences
+      source.style.width = `${Math.ceil(rect.width)}px`;
+      source.style.backgroundColor = "#ffffff";
+
+      try {
+        // Let browser paint any pending layout
+        await new Promise((r) => requestAnimationFrame(() => r(null as any)));
+        const canvas = await html2canvas(source, opts);
+        return canvas;
+      } finally {
+        // restore styles
+        source.style.backgroundColor = originalBg;
+        source.style.width = originalWidth;
+      }
+    };
+
+    // Compute base options
+    const deviceScale = Math.min(2, window.devicePixelRatio || 2);
+    const baseOpts = {
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      foreignObjectRendering: true,
+      scale: deviceScale,
+      windowWidth: source.scrollWidth,
+      windowHeight: source.scrollHeight,
+    } as const;
+
+    try {
+      let canvas: HTMLCanvasElement | null = null;
+
+      // Pass 1: high-fidelity with foreignObjectRendering
+      try {
+        canvas = await tryRender(baseOpts);
+      } catch {
+        // Pass 2: fallback without foreignObjectRendering (handles edge CSS)
+        canvas = await tryRender({ ...baseOpts, foreignObjectRendering: false });
+      }
+
+      if (!canvas) throw new Error("Failed to render canvas");
 
       const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // We will scale image slices to full page width
+      // Scale image to full page width
       const imgWidth = pageWidth;
       const imgToPdfScale = imgWidth / canvas.width;
-      const pagePixelHeight = Math.floor(pageHeight / imgToPdfScale); // height in canvas pixels that fits one PDF page
+      const pagePixelHeight = Math.floor(pageHeight / imgToPdfScale);
 
-      // Slice the big canvas into per-page canvases and add each to the PDF
       const totalHeight = canvas.height;
       let y = 0;
       let pageIndex = 0;
+
       while (y < totalHeight) {
         const sliceHeight = Math.min(pagePixelHeight, totalHeight - y);
 
-        // Create an offscreen canvas for the slice
+        // Slice current band from the main canvas
         const sliceCanvas = document.createElement("canvas");
         sliceCanvas.width = canvas.width;
         sliceCanvas.height = sliceHeight;
         const ctx = sliceCanvas.getContext("2d");
-        if (!ctx) throw new Error("Failed to get canvas context");
-
-        // Copy pixels from main canvas
+        if (!ctx) throw new Error("Failed to get 2D context");
         ctx.drawImage(
           canvas,
-          0,
-          y,
-          canvas.width,
-          sliceHeight,
-          0,
-          0,
-          canvas.width,
-          sliceHeight
+          0, y, canvas.width, sliceHeight,
+          0, 0, canvas.width, sliceHeight
         );
 
-        const sliceImgData = sliceCanvas.toDataURL("image/png");
+        const sliceImg = sliceCanvas.toDataURL("image/png");
         const slicePdfHeight = sliceHeight * imgToPdfScale;
 
-        if (pageIndex > 0) {
-          pdf.addPage();
-        }
-        pdf.addImage(sliceImgData, "PNG", 0, 0, imgWidth, slicePdfHeight);
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(sliceImg, "PNG", 0, 0, imgWidth, slicePdfHeight);
 
         y += sliceHeight;
         pageIndex += 1;
@@ -907,9 +958,19 @@ export default function ResumeBuilder() {
 
       pdf.save(`resume_${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.success("PDF downloaded");
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to generate PDF. Please try again.");
+    } catch (err) {
+      console.error(err);
+      // Last-resort fallback to print dialog to avoid user dead-end
+      try {
+        const opened = await openPrintDialogFromPreview();
+        if (opened) {
+          toast.info('Fallback used: Print dialog opened — Save as PDF. Turn OFF "Headers and footers" and turn ON "Background graphics".');
+        } else {
+          toast.error("Failed to generate PDF. Please try again.");
+        }
+      } catch {
+        toast.error("Failed to generate PDF. Please try again.");
+      }
     } finally {
       setIsExporting(false);
     }
