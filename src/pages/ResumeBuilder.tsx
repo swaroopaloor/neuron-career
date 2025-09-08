@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { AuthRedirect } from "@/components/AuthRedirect";
 import { TemplateLibrary } from "@/components/TemplateLibrary";
 import { Download } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 type ResumePersonalInfo = {
   name: string;
@@ -830,6 +832,61 @@ export default function ResumeBuilder() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    setIsExporting(true);
+    try {
+      const source = previewRef.current;
+      if (!source) throw new Error("Preview not ready");
+
+      // Ensure fonts are loaded to avoid layout shifts
+      try {
+        if (document.fonts?.ready && typeof document.fonts.ready.then === "function") {
+          await document.fonts.ready;
+        }
+      } catch {}
+
+      // High-res canvas render of the preview
+      const canvas = await html2canvas(source, {
+        scale: Math.min(2, window.devicePixelRatio || 1.5),
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        windowWidth: source.scrollWidth,
+        windowHeight: source.scrollHeight,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // Maintain aspect ratio
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Add first page
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+
+      // If content exceeds a single page, paginate by shifting the Y offset
+      while (imgHeight - position > pageHeight) {
+        position += pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, -position, imgWidth, imgHeight);
+      }
+
+      pdf.save(`resume_${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("PDF downloaded");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleExportPDF = async () => {
     setIsExporting(true);
     try {
@@ -1003,7 +1060,7 @@ export default function ResumeBuilder() {
           
           <div className="flex items-center gap-3">
             <Button
-              onClick={handleExportPDF}
+              onClick={handleDownloadPDF}
               disabled={isExporting}
               variant="outline"
               className="flex items-center"
@@ -1011,12 +1068,12 @@ export default function ResumeBuilder() {
               {isExporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving PDF...
+                  Generating PDF...
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4 mr-2" />
-                  Save as PDF
+                  Download PDF
                 </>
               )}
             </Button>
