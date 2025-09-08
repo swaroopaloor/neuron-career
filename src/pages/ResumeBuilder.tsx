@@ -74,7 +74,7 @@ const defaultResumeData: ResumeData = {
 
 /* removed local refineText helper; now using Convex action aiResumeProcessor.refineText */
 
-function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement>; variant?: "classic" | "modern" | "minimal" | "technical" }) {
+function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resumeData: ResumeData; containerRef?: React.RefObject<HTMLDivElement>; variant?: "classic" | "modern" | "minimal" | "technical" | "elegant" | "compact" | "creative" | "executive" }) {
   // Style presets by variant
   const containerVariant =
     variant === "modern"
@@ -83,6 +83,14 @@ function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resum
       ? "bg-white text-black p-10 shadow-lg rounded-lg"
       : variant === "technical"
       ? "bg-white text-black p-10 shadow-lg rounded-lg"
+      : variant === "elegant"
+      ? "bg-white text-black p-10 shadow-lg rounded-xl border border-rose-200"
+      : variant === "compact"
+      ? "bg-white text-black p-8 shadow-md rounded-md"
+      : variant === "creative"
+      ? "bg-white text-black p-10 shadow-xl rounded-xl border-2 border-purple-400"
+      : variant === "executive"
+      ? "bg-white text-black p-10 shadow-lg rounded-xl border border-amber-300"
       : "bg-white text-black p-10 shadow-lg rounded-lg";
 
   const headerBorderClass =
@@ -92,6 +100,14 @@ function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resum
       ? "border-b border-gray-200"
       : variant === "technical"
       ? "border-b-2 border-gray-800"
+      : variant === "elegant"
+      ? "border-b-2 border-rose-300"
+      : variant === "compact"
+      ? "border-b border-gray-300"
+      : variant === "creative"
+      ? "border-b-4 border-purple-400"
+      : variant === "executive"
+      ? "border-b-2 border-amber-400"
       : "border-b-2 border-gray-300";
 
   const nameClass =
@@ -101,10 +117,22 @@ function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resum
       ? "text-[26px] font-semibold text-gray-900"
       : variant === "technical"
       ? "text-[26px] font-bold text-gray-900 font-mono"
+      : variant === "elegant"
+      ? "text-[28px] font-semibold tracking-wide text-gray-900"
+      : variant === "compact"
+      ? "text-[24px] font-bold text-gray-900"
+      : variant === "creative"
+      ? "text-[30px] font-extrabold text-gray-900"
+      : variant === "executive"
+      ? "text-[28px] font-semibold tracking-[0.06em] text-gray-900"
       : "text-[28px] font-bold text-gray-900";
 
   const infoTextClass =
-    variant === "technical" ? "text-[12px] text-gray-700 font-mono" : "text-[12px] text-gray-700";
+    variant === "technical"
+      ? "text-[12px] text-gray-700 font-mono"
+      : variant === "compact"
+      ? "text-[11px] text-gray-700"
+      : "text-[12px] text-gray-700";
 
   const sectionTitleClass =
     variant === "modern"
@@ -113,18 +141,44 @@ function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resum
       ? "text-[13px] font-semibold tracking-wide text-gray-800 pb-1 mb-3"
       : variant === "technical"
       ? "text-[13px] font-bold uppercase tracking-[0.18em] text-gray-900 border-b border-gray-800 pb-1 mb-3 font-mono"
+      : variant === "elegant"
+      ? "text-[13px] font-semibold uppercase tracking-[0.12em] text-rose-900 border-b border-rose-300 pb-1 mb-3"
+      : variant === "compact"
+      ? "text-[12px] font-semibold uppercase tracking-[0.1em] text-gray-800 border-b border-gray-300 pb-1 mb-2"
+      : variant === "creative"
+      ? "text-[13px] font-bold uppercase tracking-[0.16em] text-purple-900 border-b-4 border-purple-400 pb-1 mb-3"
+      : variant === "executive"
+      ? "text-[13px] font-semibold uppercase tracking-[0.14em] text-amber-900 border-b border-amber-400 pb-1 mb-3"
       : "text-[14px] font-semibold uppercase tracking-[0.12em] text-gray-800 border-b border-gray-300 pb-1 mb-3";
 
   const jobTitleClass =
-    variant === "technical" ? "text-[14px] font-bold text-gray-900 font-mono" : "text-[14px] font-semibold text-gray-900";
+    variant === "technical"
+      ? "text-[14px] font-bold text-gray-900 font-mono"
+      : variant === "compact"
+      ? "text-[13px] font-semibold text-gray-900"
+      : "text-[14px] font-semibold text-gray-900";
 
   const companyClass = "text-[13px] font-medium text-gray-800";
 
   const durationClass =
-    variant === "modern" ? "text-[12px] text-primary/80" : variant === "technical" ? "text-[12px] text-gray-700 font-mono" : "text-[12px] text-gray-600";
+    variant === "modern"
+      ? "text-[12px] text-primary/80"
+      : variant === "technical"
+      ? "text-[12px] text-gray-700 font-mono"
+      : variant === "creative"
+      ? "text-[12px] text-purple-700"
+      : variant === "elegant"
+      ? "text-[12px] text-rose-700"
+      : variant === "executive"
+      ? "text-[12px] text-amber-700"
+      : "text-[12px] text-gray-600";
 
   const bodyTextClass =
-    variant === "technical" ? "text-[13px] text-gray-800 leading-[1.6] font-mono" : "text-[13px] text-gray-800 leading-[1.6]";
+    variant === "technical"
+      ? "text-[13px] text-gray-800 leading-[1.6] font-mono"
+      : variant === "compact"
+      ? "text-[12.5px] text-gray-800 leading-[1.45]"
+      : "text-[13px] text-gray-800 leading-[1.6]";
 
   const skillTagClass =
     variant === "modern"
@@ -133,6 +187,14 @@ function PreviewPanel({ resumeData, containerRef, variant = "classic" }: { resum
       ? "bg-gray-100 text-gray-800 px-2.5 py-1 rounded-md text-[12px]"
       : variant === "technical"
       ? "bg-black text-white px-2 py-0.5 rounded text-[11px] font-mono"
+      : variant === "elegant"
+      ? "bg-rose-50 text-rose-900 px-2.5 py-1 rounded-full text-[12px] border border-rose-200"
+      : variant === "compact"
+      ? "bg-gray-200 text-gray-900 px-2 py-0.5 rounded text-[11px]"
+      : variant === "creative"
+      ? "bg-purple-100 text-purple-900 px-2.5 py-1 rounded-full text-[12px] border border-purple-300"
+      : variant === "executive"
+      ? "bg-amber-50 text-amber-900 px-2.5 py-1 rounded-full text-[12px] border border-amber-300"
       : "bg-gray-200 text-gray-800 px-2.5 py-1 rounded-full text-[12px]";
 
   return (
@@ -623,7 +685,7 @@ export default function ResumeBuilder() {
   const [isExporting, setIsExporting] = useState(false);
   const [isRefiningSummary, setIsRefiningSummary] = useState(false);
   const [refiningExpIndex, setRefiningExpIndex] = useState<number | null>(null);
-  const [selectedStyle, setSelectedStyle] = useState<"classic" | "modern" | "minimal" | "technical">("classic");
+  const [selectedStyle, setSelectedStyle] = useState<"classic" | "modern" | "minimal" | "technical" | "elegant" | "compact" | "creative" | "executive">("classic");
 
   // Use Groq-backed Convex action for refinement
   const refineTextAI = useAction(api.aiResumeProcessor.refineText);
@@ -878,7 +940,7 @@ export default function ResumeBuilder() {
     }
   };
 
-  const applyStyle = (styleId: "classic" | "modern" | "minimal" | "technical") => {
+  const applyStyle = (styleId: "classic" | "modern" | "minimal" | "technical" | "elegant" | "compact" | "creative" | "executive") => {
     setSelectedStyle(styleId);
     toast.success("Style applied!");
   };
@@ -955,7 +1017,7 @@ export default function ResumeBuilder() {
             </TabsList>
             
             <TabsContent value="editor" className="space-y-6">
-              <TemplateLibrary onSelectStyle={applyStyle} />
+              <TemplateLibrary onSelectStyle={applyStyle} selectedStyle={selectedStyle} />
               <EditorPanel
                 resumeData={resumeData}
                 handlers={{
@@ -993,7 +1055,7 @@ export default function ResumeBuilder() {
             transition={{ delay: 0.1 }}
             className="space-y-6"
           >
-            <TemplateLibrary onSelectStyle={applyStyle} />
+            <TemplateLibrary onSelectStyle={applyStyle} selectedStyle={selectedStyle} />
             <EditorPanel
               resumeData={resumeData}
               handlers={{
