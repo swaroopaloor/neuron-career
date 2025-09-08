@@ -758,7 +758,7 @@ export default function ResumeBuilder() {
     @media print {
       @page {
         size: letter portrait;
-        margin: 0;
+        margin: 0.5in;
       }
       html, body {
         margin: 0 !important;
@@ -782,6 +782,7 @@ export default function ResumeBuilder() {
       color-adjust: exact !important;
       margin: 0;
       padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
     
     /* Root variables */
@@ -789,11 +790,12 @@ export default function ResumeBuilder() {
       ${rootVars}
     }
     
-    /* Container sizing */
+    /* Container sizing - ensure proper layout */
     #print-root {
-      width: 8.5in;
+      width: 7.5in;
       margin: 0 auto;
       box-sizing: border-box;
+      padding: 0;
     }
     
     /* Embedded styles from all stylesheets */
@@ -808,6 +810,204 @@ export default function ResumeBuilder() {
       print-color-adjust: exact !important;
       color-adjust: exact !important;
       box-sizing: border-box;
+    }
+    
+    /* Fix layout issues */
+    #print-root > div {
+      min-height: auto !important;
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0.5in !important;
+    }
+    
+    /* Ensure proper spacing */
+    #print-root .mb-6 {
+      margin-bottom: 1rem !important;
+    }
+    
+    #print-root .mb-4 {
+      margin-bottom: 0.75rem !important;
+    }
+    
+    #print-root .mb-3 {
+      margin-bottom: 0.5rem !important;
+    }
+    
+    #print-root .mb-2 {
+      margin-bottom: 0.25rem !important;
+    }
+    
+    #print-root .mb-1 {
+      margin-bottom: 0.125rem !important;
+    }
+    
+    #print-root .space-y-4 > * + * {
+      margin-top: 1rem !important;
+    }
+    
+    #print-root .space-y-3 > * + * {
+      margin-top: 0.75rem !important;
+    }
+    
+    #print-root .space-y-2 > * + * {
+      margin-top: 0.5rem !important;
+    }
+    
+    #print-root .space-y-1 > * + * {
+      margin-top: 0.25rem !important;
+    }
+    
+    #print-root .gap-2 {
+      gap: 0.5rem !important;
+    }
+    
+    #print-root .gap-3 {
+      gap: 0.75rem !important;
+    }
+    
+    #print-root .gap-4 {
+      gap: 1rem !important;
+    }
+    
+    /* Ensure proper text sizing */
+    #print-root .text-\[30px\] {
+      font-size: 30px !important;
+    }
+    
+    #print-root .text-\[28px\] {
+      font-size: 28px !important;
+    }
+    
+    #print-root .text-\[26px\] {
+      font-size: 26px !important;
+    }
+    
+    #print-root .text-\[24px\] {
+      font-size: 24px !important;
+    }
+    
+    #print-root .text-\[14px\] {
+      font-size: 14px !important;
+    }
+    
+    #print-root .text-\[13px\] {
+      font-size: 13px !important;
+    }
+    
+    #print-root .text-\[12px\] {
+      font-size: 12px !important;
+    }
+    
+    #print-root .text-\[11px\] {
+      font-size: 11px !important;
+    }
+    
+    /* Ensure proper line height */
+    #print-root .leading-\[1\.1\] {
+      line-height: 1.1 !important;
+    }
+    
+    #print-root .leading-\[1\.45\] {
+      line-height: 1.45 !important;
+    }
+    
+    #print-root .leading-\[1\.6\] {
+      line-height: 1.6 !important;
+    }
+    
+    /* Ensure proper padding */
+    #print-root .p-10 {
+      padding: 2.5rem !important;
+    }
+    
+    #print-root .p-8 {
+      padding: 2rem !important;
+    }
+    
+    #print-root .py-1 {
+      padding-top: 0.25rem !important;
+      padding-bottom: 0.25rem !important;
+    }
+    
+    #print-root .px-2 {
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+    
+    #print-root .px-2\.5 {
+      padding-left: 0.625rem !important;
+      padding-right: 0.625rem !important;
+    }
+    
+    #print-root .pb-1 {
+      padding-bottom: 0.25rem !important;
+    }
+    
+    #print-root .pb-4 {
+      padding-bottom: 1rem !important;
+    }
+    
+    /* Ensure proper borders */
+    #print-root .border-b {
+      border-bottom: 1px solid #e5e7eb !important;
+    }
+    
+    #print-root .border-b-2 {
+      border-bottom: 2px solid #e5e7eb !important;
+    }
+    
+    #print-root .border-b-4 {
+      border-bottom: 4px solid #e5e7eb !important;
+    }
+    
+    /* Ensure proper flexbox */
+    #print-root .flex {
+      display: flex !important;
+    }
+    
+    #print-root .items-center {
+      align-items: center !important;
+    }
+    
+    #print-root .justify-center {
+      justify-content: center !important;
+    }
+    
+    #print-root .justify-between {
+      justify-content: space-between !important;
+    }
+    
+    #print-root .flex-wrap {
+      flex-wrap: wrap !important;
+    }
+    
+    /* Ensure proper grid */
+    #print-root .grid {
+      display: grid !important;
+    }
+    
+    #print-root .grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    
+    #print-root .gap-4 {
+      gap: 1rem !important;
+    }
+    
+    /* Ensure proper width constraints */
+    #print-root .max-w-\[8\.5in\] {
+      max-width: 8.5in !important;
+    }
+    
+    #print-root .w-full {
+      width: 100% !important;
+    }
+    
+    /* Remove any transform or animation effects */
+    #print-root * {
+      transform: none !important;
+      animation: none !important;
+      transition: none !important;
     }
   </style>
 </head>
