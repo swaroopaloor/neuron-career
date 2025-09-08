@@ -838,43 +838,71 @@ export default function ResumeBuilder() {
       const source = previewRef.current;
       if (!source) throw new Error("Preview not ready");
 
-      // Ensure fonts are loaded to avoid layout shifts
+      // Ensure fonts are loaded for consistent layout
       try {
         if (document.fonts?.ready && typeof document.fonts.ready.then === "function") {
           await document.fonts.ready;
         }
       } catch {}
 
-      // High-res canvas render of the preview
+      // Force an exact white background and render with foreignObject for better CSS support
       const canvas = await html2canvas(source, {
-        scale: Math.min(2, window.devicePixelRatio || 1.5),
+        scale: Math.min(2, window.devicePixelRatio || 2),
         backgroundColor: "#ffffff",
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
+        foreignObjectRendering: true,
         logging: false,
         windowWidth: source.scrollWidth,
         windowHeight: source.scrollHeight,
       });
 
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
-
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // Maintain aspect ratio
+      // We will scale image slices to full page width
       const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgToPdfScale = imgWidth / canvas.width;
+      const pagePixelHeight = Math.floor(pageHeight / imgToPdfScale); // height in canvas pixels that fits one PDF page
 
-      // Add first page
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      // Slice the big canvas into per-page canvases and add each to the PDF
+      const totalHeight = canvas.height;
+      let y = 0;
+      let pageIndex = 0;
+      while (y < totalHeight) {
+        const sliceHeight = Math.min(pagePixelHeight, totalHeight - y);
 
-      // If content exceeds a single page, paginate by shifting the Y offset
-      while (imgHeight - position > pageHeight) {
-        position += pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, -position, imgWidth, imgHeight);
+        // Create an offscreen canvas for the slice
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeight;
+        const ctx = sliceCanvas.getContext("2d");
+        if (!ctx) throw new Error("Failed to get canvas context");
+
+        // Copy pixels from main canvas
+        ctx.drawImage(
+          canvas,
+          0,
+          y,
+          canvas.width,
+          sliceHeight,
+          0,
+          0,
+          canvas.width,
+          sliceHeight
+        );
+
+        const sliceImgData = sliceCanvas.toDataURL("image/png");
+        const slicePdfHeight = sliceHeight * imgToPdfScale;
+
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(sliceImgData, "PNG", 0, 0, imgWidth, slicePdfHeight);
+
+        y += sliceHeight;
+        pageIndex += 1;
       }
 
       pdf.save(`resume_${new Date().toISOString().slice(0, 10)}.pdf`);
