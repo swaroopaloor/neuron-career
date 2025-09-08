@@ -701,6 +701,18 @@ export default function ResumeBuilder() {
       .map((el) => (el as HTMLElement).outerHTML)
       .join("\n");
 
+    // Clone current HTML classes (e.g., dark) and CSS variables to ensure identical theming
+    const htmlClassList = document.documentElement.className;
+    const computed = getComputedStyle(document.documentElement);
+    let rootVars = "";
+    for (let i = 0; i < computed.length; i++) {
+      const name = computed[i];
+      if (name.startsWith("--")) {
+        rootVars += `${name}: ${computed.getPropertyValue(name)};`;
+      }
+    }
+    const copiedVarsStyle = `<style id="copied-root-vars">:root{${rootVars}}</style>`;
+
     // Create hidden iframe
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
@@ -720,19 +732,21 @@ export default function ResumeBuilder() {
     // Inject the preview HTML exactly as-is; no wrappers, no extra layout CSS
     const html = `
 <!doctype html>
-<html>
+<html class="${htmlClassList}">
   <head>
     <meta charset="utf-8" />
     ${headHtml}
+    ${copiedVarsStyle}
     <style>
       @media print {
         @page {
+          size: letter portrait;
           margin: 0;
-          size: letter;
         }
         html, body {
           margin: 0 !important;
           padding: 0 !important;
+          height: auto !important;
         }
         * {
           -webkit-print-color-adjust: exact !important;
@@ -745,12 +759,19 @@ export default function ResumeBuilder() {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
+      /* Force exact resume canvas sizing and remove any viewport scaling */
+      #print-root {
+        width: 8.5in;
+        margin: 0 auto;
+      }
       * { box-sizing: border-box; }
     </style>
     <title></title>
   </head>
   <body>
-    ${source.outerHTML}
+    <div id="print-root">
+      ${source.outerHTML}
+    </div>
   </body>
 </html>`.trim();
 
