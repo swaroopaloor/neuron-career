@@ -672,7 +672,6 @@ export default function ResumeBuilder() {
           margin: 0 !important;
           padding: 0 !important;
         }
-        /* Hide browser headers/footers */
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
@@ -686,6 +685,7 @@ export default function ResumeBuilder() {
       }
       * { box-sizing: border-box; }
     </style>
+    <title></title>
   </head>
   <body>
     ${source.outerHTML}
@@ -702,12 +702,10 @@ export default function ResumeBuilder() {
       // Wait for resources (fonts/images) to load to avoid layout shifts
       const waitForReady = async () => {
         try {
-          // fonts
           if (win?.document?.fonts && typeof win.document.fonts.ready?.then === "function") {
             await win.document.fonts.ready;
           }
         } catch {}
-        // images
         await new Promise<void>((resolve) => {
           if (!win) return resolve();
           const images = Array.from(win.document.images || []);
@@ -719,29 +717,19 @@ export default function ResumeBuilder() {
             img.addEventListener("load", done);
             img.addEventListener("error", done);
           });
-          // safety timeout
           setTimeout(resolve, 800);
         });
       };
 
       await waitForReady();
 
-      // Try printing (parent-triggered) after resources are ready
-      const tryPrint = () => {
-        if (!win) return;
+      // Trigger print exactly once (no onload fallback)
+      if (win) {
         try {
           win.focus();
           win.print();
         } catch {}
-      };
-
-      // Fallback: also attempt on iframe load
-      iframe.onload = () => {
-        tryPrint();
-      };
-
-      // Attempt now
-      tryPrint();
+      }
 
       // Cleanup
       window.setTimeout(() => {
@@ -764,7 +752,7 @@ export default function ResumeBuilder() {
     try {
       const opened = await openPrintDialogFromPreview();
       if (opened) {
-        toast.info('Print dialog opened — Save as PDF. IMPORTANT: Uncheck "Headers and footers" and check "Background graphics" for a clean resume.');
+        toast.info('Print dialog opened — Save as PDF. IMPORTANT: Turn OFF "Headers and footers" and turn ON "Background graphics" for a clean resume.');
       } else {
         toast.error("Unable to open print dialog. Please try again.");
       }
