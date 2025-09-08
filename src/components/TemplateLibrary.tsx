@@ -90,6 +90,9 @@ function previewClasses(id: StyleId) {
 }
 
 export function TemplateLibrary({ onSelectStyle, selectedStyle }: TemplateLibraryProps) {
+  // Show only the currently selected template
+  const currentTemplate = templates.find((t) => t.id === selectedStyle) ?? templates[0];
+
   return (
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -113,44 +116,58 @@ export function TemplateLibrary({ onSelectStyle, selectedStyle }: TemplateLibrar
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {templates.map((template) => (
-            <button
-              key={template.id}
-              className={`border rounded-lg p-4 hover:shadow-md transition-shadow text-left ${
-                selectedStyle === template.id ? "ring-2 ring-primary" : ""
-              }`}
-              onClick={() => onSelectStyle(template.id)}
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  {template.icon}
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold mb-1">{template.name}</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {template.description}
-                  </p>
-                  <div className={`bg-white rounded-md p-2 ${previewClasses(template.id)}`}>
-                    <div className="h-2 w-24 bg-gray-900/80 rounded mb-2" />
-                    <div className="space-y-1">
-                      <div className="h-1.5 w-40 bg-gray-700/50 rounded" />
-                      <div className="h-1.5 w-36 bg-gray-700/40 rounded" />
-                      <div className="h-1.5 w-28 bg-gray-700/30 rounded" />
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      <div className="h-4 w-12 bg-gray-300 rounded-full" />
-                      <div className="h-4 w-10 bg-gray-300 rounded-full" />
-                      <div className="h-4 w-14 bg-gray-300 rounded-full" />
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" className="w-full mt-3">
-                    Use Style
-                  </Button>
-                </div>
+        {/* Single, focused preview for the selected style */}
+        <div className="w-full">
+          <div
+            className={`border rounded-lg p-5 hover:shadow-md transition-shadow text-left ring-1 ring-border bg-card ${selectedStyle === currentTemplate.id ? "ring-2 ring-primary" : ""}`}
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                {currentTemplate.icon}
               </div>
-            </button>
-          ))}
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">{currentTemplate.name}</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {currentTemplate.description}
+                </p>
+
+                {/* Larger visual example of how the resume looks */}
+                <div className={`bg-white rounded-md p-4 ${previewClasses(currentTemplate.id)}`}>
+                  {/* Header bar (name) */}
+                  <div className="h-3 w-48 bg-gray-900/80 rounded mb-3" />
+                  {/* Contact lines */}
+                  <div className="space-y-1.5 mb-3">
+                    <div className="h-2 w-64 bg-gray-700/40 rounded" />
+                    <div className="h-2 w-56 bg-gray-700/30 rounded" />
+                  </div>
+                  {/* Section title */}
+                  <div className="h-2.5 w-40 bg-gray-800/70 rounded mb-2" />
+                  {/* Body paragraphs */}
+                  <div className="space-y-1.5 mb-3">
+                    <div className="h-2 w-72 bg-gray-700/40 rounded" />
+                    <div className="h-2 w-64 bg-gray-700/30 rounded" />
+                    <div className="h-2 w-60 bg-gray-700/20 rounded" />
+                  </div>
+                  {/* Skills tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <div className="h-5 w-16 bg-gray-300 rounded-full" />
+                    <div className="h-5 w-14 bg-gray-300 rounded-full" />
+                    <div className="h-5 w-20 bg-gray-300 rounded-full" />
+                    <div className="h-5 w-12 bg-gray-300 rounded-full" />
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => onSelectStyle(currentTemplate.id)}
+                >
+                  Use "{currentTemplate.name}"
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
